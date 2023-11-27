@@ -66,7 +66,7 @@ fn lgamma_correction[
     )
     alias xmax: SIMD[dtype, simd_width] = math.reciprocal(12.0 * FloatLimits[dtype].min)
 
-    # We obtain the coefficients of the Chebyshev approximation of the correction term
+    # The coefficients for the Chebyshev approximation of this correction were obtained
     # using the Python library `mpmath`.
     alias p = Chebyshev[15, dtype, simd_width].from_coefficients[
         8.331170390906488010133812318436e-2,
