@@ -1,4 +1,4 @@
-_⚠️ Specials is currently under development. We're continually working to expand it and improve its performance and reliability._
+_⚠️ Specials is under development. We are working to expand it and improve its performance and reliability, prioritizing quality over time to market._
 
 # Welcome to Specials
 
@@ -12,6 +12,8 @@ We can give some examples of special function applications in AI:
 
 - Using numerical methods for [Bessel](https://en.wikipedia.org/wiki/Bessel_function), [incomplete beta](https://en.wikipedia.org/wiki/Beta_function#Incomplete_beta_function), and [incomplete gamma](https://en.wikipedia.org/wiki/Incomplete_gamma_function) functions, we can implicitly differentiate [[1](#figurnov2018)] cumulative distribution functions that are expressed in terms of these special functions, and then train probabilistic models with, for instance, von Mises, gamma, and beta latent variables.
 
+Recognizing the relevance of special functions in the field, major AI frameworks provide implementations for many of them. Both PyTorch and Jax include dedicated modules, namely [`torch.special`](https://pytorch.org/docs/stable/special.html) and [`jax.scipy.special`](https://jax.readthedocs.io/en/latest/jax.scipy.html#module-jax.scipy.special). On the other hand, TensorFlow and TensorFlow Probability incorporate them into their mathematical functions APIs, accessible through [`tf.math`](https://www.tensorflow.org/api_docs/python/tf/math) and [`tfp.math`](https://www.tensorflow.org/probability/api_docs/python/tfp/math). It is important to note that, for many of these functions, these frameworks still do not support partial derivatives with respect to all their arguments.
+
 ## Why Mojo 🔥 for Specials?
 
 By adopting the Mojo programming language, Specials enhances the implementation of special functions with several key advantages:
@@ -22,12 +24,35 @@ By adopting the Mojo programming language, Specials enhances the implementation 
 
 - **Enabling Highly Accurate and Optimized Implementations.** Mojo opens the door to state-of-the-art numerical methods for a wide range of special functions. Implementing these methods in frameworks like TensorFlow and PyTorch can be a challenging task. See my own experience [here](https://github.com/tensorflow/probability/pulls?q=is%3Apr+is%3Aclosed+author%3Aleandrolcampos+%28betainc+OR+cdf+in%3Atitle%29+created%3A%3E2022-05-01) contributing some special functions implementations to TensorFlow Probability: I found writing them in terms of primitive operators available in Python less complex than dealing with multiple backends in C++. Mojo simplifies this process, providing a unified solution that enables Specials to fully leverage vectors, threads, and AI hardware units.
 
-With Mojo and Specials, AI researchers and developers can seamlessly integrate special functions into their projects, obtaining both usability and performance.
+With Mojo and Specials, AI developers and researchers can use special functions to build powerful machine learning models, achieving not only numerical accuracy and stability but also performance.
+
+## Why the Focus on Special Functions?
+
+Beyond the practical importance of special functions in scientific and industrial applications, finding accurate and efficient ways to work with them can be an enjoyable brain-teaser for those who love math and computer science.
+
+## Example Usage
+
+> 💡 See the notebook [The log-beta function in Specials](./lbeta_function.ipynb) for a detailed introduction to Specials.
+
+The following code snippet shows how to compute the log-beta function for given SIMD vectors:
+
+```python
+>>> import specials
+>>> let x = SIMD[DType.float64, 4](0.1, 8.0, 30.0, 1e10)
+>>> let y = SIMD[DType.float64, 4](3.0, 1.0, 10.0, 1e-10)
+>>> let res = specials.lbeta(x, y)
+>>> print(res)
+[2.1584847490202885, -2.0794415416798362, -22.572893813393978, 23.025850927580152]
+```
+
+## Contributing
+
+We are not accepting pull requests at this time. However, you can contribute by reporting issues or suggesting features through the creation of a GitHub issue [here](https://github.com/leandrolcampos/specials/issues).
 
 ## References
 
-<a id="figurnov2018">[1]</a>
+[<a id="figurnov2018">1</a>]
 Figurnov, Mikhail, Shakir Mohamed, and Andriy Mnih. "Implicit reparameterization gradients." _Advances in neural information processing systems_ 31 (2018). [[Link](https://arxiv.org/abs/1805.08498)]
 
-<a id="hendrycks2016">[2]</a>
+[<a id="hendrycks2016">2</a>]
 Hendrycks, Dan, and Kevin Gimpel. "Gaussian error linear units (gelus)." _arXiv preprint arXiv:1606.08415_ (2016). [[Link](https://arxiv.org/abs/1606.08415)]
