@@ -176,8 +176,8 @@ fn lbeta[
     )
     result = math.select(a >= 8.0, result_for_large_a, result)
 
-    # This procedure is only defined for non-negative arguments. The other special cases
-    # are the same as those of the corresponding procedure in the R language.
+    # This procedure computes the log-beta function for positive arguments. For other
+    # cases, it returns the same values as the corresponding procedure in the R language.
     return math.select(
         (a < 0.0) | math.isnan(x) | math.isnan(y),
         nan,
