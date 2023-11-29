@@ -92,7 +92,7 @@ fn lgamma_correction[
     alias p_truncated = p.truncate[num_terms]()
 
     return math.select(
-        x < xmin or math.isnan(x),
+        (x < xmin) | math.isnan(x),
         nan,
         math.select(
             x < xbig,

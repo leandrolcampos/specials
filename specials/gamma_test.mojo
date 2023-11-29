@@ -48,11 +48,17 @@ fn test_lgamma_correction_edge_cases() raises:
     let inf = math.limit.inf[DType.float64]()
     let nan = math.nan[DType.float64]()
     let zero = SIMD[DType.float64, 1](0.0)
+    let x = SIMD[DType.float64, 4](nan, -inf, zero, inf)
 
-    _ = testing.assert_true(math.isnan(specials.lgamma_correction(nan)))
-    _ = testing.assert_true(math.isnan(specials.lgamma_correction(-inf)))
-    _ = testing.assert_true(math.isnan(specials.lgamma_correction(zero)))
-    _ = testing.assert_equal(zero, specials.lgamma_correction(inf))
+    let expected = SIMD[DType.float64, 4](nan, nan, nan, zero)
+    let actual = specials.lgamma_correction(x)
+
+    # Here NaNs are compared like numbers and no assertion is raised if both objects
+    # have NaNs in the same positions.
+    let result = (
+        (math.isnan(actual) & math.isnan(actual)) | (actual == expected)
+    ).reduce_and()
+    _ = testing.assert_true(result)
 
 
 fn test_lbeta() raises:
