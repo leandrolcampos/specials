@@ -270,8 +270,8 @@ fn run_benchmark[
     scalar: SIMD[dtype, 1],
     num_warmup: Int = 2,
     max_iters: Int = 100_000,
-    min_time_secs: SIMD[DType.float64, 1] = 0.5,
-    max_time_secs: SIMD[DType.float64, 1] = 1.0,
+    min_runtime_secs: SIMD[DType.float64, 1] = 0.5,
+    max_runtime_secs: SIMD[DType.float64, 1] = 1,
 ) -> benchmark.Report:
     """Runs a benchmark for an elementwise operation on a tensor and a scalar.
 
@@ -292,8 +292,8 @@ fn run_benchmark[
         num_warmup: Number of warmup iterations to run before starting benchmarking
             (default `2`).
         max_iters: Max number of iterations to run (default `100_000`).
-        min_time_secs: Lower bound on benchmarking time in secs (default `0.5`).
-        max_time_secs: Upper bound on benchmarking time in secs (default `1.0`).
+        min_runtime_secs: Lower bound on benchmarking time in secs (default `0.5`).
+        max_runtime_secs: Upper bound on benchmarking time in secs (default `1`).
 
     Returns:
         A report containing statistics of the benchmark.
@@ -311,8 +311,8 @@ fn run_benchmark[
     return benchmark.run[test_fn](
         num_warmup=num_warmup,
         max_iters=max_iters,
-        min_time_secs=min_time_secs,
-        max_time_secs=max_time_secs,
+        min_runtime_secs=min_runtime_secs,
+        max_runtime_secs=max_runtime_secs,
     )
 
 
@@ -326,13 +326,13 @@ fn run_benchmark[
     y: Tensor[dtype],
     num_warmup: Int = 2,
     max_iters: Int = 100_000,
-    min_time_secs: SIMD[DType.float64, 1] = 0.5,
-    max_time_secs: SIMD[DType.float64, 1] = 1.0,
+    min_runtime_secs: SIMD[DType.float64, 1] = 0.5,
+    max_runtime_secs: SIMD[DType.float64, 1] = 1,
 ) raises -> benchmark.Report:
     """Runs a benchmark for an elementwise operation on two tensors.
 
-    Benchmarking continues until `min_time_secs` has elapsed and either `max_time_secs`
-    OR `max_iters` is achieved.
+    Benchmarking continues until `min_runtime_secs` has elapsed and either `max_iters`
+    OR `max_runtime_secs` is achieved.
 
     Parameters:
         func: The binary operator to apply to the inputs. This is the function that will
@@ -348,8 +348,8 @@ fn run_benchmark[
         num_warmup: Number of warmup iterations to run before starting benchmarking
             (default `2`).
         max_iters: Max number of iterations to run (default `100_000`).
-        min_time_secs: Lower bound on benchmarking time in secs (default `0.5`).
-        max_time_secs: Upper bound on benchmarking time in secs (default `1.0`).
+        min_runtime_secs: Lower bound on benchmarking time in secs (default `0.5`).
+        max_runtime_secs: Upper bound on benchmarking time in secs (default `1`).
 
     Returns:
         A report containing statistics of the benchmark.
@@ -373,8 +373,8 @@ fn run_benchmark[
     return benchmark.run[test_fn](
         num_warmup=num_warmup,
         max_iters=max_iters,
-        min_time_secs=min_time_secs,
-        max_time_secs=max_time_secs,
+        min_runtime_secs=min_runtime_secs,
+        max_runtime_secs=max_runtime_secs,
     )
 
 

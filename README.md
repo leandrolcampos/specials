@@ -30,6 +30,10 @@ With Mojo and Specials, AI developers and researchers can use special functions 
 
 Beyond the practical importance of special functions in scientific and industrial applications, finding accurate and efficient ways to work with them can be an enjoyable brain-teaser for those who love math and computer science.
 
+## Mojo Version Requirement
+
+Specials requires Mojo `v0.6.0`. Make sure you have the correct Mojo version installed before using it.
+
 ## Example Usage
 
 > 💡 See the notebook [The log-beta function in Specials](./lbeta_function.ipynb) for a detailed introduction to Specials.
