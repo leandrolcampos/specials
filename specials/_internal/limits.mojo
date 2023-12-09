@@ -91,7 +91,7 @@ fn _min_impl[dtype: DType]() -> SIMD[dtype, 1]:
     alias minexp = _minexp_impl[dtype]()
     # TODO: Use `math.exp2` when its accuracy loss is fixed.
     # https://github.com/modularml/mojo/issues/1235
-    return math.reciprocal(math.pow[dtype, 1](2.0, -minexp))
+    return math.ldexp[dtype, 1](1.0, minexp)
 
 
 fn _max_impl[dtype: DType]() -> SIMD[dtype, 1]:
@@ -100,7 +100,7 @@ fn _max_impl[dtype: DType]() -> SIMD[dtype, 1]:
     alias maxexp = _maxexp_impl[dtype]()
     # TODO: Use `math.exp2` when its accuracy loss is fixed.
     # https://github.com/modularml/mojo/issues/1235
-    return 2.0 * (1.0 - epsneg) * math.pow[dtype, 1](2.0, maxexp - 1)
+    return 2.0 * (1.0 - epsneg) * math.ldexp[dtype, 1](1.0, maxexp - 1)
 
 
 @register_passable("trivial")

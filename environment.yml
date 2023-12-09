@@ -1,7 +1,7 @@
 # To use:
 #
 #   $ conda env create -f environment.yml
-#   $ conda activate specials-dev
+#   $ conda activate specials
 #
 # To automatically set Mojo to use the Python environment when you activate it:
 #
@@ -12,7 +12,7 @@
 #   $ mkdir -p $CONDA_PREFIX/etc/conda/deactivate.d
 #   $ echo "unset MOJO_PYTHON_LIBRARY" > $CONDA_PREFIX/etc/conda/deactivate.d/unset-mojo.sh
 #
-name: specials-dev
+name: specials
 channels:
   - conda-forge
   - defaults
@@ -28,4 +28,4 @@ dependencies:
       - tensorflow-probability==0.22.1
       # For testing
       - pytest>=7.4.*
-      - git+https://github.com/guidorice/mojo-pytest.git
+      - git+https://github.com/guidorice/mojo-pytest.git@v0.6.0#egg=pytest-mojo

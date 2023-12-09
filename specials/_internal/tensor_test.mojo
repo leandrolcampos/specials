@@ -24,6 +24,7 @@ from algorithm import vectorize
 from sys.info import simdwidthof
 
 from specials._internal.tensor import elementwise
+from specials._internal.testing import UnitTest
 
 
 fn test_elemwise_tensor_scalar[
@@ -35,8 +36,7 @@ fn test_elemwise_tensor_scalar[
     let y = SIMD[dtype, 1](1.5)
     let res = elementwise[math.add, force_sequential=force_sequential](x, y)
 
-    print("# test_elemwise_tensor_scalar_" + x.spec().__str__())
-
+    let unit_test = UnitTest("test_elemwise_tensor_scalar_" + str(x.spec()))
     let rtol: SIMD[dtype, 1]
 
     @parameter
@@ -47,7 +47,7 @@ fn test_elemwise_tensor_scalar[
 
     # The for loop is simple, direct, and so, good for testing.
     for i in range(x.num_elements()):
-        _ = testing.assert_almost_equal(x[i] + y, res[i], 0.0, rtol)
+        unit_test.assert_almost_equal(x[i] + y, res[i], 0.0, rtol)
 
 
 fn test_elemwise_tensor_tensor[
@@ -59,8 +59,7 @@ fn test_elemwise_tensor_tensor[
     let y = random.rand[dtype](x.shape())
     let res = elementwise[math.add, force_sequential=force_sequential](x, y)
 
-    print("# test_elemwise_tensor_tensor_" + x.spec().__str__())
-
+    let unit_test = UnitTest("test_elemwise_tensor_tensor_" + str(x.spec()))
     let rtol: SIMD[dtype, 1]
 
     @parameter
@@ -71,7 +70,7 @@ fn test_elemwise_tensor_tensor[
 
     # The for loop is simple, direct, and so, good for testing.
     for i in range(x.num_elements()):
-        _ = testing.assert_almost_equal(x[i] + y[i], res[i], 0.0, rtol)
+        unit_test.assert_almost_equal(x[i] + y[i], res[i], 0.0, rtol)
 
 
 fn main() raises:

@@ -21,11 +21,13 @@ import testing
 
 import specials
 
+from specials._internal.testing import UnitTest
+
 # TODO: Add tests with `DType.float32` data type.
 
 
 fn test_lgamma_correction() raises:
-    print("# test_lgamma_correction")
+    let unit_test = UnitTest("test_lgamma_correction")
 
     let x = SIMD[DType.float64, 4](10.0, 100.0, 1000.0, 10000.0)
 
@@ -37,13 +39,13 @@ fn test_lgamma_correction() raises:
         8.333333330555555563492063432540e-6,
     )
 
-    _ = testing.assert_almost_equal[DType.float64, 4](
+    unit_test.assert_almost_equal[DType.float64, 4](
         expected, specials.lgamma_correction(x), 0.0, 1e-12
     )
 
 
 fn test_lgamma_correction_edge_cases() raises:
-    print("# test_lgamma_correction_edge_cases")
+    let unit_test = UnitTest("test_lgamma_correction_edge_cases")
 
     let inf = math.limit.inf[DType.float64]()
     let nan = math.nan[DType.float64]()
@@ -58,11 +60,11 @@ fn test_lgamma_correction_edge_cases() raises:
     let result = (
         (math.isnan(actual) & math.isnan(actual)) | (actual == expected)
     ).reduce_and()
-    _ = testing.assert_true(result)
+    unit_test.assert_true(result, "Some of the results are incorrect.")
 
 
 fn test_lbeta() raises:
-    print("# test_lbeta")
+    let unit_test = UnitTest("test_lbeta")
 
     let x = SIMD[DType.float64, 4](1.0, 8.0, 1e-5, 1e4)
     let y = SIMD[DType.float64, 4](7.0, 8.0, 1e10, 1e5)
@@ -75,16 +77,16 @@ fn test_lbeta() raises:
         -33513.609276569981795,
     )
 
-    _ = testing.assert_almost_equal[DType.float64, 4](
+    unit_test.assert_almost_equal[DType.float64, 4](
         expected, specials.lbeta(x, y), 0.0, 1e-12
     )
-    _ = testing.assert_almost_equal[DType.float64, 4](
+    unit_test.assert_almost_equal[DType.float64, 4](
         expected, specials.lbeta(y, x), 0.0, 1e-12
     )
 
 
 fn test_lbeta_edge_cases() raises:
-    print("# test_lbeta_edge_cases")
+    let unit_test = UnitTest("test_lbeta_edge_cases")
 
     let neg = SIMD[DType.float64, 1](-1.0)
     let inf = math.limit.inf[DType.float64]()
@@ -101,7 +103,7 @@ fn test_lbeta_edge_cases() raises:
     let result = (
         (math.isnan(actual) & math.isnan(actual)) | (actual == expected)
     ).reduce_and()
-    _ = testing.assert_true(result)
+    unit_test.assert_true(result, "Some of the results are incorrect.")
 
 
 fn main() raises:
