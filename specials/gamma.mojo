@@ -27,7 +27,7 @@ from ._internal import asserting
 from ._internal.functional import fori_loop
 from ._internal.limits import FloatLimits
 from ._internal.math import log
-from .polynomial import Chebyshev, chebyshev_eval, chebyshev_init
+from .polynomial import Chebyshev
 
 
 fn lgamma_correction[
@@ -85,10 +85,8 @@ fn lgamma_correction[
         -6.60403655947600591725440741065e-28,
         3.490467256080184812261246362399e-29,
     ]()
-    alias requested_accuracy = FloatLimits[dtype].epsneg
-    alias num_terms = chebyshev_init[
-        p.num_terms, dtype, simd_width, p, requested_accuracy
-    ]()
+    alias error_tolerance = FloatLimits[dtype].epsneg
+    alias num_terms = p.economize[error_tolerance]()
     alias p_truncated = p.truncate[num_terms]()
 
     return math.select(
@@ -96,7 +94,7 @@ fn lgamma_correction[
         nan,
         math.select(
             x < xbig,
-            chebyshev_eval(p_truncated, 2.0 * math.pow(xmin / x, 2) - 1.0) / x,
+            p_truncated(2.0 * math.pow(xmin / x, 2) - 1.0) / x,
             math.select(
                 x < xmax,
                 math.reciprocal(12.0 * x),
