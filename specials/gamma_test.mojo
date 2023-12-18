@@ -21,6 +21,7 @@ import testing
 
 import specials
 
+from specials._internal.limits import FloatLimits
 from specials._internal.testing import UnitTest
 
 # TODO: Add tests with `DType.float32` data type.
@@ -54,6 +55,74 @@ fn test_lgamma_correction_edge_cases() raises:
 
     let expected = SIMD[DType.float64, 4](nan, nan, nan, zero)
     let actual = specials.lgamma_correction(x)
+
+    # Here NaNs are compared like numbers and no assertion is raised if both objects
+    # have NaNs in the same positions.
+    let result = (
+        (math.isnan(actual) & math.isnan(actual)) | (actual == expected)
+    ).reduce_and()
+    unit_test.assert_true(result, "Some of the results are incorrect.")
+
+
+fn test_lgamma1p_region1[dtype: DType]() raises:
+    let unit_test = UnitTest("test_lgamma1p_region1_" + str(dtype))
+
+    alias eps_f32 = FloatLimits[DType.float32].eps.cast[dtype]()
+    let x = SIMD[dtype, 4](-0.2, 0.0 - eps_f32, 0.0 + eps_f32, 0.60 - eps_f32)
+
+    # The expected values were computed using `mpmath`.
+    let expected = SIMD[dtype, 4](
+        1.520596783998375994920398994673e-1,
+        6.880948101845375157827140831409e-8,
+        -6.88094576425347115116354810460e-8,
+        -1.12591780722776981673572240680e-1,
+    )
+
+    let rtol: SIMD[dtype, 1]
+
+    @parameter
+    if dtype == DType.float32:
+        rtol = 1e-6
+    else:  # dtype == DType.float64
+        rtol = 1e-12
+
+    unit_test.assert_almost_equal[dtype, 4](expected, specials.lgamma1p(x), 0.0, rtol)
+
+
+fn test_lgamma1p_region2[dtype: DType]() raises:
+    let unit_test = UnitTest("test_lgamma1p_region2_" + str(dtype))
+
+    alias eps_f32 = FloatLimits[DType.float32].eps.cast[dtype]()
+    let x = SIMD[dtype, 4](0.6, 1.0 - eps_f32, 1.0 + eps_f32, 1.25)
+
+    # The expected values were computed using `mpmath`.
+    let expected = SIMD[dtype, 4](
+        -1.12591765696755786387475561192e-1,
+        -5.03998156377554207114124403668e-8,
+        5.039982480281974557594367601653e-8,
+        1.248717148923965943024412876132e-1,
+    )
+
+    let rtol: SIMD[dtype, 1]
+
+    @parameter
+    if dtype == DType.float32:
+        rtol = 1e-6
+    else:  # dtype == DType.float64
+        rtol = 1e-12
+
+    unit_test.assert_almost_equal[dtype, 4](expected, specials.lgamma1p(x), 0.0, rtol)
+
+
+fn test_lgamma1p_edge_cases[dtype: DType]() raises:
+    let unit_test = UnitTest("test_lgamma1p_edge_cases_" + str(dtype))
+
+    let inf = math.limit.inf[dtype]()
+    let nan = math.nan[dtype]()
+    let x = SIMD[dtype, 4](nan, -1.0, 0.0, inf)
+
+    let expected = math.lgamma(1.0 + x)
+    let actual = specials.lgamma1p(x)
 
     # Here NaNs are compared like numbers and no assertion is raised if both objects
     # have NaNs in the same positions.
@@ -107,10 +176,20 @@ fn test_lbeta_edge_cases() raises:
 
 
 fn main() raises:
-    # log-gamma correction
+    # lgamma_correction
     test_lgamma_correction()
     test_lgamma_correction_edge_cases()
 
-    # log-beta function
+    # lgamma1p
+    test_lgamma1p_region1[DType.float32]()
+    test_lgamma1p_region1[DType.float64]()
+
+    test_lgamma1p_region2[DType.float32]()
+    test_lgamma1p_region2[DType.float64]()
+
+    test_lgamma1p_edge_cases[DType.float32]()
+    test_lgamma1p_edge_cases[DType.float64]()
+
+    # lbeta
     test_lbeta()
     test_lbeta_edge_cases()
