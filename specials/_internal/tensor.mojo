@@ -29,6 +29,11 @@ from tensor import Tensor
 
 from .asserting import assert_float_dtype
 
+alias UnaryOperator = fn[dtype: DType, simd_width: Int] (
+    SIMD[dtype, simd_width]
+) -> SIMD[dtype, simd_width]
+"""Signature of a function that performs an elementwise operation on a single SIMD vector."""
+
 alias BinaryOperator = fn[dtype: DType, simd_width: Int] (
     SIMD[dtype, simd_width], SIMD[dtype, simd_width]
 ) -> SIMD[dtype, simd_width]
@@ -36,6 +41,74 @@ alias BinaryOperator = fn[dtype: DType, simd_width: Int] (
 
 
 # ===---------------------------- elementwise -----------------------------=== #
+
+
+fn _elementwise_impl[
+    func: UnaryOperator,
+    dtype: DType,
+    simd_width: Int,
+    force_sequential: Bool,
+](x: Tensor[dtype], inout result: Tensor[dtype]) -> None:
+    """Implements the elementwise operation on a tensor."""
+    let num_elements = x.num_elements()
+    var remaining_elements = num_elements
+    var first_remaining_element = 0
+
+    @parameter
+    if not force_sequential:
+        let num_worker = num_cores()
+        let num_work_items = num_worker
+        let num_simds_per_work_item = (num_elements // simd_width) // num_work_items
+
+        # TODO: This threshold is a heuristic. We should use Mojo's autotuning.
+        let parallel_threshold: Int
+        if dtype == DType.float32:
+            parallel_threshold = 16_384 // num_worker
+        else:  # dtype == DType.float64
+            parallel_threshold = 8_192 // num_worker
+
+        if (
+            num_elements >= parallel_threshold
+            and num_simds_per_work_item >= 1
+            and num_worker >= 2
+        ):
+            let num_elements_per_work_item = num_simds_per_work_item * simd_width
+            remaining_elements -= num_simds_per_work_item * num_work_items * simd_width
+
+            @parameter
+            fn execute_work_item(work_item_id: Int):
+                let first_element = work_item_id * num_elements_per_work_item
+
+                @parameter
+                fn subtask_func[simd_width: Int](index: Int):
+                    let index_shifted = first_element + index
+
+                    result.simd_store[simd_width](
+                        index_shifted,
+                        func[dtype, simd_width](x.simd_load[simd_width](index_shifted)),
+                    )
+
+                vectorize[simd_width, subtask_func](num_elements_per_work_item)
+
+            parallelize[execute_work_item](num_work_items, num_worker)
+
+        # Calculate the starting index for the remaining elements.
+        first_remaining_element = num_elements - remaining_elements
+
+    # Process the remaining elements sequentially.
+
+    if remaining_elements > 0:
+
+        @parameter
+        fn body_func[simd_width: Int](index: Int):
+            let index_shifted = first_remaining_element + index
+
+            result.simd_store[simd_width](
+                index_shifted,
+                func[dtype, simd_width](x.simd_load[simd_width](index_shifted)),
+            )
+
+        vectorize[simd_width, body_func](remaining_elements)
 
 
 fn _elementwise_impl[
@@ -187,12 +260,44 @@ fn _elementwise_impl[
 
 
 fn elementwise[
+    func: UnaryOperator,
+    dtype: DType,
+    simd_width: Int = simdwidthof[dtype](),
+    force_sequential: Bool = False,
+](x: Tensor[dtype]) -> Tensor[dtype]:
+    """Applies an unary operator to a tensor element-wise.
+
+    Parameters:
+        func: The unary operator to apply to the input.
+        dtype: The input and output data type.
+        simd_width: The SIMD vector width to use. Defaults to the vector size of
+            the data type on the host system.
+        force_sequential: Whether to force sequential execution (default `False`).
+
+    Args:
+        x: The tensor.
+
+    Returns:
+        The result of applying the unary operator to the input.
+
+    Constraints:
+        The data type must be a floating-point of single or double precision.
+    """
+    assert_float_dtype["dtype", dtype]()
+
+    var result = Tensor[dtype](x.shape())
+    _elementwise_impl[func, dtype, simd_width, force_sequential](x, result)
+
+    return result
+
+
+fn elementwise[
     func: BinaryOperator,
     dtype: DType,
     simd_width: Int = simdwidthof[dtype](),
     force_sequential: Bool = False,
 ](x: Tensor[dtype], scalar: SIMD[dtype, 1]) -> Tensor[dtype]:
-    """Performs an elementwise operation on a tensor and a scalar.
+    """Applies a binary operator to a tensor and a scalar element-wise.
 
     Parameters:
         func: The binary operator to apply to the inputs.
@@ -209,8 +314,7 @@ fn elementwise[
         The result of applying the binary operator to the inputs.
 
     Constraints:
-        The data type must be a floating-point of single (float32) or double (float64)
-        precision.
+        The data type must be a floating-point of single or double precision.
     """
     assert_float_dtype["dtype", dtype]()
 
@@ -226,7 +330,7 @@ fn elementwise[
     simd_width: Int = simdwidthof[dtype](),
     force_sequential: Bool = False,
 ](x: Tensor[dtype], y: Tensor[dtype]) raises -> Tensor[dtype]:
-    """Performs an elementwise operation on two tensors.
+    """Applies a binary operator to two tensors element-wise.
 
     Parameters:
         func: The binary operator to apply to the inputs.
@@ -243,9 +347,8 @@ fn elementwise[
        The result of applying the binary operator to the inputs.
 
     Constraints:
-        The data type must be a floating-point of single (float32) or double (float64)
-        precision. And it will raise an exception if the arguments `x` and `y` do not
-        have the same shape.
+        The data type must be a floating-point of single or double precision. And it
+        will raise an exception if the arguments do not have the same shape.
     """
     assert_float_dtype["dtype", dtype]()
     if x.shape() != y.shape():
@@ -261,6 +364,59 @@ fn elementwise[
 
 
 fn run_benchmark[
+    func: UnaryOperator,
+    dtype: DType,
+    simd_width: Int = simdwidthof[dtype](),
+    force_sequential: Bool = False,
+](
+    x: Tensor[dtype],
+    num_warmup: Int = 2,
+    max_iters: Int = 100_000,
+    min_runtime_secs: SIMD[DType.float64, 1] = 0.5,
+    max_runtime_secs: SIMD[DType.float64, 1] = 1,
+) -> benchmark.Report:
+    """Runs a benchmark for a unary operator applied to a tensor element-wise.
+
+    Benchmarking continues until `min_runtime_secs` has elapsed and either `max_iters`
+    OR `max_runtime_secs` is achieved.
+
+    Parameters:
+        func: The binary operator to apply to the input. This is the function that will
+            be benchmarked.
+        dtype: The input data type.
+        simd_width: The SIMD vector width to use. Defaults to the vector size of
+            the data type on the host system.
+        force_sequential: Whether to force sequential execution (default `False`).
+
+    Args:
+        x: The tensor.
+        num_warmup: Number of warmup iterations to run before starting benchmarking
+            (default `2`).
+        max_iters: Max number of iterations to run (default `100_000`).
+        min_runtime_secs: Lower bound on benchmarking time in secs (default `0.5`).
+        max_runtime_secs: Upper bound on benchmarking time in secs (default `1`).
+
+    Returns:
+        A report containing statistics of the benchmark.
+
+    Constraints:
+        The data type must be a floating-point of single or double precision.
+    """
+
+    @always_inline
+    @parameter
+    fn test_fn():
+        _ = elementwise[func, dtype, simd_width, force_sequential](x)
+
+    return benchmark.run[test_fn](
+        num_warmup=num_warmup,
+        max_iters=max_iters,
+        min_runtime_secs=min_runtime_secs,
+        max_runtime_secs=max_runtime_secs,
+    )
+
+
+fn run_benchmark[
     func: BinaryOperator,
     dtype: DType,
     simd_width: Int = simdwidthof[dtype](),
@@ -273,10 +429,11 @@ fn run_benchmark[
     min_runtime_secs: SIMD[DType.float64, 1] = 0.5,
     max_runtime_secs: SIMD[DType.float64, 1] = 1,
 ) -> benchmark.Report:
-    """Runs a benchmark for an elementwise operation on a tensor and a scalar.
+    """
+    Runs a benchmark for a binary operator applied to a tensor and a scalar element-wise.
 
-    Benchmarking continues until `min_time_secs` has elapsed and either `max_time_secs`
-    OR `max_iters` is achieved.
+    Benchmarking continues until `min_runtime_secs` has elapsed and either `max_iters`
+    OR `max_runtime_secs` is achieved.
 
     Parameters:
         func: The binary operator to apply to the inputs. This is the function that will
@@ -299,8 +456,7 @@ fn run_benchmark[
         A report containing statistics of the benchmark.
 
     Constraints:
-        The data type must be a floating-point of single (float32) or double (float64)
-        precision.
+        The data type must be a floating-point of single or double precision.
     """
 
     @always_inline
@@ -329,7 +485,7 @@ fn run_benchmark[
     min_runtime_secs: SIMD[DType.float64, 1] = 0.5,
     max_runtime_secs: SIMD[DType.float64, 1] = 1,
 ) raises -> benchmark.Report:
-    """Runs a benchmark for an elementwise operation on two tensors.
+    """Runs a benchmark for a binary operator applied to two tensors element-wise.
 
     Benchmarking continues until `min_runtime_secs` has elapsed and either `max_iters`
     OR `max_runtime_secs` is achieved.
@@ -355,9 +511,8 @@ fn run_benchmark[
         A report containing statistics of the benchmark.
 
     Constraints:
-        The data type must be a floating-point of single (float32) or double (float64)
-        precision. And it will raise an exception if the arguments `x` and `y` do not
-        have the same shape.
+        The data type must be a floating-point of single or double precision. And it
+        will raise an exception if the arguments do not have the same shape.
     """
     if x.shape() != y.shape():
         raise Error("The arguments `x` and `y` must have the same shape.")
@@ -406,9 +561,8 @@ fn random_uniform[
         The tensor with random values drawn from a uniform distribution.
 
     Constraints:
-        The data type must be a floating-point of single (float32) or double (float64)
-        precision. And it will raise an exception if `min_value` is greater than or
-        equal to `max_value`.
+        The data type must be a floating-point of single or double precision. And it
+        will raise an exception if `min_value >= max_value`.
     """
     assert_float_dtype["dtype", dtype]()
 

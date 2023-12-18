@@ -18,13 +18,33 @@
 
 import math
 import random
-import testing
-
-from algorithm import vectorize
-from sys.info import simdwidthof
 
 from specials._internal.tensor import elementwise
 from specials._internal.testing import UnitTest
+
+
+fn test_elemwise_tensor[
+    dtype: DType, force_sequential: Bool = False
+](*shape: Int) raises:
+    random.seed(42)
+
+    let x = random.rand[dtype](shape)
+    let res = elementwise[math.cos, force_sequential=force_sequential](x)
+
+    let unit_test = UnitTest(
+        "test_elemwise_tensor_" + str(x.spec()) + "_" + str(force_sequential)
+    )
+    let rtol: SIMD[dtype, 1]
+
+    @parameter
+    if dtype == DType.float32:
+        rtol = 1e-6
+    else:  # dtype == DType.float64
+        rtol = 1e-12
+
+    # The for loop is simple, direct, and so, good for testing.
+    for i in range(x.num_elements()):
+        unit_test.assert_almost_equal(math.cos(x[i]), res[i], 0.0, rtol)
 
 
 fn test_elemwise_tensor_scalar[
@@ -36,7 +56,9 @@ fn test_elemwise_tensor_scalar[
     let y = SIMD[dtype, 1](1.5)
     let res = elementwise[math.add, force_sequential=force_sequential](x, y)
 
-    let unit_test = UnitTest("test_elemwise_tensor_scalar_" + str(x.spec()))
+    let unit_test = UnitTest(
+        "test_elemwise_tensor_scalar_" + str(x.spec()) + "_" + str(force_sequential)
+    )
     let rtol: SIMD[dtype, 1]
 
     @parameter
@@ -59,7 +81,9 @@ fn test_elemwise_tensor_tensor[
     let y = random.rand[dtype](x.shape())
     let res = elementwise[math.add, force_sequential=force_sequential](x, y)
 
-    let unit_test = UnitTest("test_elemwise_tensor_tensor_" + str(x.spec()))
+    let unit_test = UnitTest(
+        "test_elemwise_tensor_tensor_" + str(x.spec()) + "_" + str(force_sequential)
+    )
     let rtol: SIMD[dtype, 1]
 
     @parameter
@@ -74,26 +98,38 @@ fn test_elemwise_tensor_tensor[
 
 
 fn main() raises:
-    # The elementwise function for a binary operation: tensor-scalar.
+    # The elementwise function for a binary operator: tensor.
+    test_elemwise_tensor[DType.float32]()
+    test_elemwise_tensor[DType.float32](16, 16)
+    test_elemwise_tensor[DType.float32](16_384)
+
+    test_elemwise_tensor[DType.float32, force_sequential=True]()
+    test_elemwise_tensor[DType.float32, force_sequential=True](16, 16)
+
+    test_elemwise_tensor[DType.float64]()
+    test_elemwise_tensor[DType.float64](16, 16)
+    test_elemwise_tensor[DType.float64](8_192)
+
+    # The elementwise function for a binary operator: tensor-scalar.
     test_elemwise_tensor_scalar[DType.float32]()
     test_elemwise_tensor_scalar[DType.float32](16, 16)
-    test_elemwise_tensor_scalar[DType.float32](524_289)
+    test_elemwise_tensor_scalar[DType.float32](262_144)
 
     test_elemwise_tensor_scalar[DType.float32, force_sequential=True]()
     test_elemwise_tensor_scalar[DType.float32, force_sequential=True](16, 16)
 
     test_elemwise_tensor_scalar[DType.float64]()
     test_elemwise_tensor_scalar[DType.float64](16, 16)
-    test_elemwise_tensor_scalar[DType.float64](262_145)
+    test_elemwise_tensor_scalar[DType.float64](131_072)
 
-    # The elementwise function for a binary operation: tensor-tensor.
+    # The elementwise function for a binary operator: tensor-tensor.
     test_elemwise_tensor_tensor[DType.float32]()
     test_elemwise_tensor_tensor[DType.float32](16, 16)
-    test_elemwise_tensor_tensor[DType.float32](262_145)
+    test_elemwise_tensor_tensor[DType.float32](131_072)
 
     test_elemwise_tensor_tensor[DType.float32, force_sequential=True]()
     test_elemwise_tensor_tensor[DType.float32, force_sequential=True](16, 16)
 
     test_elemwise_tensor_tensor[DType.float64]()
     test_elemwise_tensor_tensor[DType.float64](16, 17)
-    test_elemwise_tensor_tensor[DType.float64](131_073)
+    test_elemwise_tensor_tensor[DType.float64](65_536)

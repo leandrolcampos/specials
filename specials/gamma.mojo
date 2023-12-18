@@ -27,7 +27,7 @@ from ._internal import asserting
 from ._internal.functional import fori_loop
 from ._internal.limits import FloatLimits
 from ._internal.math import log
-from .polynomial import Chebyshev
+from .polynomial import Chebyshev, Polynomial
 
 
 fn lgamma_correction[
@@ -42,18 +42,19 @@ fn lgamma_correction[
     for `x >= 8`.
 
     Parameters:
-        dtype: The data type of the input and output SIMD vectors (float32 or float64).
+        dtype: The data type of the input and output SIMD vectors (`float32` or
+            `float64`).
         simd_width: The width of the input and output SIMD vectors.
 
     Args:
         x: SIMD vector of floating-point values greater than or equal to `8.0`.
 
     Returns:
-        The correction term for the Rocktaeschel's approximation of `lgamma`.
+        The correction term for the Rocktaeschel's approximation of `lgamma`. If `x` is
+        less than `8.0`, this function returns `NaN`.
 
     Constraints:
-        The data type must be a floating-point of single (float32) or double (float64)
-        precision.
+        The data type must be a floating-point of single or double precision.
     """
     asserting.assert_float_dtype["dtype", dtype]()
 
@@ -102,6 +103,102 @@ fn lgamma_correction[
             ),
         ),
     )
+
+
+fn lgamma1p[
+    dtype: DType, simd_width: Int
+](x: SIMD[dtype, simd_width]) -> SIMD[dtype, simd_width]:
+    """Computes the natural logarithm of the gamma function at `1 + x`.
+
+    This function is semantically equivalent to `lgamma(1 + x)`, but it is more
+    accurate for arguments close to zero.
+
+    Parameters:
+        dtype: The data type of the input and output SIMD vectors (`float32` or
+            `float64`).
+        simd_width: The width of the input and output SIMD vectors.
+
+    Args:
+        x: SIMD vector of floating-point values.
+
+    Returns:
+        The natural logarithm of the gamma function at `1 + x`.
+
+    Constraints:
+        The data type must be a floating-point of single or double precision.
+    """
+    asserting.assert_float_dtype["dtype", dtype]()
+
+    alias nan: SIMD[dtype, simd_width] = math.nan[dtype]()
+    var result: SIMD[dtype, simd_width] = nan
+
+    # Regions of computation.
+    let is_in_region1 = (x >= -0.2) & (x < 0.6)
+    let is_in_region2 = (x >= 0.6) & (x <= 1.25)
+    let is_in_region3 = ~math.isnan(x) & ~is_in_region1 & ~is_in_region2
+
+    # Polynomials for region 1. The coefficients for the Padé approximation were
+    # obtained using the Python library `mpmath`.
+    alias p = Polynomial[10, dtype, simd_width].from_coefficients[
+        5.772156649015328606065120900824e-1,
+        1.769751426777699103134469694093e-0,
+        1.571904140511368034267480819223e-0,
+        -4.57882665358839512689779140447e-1,
+        -1.72712505786380004829886606981e-0,
+        -1.24373712528022745342232844850e-0,
+        -4.17229580597323137925159852465e-1,
+        -6.80978370725741258151865551687e-2,
+        -4.71020922504118253059534042963e-3,
+        -8.87567923452439608685161841459e-5,
+    ]()
+    alias q = Polynomial[10, dtype, simd_width].from_coefficients[
+        1.000000000000000000000000000000e-0,
+        4.490901092651424325538968592651e-0,
+        8.428109112438682661243930563021e-0,
+        8.567162656125254544979174422045e-0,
+        5.110442815300870959225621274210e-0,
+        1.811088008784189174050238153628e-0,
+        3.678104258279395409229240536674e-1,
+        3.891333138124453879127500000527e-2,
+        1.741014553601874329848935439309e-3,
+        1.896441997532694197492403697806e-5,
+    ]()
+
+    # Polynomials for region 2. The coefficients for the Padé approximation were
+    # obtained using the Python library `mpmath`.
+    alias r = Polynomial[8, dtype, simd_width].from_coefficients[
+        4.227843350984671393934879099176e-1,
+        1.050000850494737509155499279591e-0,
+        9.812533673494664828746361809635e-1,
+        4.486129361904137782151622525624e-1,
+        1.066177232215367809039427008258e-1,
+        1.267871740982719010450401143716e-2,
+        6.461232819244555998963476071186e-4,
+        9.044855054775925733727539415320e-6,
+    ]()
+    alias s = Polynomial[8, dtype, simd_width].from_coefficients[
+        1.000000000000000000000000000000e-0,
+        1.720815452874289951756729496983e-0,
+        1.167733459492857090468456899665e-0,
+        3.958932481495390425060318675588e-1,
+        6.995177647341877884678121833272e-2,
+        6.082671403258376707307085732028e-3,
+        2.160591173994851665996054475890e-4,
+        1.832407275230925220950146383070e-6,
+    ]()
+
+    if is_in_region1.reduce_or():
+        result = is_in_region1.select(-x * (p(x) / q(x)), result)
+
+    if is_in_region2.reduce_or():
+        let y = (x - 0.5) - 0.5
+        result = is_in_region2.select(y * (r(y) / s(y)), result)
+
+    if is_in_region3.reduce_or():
+        let z = is_in_region3.select(1.0 + x, nan)
+        result = is_in_region3.select(math.lgamma(z), result)
+
+    return result
 
 
 fn lbeta[
