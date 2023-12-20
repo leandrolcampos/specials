@@ -108,10 +108,10 @@ fn lgamma_correction[
 fn lgamma1p[
     dtype: DType, simd_width: Int
 ](x: SIMD[dtype, simd_width]) -> SIMD[dtype, simd_width]:
-    """Computes the natural logarithm of the gamma function at `1 + x`.
+    """Computes `lgamma(1 + x)` in a numerically stable way.
 
     This function is semantically equivalent to `lgamma(1 + x)`, but it is more
-    accurate for arguments close to zero.
+    accurate for `x` close to zero.
 
     Parameters:
         dtype: The data type of the input and output SIMD vectors (`float32` or
@@ -122,7 +122,7 @@ fn lgamma1p[
         x: SIMD vector of floating-point values.
 
     Returns:
-        The natural logarithm of the gamma function at `1 + x`.
+        The expression `lgamma(1 + x)` evaluated at `x`.
 
     Constraints:
         The data type must be a floating-point of single or double precision.
@@ -287,3 +287,109 @@ fn lbeta[
             ),
         ),
     )
+
+
+fn rgamma1pm1[
+    dtype: DType, simd_width: Int
+](x: SIMD[dtype, simd_width]) -> SIMD[dtype, simd_width]:
+    """Computes `1 / gamma(1 + x) - 1` in a numerically stable way.
+
+    This function is semantically equivalent to `1 / gamma(1 + x) - 1`, but it
+    is more accurate for `x` close to zero or one.
+
+    Parameters:
+        dtype: The data type of the input and output SIMD vectors (`float32` or
+            `float64`).
+        simd_width: The width of the input and output SIMD vectors.
+
+    Args:
+        x: SIMD vector of floating-point values.
+
+    Returns:
+        The expression `1 / gamma(1 + x) - 1` evaluated at `x`.
+
+    Constraints:
+        The data type must be a floating-point of single or double precision.
+    """
+    asserting.assert_float_dtype["dtype", dtype]()
+
+    alias nan: SIMD[dtype, simd_width] = math.nan[dtype]()
+    var result: SIMD[dtype, simd_width] = nan
+
+    # Regions of computation.
+    let is_in_region1 = (x == 0.0) | (x == 1.0)
+    let is_in_region2 = (x >= -0.5) & (x < 0.0)
+    let is_in_region3 = (x > 0.0) & (x <= 0.5)
+    let is_in_region4 = (x > 0.5) & (x < 1.0)
+    let is_in_region5 = (x > 1.0) & (x <= 1.5)
+    let is_in_region6 = (x < -0.5) | (x > 1.5)
+
+    # Polynomials for regions 2 and 4. The coefficients for the Padé approximation
+    # were obtained using the Python library `mpmath`.
+    alias p = Polynomial[10, dtype, simd_width].from_coefficients[
+        -4.22784335098467139393487909918e-1,
+        -8.76243643973193958120640666347e-1,
+        -4.59653437436261810715536535224e-1,
+        1.253267646667917761310767750400e-2,
+        1.272374059074339062508590520139e-2,
+        -5.95722659095617453307017824897e-3,
+        3.070451110948726727765078685413e-4,
+        2.297364646087461210880646489337e-4,
+        -2.92867644133341610115726150281e-5,
+        2.184035804013220749396991885951e-6,
+    ]()
+    alias q = Polynomial[10, dtype, simd_width].from_coefficients[
+        1.000000000000000000000000000000e-0,
+        5.212245444278738169713276344712e-1,
+        1.792664653862777325772960453280e-1,
+        3.438203782078653915730104663393e-2,
+        4.263280285377850240586205099463e-3,
+        -1.05916724442728169202533807166e-4,
+        -1.22076484585335162669853056235e-4,
+        -3.17838959035037282903233187238e-5,
+        -3.65081153946647239430275797323e-6,
+        -3.52809435523569771837732680697e-7,
+    ]()
+
+    # Polynomials for regions 3 and 5. The coefficients for the Padé approximation
+    # were obtained using the Python library `mpmath`.
+    alias r = Polynomial[10, dtype, simd_width].from_coefficients[
+        5.772156649015328606065120900824e-1,
+        -3.55019099545320141149313031876e-1,
+        -2.80386972049984078138240489896e-1,
+        4.691471428746571677040872413793e-2,
+        1.698702087612124086567211030085e-2,
+        -6.06314331539890270227271205613e-3,
+        1.849686265095375101066548123063e-4,
+        1.979525687052423927977413302098e-4,
+        -3.29375759528006334058753730013e-5,
+        1.831226368489650977559259205254e-6,
+    ]()
+    alias s = q
+
+    result = is_in_region1.select(0.0, result)
+
+    let t = math.select(is_in_region2 | is_in_region3, x, x - 1.0)
+
+    if (is_in_region2 | is_in_region4).reduce_or():
+        let y = p(t) / q(t)
+        result = math.select(
+            is_in_region2,
+            x * (y + 1.0),
+            math.select(is_in_region4, (t / x) * y, result),
+        )
+
+    if (is_in_region3 | is_in_region5).reduce_or():
+        let z = r(t) / s(t)
+        result = math.select(
+            is_in_region3,
+            x * z,
+            math.select(is_in_region5, (t / x) * (z - 1.0), result),
+        )
+
+    if is_in_region6.reduce_or():
+        result = is_in_region6.select(
+            math.reciprocal(math.tgamma(1.0 + x)) - 1.0, result
+        )
+
+    return result
