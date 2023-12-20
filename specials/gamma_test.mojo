@@ -19,6 +19,10 @@
 import math
 import testing
 
+from python import Python
+from python.object import PythonObject
+from utils.static_tuple import StaticTuple
+
 import specials
 
 from specials._internal.limits import FloatLimits
@@ -175,7 +179,66 @@ fn test_lbeta_edge_cases() raises:
     unit_test.assert_true(result, "Some of the results are incorrect.")
 
 
+fn _mp_rgamma1pm1[dtype: DType](x: SIMD[dtype, 1]) raises -> SIMD[dtype, 1]:
+    let mp = Python.import_module("mpmath")
+    mp.mp.dps += 300
+
+    let result = mp.mpf(1) / mp.gamma(mp.mpf(1) + mp.mpf(x)) - mp.mpf(1)
+
+    mp.mp.dps -= 300
+    return result.to_float64().cast[dtype]()
+
+
+fn test_rgamma1pm1[dtype: DType]() raises:
+    let unit_test = UnitTest("test_rgamma1pm1_" + str(dtype))
+
+    let tiny = FloatLimits[dtype].min
+    let epsneg = FloatLimits[dtype].epsneg
+    let eps = FloatLimits[dtype].eps
+
+    let xs = StaticTuple[10, SIMD[dtype, 1]](
+        -1.0 + epsneg, -0.5, -tiny, 0.0, tiny, 0.5, 1.0 - epsneg, 1.0, 1.5 - eps, 7.0
+    )
+
+    let rtol: SIMD[dtype, 1]
+
+    @parameter
+    if dtype == DType.float32:
+        rtol = 1e-6
+    else:  # dtype == DType.float64
+        rtol = 1e-12
+
+    for i in range(len(xs)):
+        let x = xs[i]
+        let expected = _mp_rgamma1pm1[dtype](x)
+        let actual = specials.rgamma1pm1(x)
+
+        unit_test.assert_almost_equal(expected, actual, 0.0, rtol)
+
+
+fn test_rgamma1pm1_special_cases[dtype: DType]() raises:
+    let unit_test = UnitTest("test_rgamma1pm1_special_cases_" + str(dtype))
+
+    let inf = math.limit.inf[dtype]()
+    let nan = math.nan[dtype]()
+    let x = SIMD[dtype, 4](nan, -inf, inf, nan)
+
+    let expected = SIMD[dtype, 4](nan, nan, -1, nan)
+    let actual = specials.rgamma1pm1(x)
+
+    # Here NaNs are compared like numbers and no assertion is raised if both objects
+    # have NaNs in the same positions.
+    let result = (
+        (math.isnan(actual) & math.isnan(actual)) | (actual == expected)
+    ).reduce_and()
+    unit_test.assert_true(result, "Some of the results are incorrect.")
+
+
 fn main() raises:
+    # Setting the mpmath precision for this module
+    let mp = Python.import_module("mpmath")
+    mp.mp.dps = 50
+
     # lgamma_correction
     test_lgamma_correction()
     test_lgamma_correction_edge_cases()
@@ -193,3 +256,10 @@ fn main() raises:
     # lbeta
     test_lbeta()
     test_lbeta_edge_cases()
+
+    # rgamma1pm1
+    test_rgamma1pm1[DType.float64]()
+    test_rgamma1pm1[DType.float32]()
+
+    test_rgamma1pm1_special_cases[DType.float64]()
+    test_rgamma1pm1_special_cases[DType.float32]()

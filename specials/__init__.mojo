@@ -16,4 +16,4 @@
 
 """Specials"""
 
-from .gamma import lbeta, lgamma_correction, lgamma1p
+from .gamma import lbeta, lgamma_correction, lgamma1p, rgamma1pm1
