@@ -31,33 +31,40 @@ from specials._internal.testing import UnitTest
 # TODO: Add tests with `DType.float32` data type.
 
 
-fn test_lgamma_correction() raises:
-    let unit_test = UnitTest("test_lgamma_correction")
+fn test_lgamma_correction[dtype: DType]() raises:
+    let unit_test = UnitTest("test_lgamma_correction_" + str(dtype))
 
-    let x = SIMD[DType.float64, 4](10.0, 100.0, 1000.0, 10000.0)
+    let x = SIMD[dtype, 4](10.0, 100.0, 1000.0, 10000.0)
 
     # The expected values were computed using `mpmath`.
-    let expected = SIMD[DType.float64, 4](
+    let expected = SIMD[dtype, 4](
         8.330563433362871256469318659629e-3,
         8.333305556349146833812416928147e-4,
         8.333333055555634920575396909572e-5,
         8.333333330555555563492063432540e-6,
     )
+    let actual = specials.lgamma_correction(x)
 
-    unit_test.assert_almost_equal[DType.float64, 4](
-        expected, specials.lgamma_correction(x), 0.0, 1e-12
-    )
+    let rtol: SIMD[dtype, 1]
+
+    @parameter
+    if dtype == DType.float32:
+        rtol = 1e-6
+    else:  # dtype == DType.float64
+        rtol = 1e-12
+
+    unit_test.assert_almost_equal(expected, actual, 0.0, rtol)
 
 
-fn test_lgamma_correction_edge_cases() raises:
-    let unit_test = UnitTest("test_lgamma_correction_edge_cases")
+fn test_lgamma_correction_special_cases[dtype: DType]() raises:
+    let unit_test = UnitTest("test_lgamma_correction_special_cases_" + str(dtype))
 
-    let inf = math.limit.inf[DType.float64]()
-    let nan = math.nan[DType.float64]()
-    let zero = SIMD[DType.float64, 1](0.0)
-    let x = SIMD[DType.float64, 4](nan, -inf, zero, inf)
+    let inf = math.limit.inf[dtype]()
+    let nan = math.nan[dtype]()
+    let zero = SIMD[dtype, 1](0.0)
+    let x = SIMD[dtype, 4](nan, -inf, zero, inf)
 
-    let expected = SIMD[DType.float64, 4](nan, nan, nan, zero)
+    let expected = SIMD[dtype, 4](nan, nan, nan, zero)
     let actual = specials.lgamma_correction(x)
 
     # Here NaNs are compared like numbers and no assertion is raised if both objects
@@ -240,8 +247,11 @@ fn main() raises:
     mp.mp.dps = 50
 
     # lgamma_correction
-    test_lgamma_correction()
-    test_lgamma_correction_edge_cases()
+    test_lgamma_correction[DType.float64]()
+    test_lgamma_correction[DType.float32]()
+
+    test_lgamma_correction_special_cases[DType.float64]()
+    test_lgamma_correction_special_cases[DType.float32]()
 
     # lgamma1p
     test_lgamma1p_region1[DType.float32]()
