@@ -26,7 +26,7 @@ import math
 from ._internal import asserting
 from ._internal.functional import fori_loop
 from ._internal.limits import FloatLimits
-from ._internal.math import log
+from .elementary import exp, log
 from .polynomial import Chebyshev, Polynomial
 
 
@@ -63,7 +63,7 @@ fn lgamma_correction[
 
     alias xmin: SIMD[dtype, simd_width] = 8.0
     alias xbig: SIMD[dtype, simd_width] = math.reciprocal(
-        math.exp2(0.5 * math.log2(FloatLimits[dtype].epsneg))
+        math.exp2[dtype, 1](0.5 * FloatLimits[dtype].negep)
     )
     alias xmax: SIMD[dtype, simd_width] = math.reciprocal(12.0 * FloatLimits[dtype].min)
 
