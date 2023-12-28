@@ -50,8 +50,8 @@ fn lgamma_correction[
         x: SIMD vector of floating-point values greater than or equal to `8.0`.
 
     Returns:
-        The correction term for the Rocktaeschel's approximation of `lgamma`. If `x` is
-        less than `8.0`, this function returns `NaN`.
+        SIMD vector containing the correction term for the Rocktaeschel's approximation
+        of `lgamma`. If `x` is less than `8.0`, this function returns `NaN`.
 
     Constraints:
         The data type must be a floating-point of single or double precision.
@@ -127,7 +127,7 @@ fn lgamma1p[
         x: SIMD vector of floating-point values.
 
     Returns:
-        The expression `lgamma(1 + x)` evaluated at `x`.
+        SIMD vector containing the expression `lgamma(1 + x)` evaluated at `x`.
 
     Constraints:
         The data type must be a floating-point of single or double precision.
@@ -223,7 +223,7 @@ fn lbeta[
         y: SIMD vector of non-negative floating-point values.
 
     Returns:
-        The natural logarithm of the beta function.
+        SIMD vector containing the natural logarithm of the beta function.
 
     Constraints:
         The data type must be a floating-point of single (float32) or double (float64)
@@ -311,7 +311,8 @@ fn rgamma1pm1[
         x: SIMD vector of floating-point values.
 
     Returns:
-        The expression `1 / gamma(1 + x) - 1` evaluated at `x`.
+        SIMD vector containing the expression `1 / gamma(1 + x) - 1` evaluated
+        at `x`.
 
     Constraints:
         The data type must be a floating-point of single or double precision.

@@ -115,7 +115,8 @@ struct Chebyshev[num_terms: Int, dtype: DType, simd_width: Int]:
             index: The index of the coefficient to return.
 
         Returns:
-            The coefficient of the Chebyshev series at the given index.
+            SIMD vector containing the coefficient of the Chebyshev series at the
+            given index.
 
         Constraints:
             The index must be in the range `[0, num_terms)`.
@@ -159,7 +160,7 @@ struct Chebyshev[num_terms: Int, dtype: DType, simd_width: Int]:
                 be in the interval `[-1, 1]`.
 
         Returns:
-            The values of the Chebyshev series at points `x`.
+            SIMD vector containing the values of the Chebyshev series at points `x`.
         """
         alias nan: SIMD[dtype, simd_width] = math.nan[dtype]()
 
@@ -307,7 +308,8 @@ struct Polynomial[num_terms: Int, dtype: DType, simd_width: Int]:
             index: The index of the coefficient to return.
 
         Returns:
-            The coefficient of the Power series at the given index.
+            SIMD vector containing the coefficient of the Power series at the
+            given index.
 
         Constraints:
             The index must be in the range `[0, num_terms)`.
@@ -350,7 +352,7 @@ struct Polynomial[num_terms: Int, dtype: DType, simd_width: Int]:
             x: The points at which to evaluate the Power series.
 
         Returns:
-            The values of the Power series at points `x`.
+            SIMD vector containing the values of the Power series at points `x`.
         """
         var result = self.get[num_terms - 1]()
 
