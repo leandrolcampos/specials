@@ -16,4 +16,5 @@
 
 """Specials"""
 
+from .elementary import exp, log
 from .gamma import lbeta, lgamma_correction, lgamma1p, rgamma1pm1

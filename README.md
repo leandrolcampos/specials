@@ -6,6 +6,21 @@ Specials is a [Mojo](https://www.modular.com/mojo) package designed to provide h
 
 Special functions are particular mathematical functions that play a fundamental role in various scientific and industrial disciplines, about which many useful properties are known. They find extensive applications in physics, engineering, chemistry, computer science, and statistics, being prized for their ability to provide closed-form solutions to complex problems in these fields.
 
+## Table of Contents
+
+- [Special Functions in AI](#special-functions-in-ai)
+- [Why Mojo 🔥 for Specials?](#why-mojo-🔥-for-specials)
+- [Why the Focus on Special Functions?](#why-the-focus-on-special-functions)
+- [Mojo Version Requirement](#mojo-version-requirement)
+- [Example Usage](#example-usage)
+- [Some Implementations Available](#some-implementations-available)
+  * [Elementary Functions](#elementary-functions)
+  * [Gamma-Related Functions](#gamma-related-functions)
+- [Contributing](#contributing)
+- [References](#references)
+
+## Special Functions in AI
+
 We can give some examples of special function applications in AI:
 
 - The Gaussian Error Linear Unit (GELU) [[2](#hendrycks2016)], a high-performing neural network activation function, is defined based on the [Gauss error](https://en.wikipedia.org/wiki/Error_function) function.
@@ -36,8 +51,6 @@ Specials requires Mojo `v0.6.0`. Make sure you have the correct Mojo version ins
 
 ## Example Usage
 
-> 💡 See the notebook [The log-beta function in Specials](./lbeta_function.ipynb) for a detailed introduction to Specials.
-
 The following code snippet shows how to compute the log-beta function for given SIMD vectors:
 
 ```python
@@ -48,6 +61,54 @@ The following code snippet shows how to compute the log-beta function for given 
 >>> print(res)
 [2.1584847490202885, -2.0794415416798362, -22.572893813393978, 23.025850927580152]
 ```
+
+> 💡 In the notebook [The Log-Beta Function in Specials](./lbeta_function.ipynb), we compare our implementation of the log-beta function with a naive one based on Mojo's standard library, as well as the corresponding implementations in SciPy and TensorFlow Probability.
+
+And the following code snippet shows how to compute the exponential and natural logarithm for given scalars:
+
+```python
+>>> import specials
+>>> let e = specials.exp(Float64(1.0))
+>>> let one = specials.log(e)
+>>> print("exp(1) =", e)
+>>> print("log(exp(1)) =", one)
+exp(1) = 2.7182818284590455
+log(exp(1)) = 1.0
+```
+
+We provide implementations of the natural exponential and logarithmic functions in Specials due to their widespread use in AI applications. Our evaluation revealed accuracy issues in the current implementations of these functions in Mojo's standard library.
+
+> 💡 In the notebook [The Exponential and Logarithmic Functions in Specials](./exp_and_log_functions.ipynb), we compare our implementations of these functions with those in Mojo's standard library.
+
+The table below shows the results of comparing the natural logarithm implementation in Specials with the corresponding one in Mojo's standard library using `float64` as the data type. The results underscore Specials' ability to provide exceptional accuracy without compromising computational efficiency.
+
+**Experiment Results: Natural Logarithmic Function (float64)**
+
+| Domain | Solution | Maximum<br>Relative Error | Mean<br>Relative Error | Mean Execution Time<br>(in milliseconds) |
+|---|---|---:|---:|---:|
+| 0,0.5 | Specials<br>Mojo | 2.22e-16<br>1.10e-09 | 1.29e-17<br>1.01e-10 | 0.162<br>0.108 |
+| 0.5,1.5 | Specials<br>Mojo | 3.51e-16<br>3.39e-09 | 5.12e-17<br>6.02e-10 | 0.155<br>0.101 |
+| 1.5,10 | Specials<br>Mojo | 2.68e-16<br>1.13e-09 | 1.13e-17<br>8.39e-11 | 0.163<br>0.099 |
+| 10,100 | Specials<br>Mojo | 2.22e-16<br>4.82e-10 | 5.15e-18<br>4.55e-11 | 0.162<br>0.105 |
+| 100,1e+36 | Specials<br>Mojo | 1.79e-16<br>1.48e-11 | 2.15e-19<br>2.05e-12 | 0.162<br>0.103 |
+
+## Some Implementations Available
+
+### Elementary Functions
+
+| Function | Description |
+|----------|-------------|
+| `exp(x)` | The natural exponential function |
+| `log(x)` | The natural logarithmic function |
+
+### Gamma-Related Functions
+
+| Function | Description |
+|----------|-------------|
+| `lbeta(x, y)` | The natural logarithm of the beta function |
+| `lgamma_correction(x)` | The correction term for the Rocktaeschel's approximation of `lgamma` |
+| `lgamma1p(x)` | The expression `lgamma(1 + x)` evaluated in a numerically stable way when `x` is near zero |
+| `rgamma1pm1(x)` | The expression `1 / gamma(1 + x) - 1` evaluated in a numerically stable way when `x` is near zero or one |
 
 ## Contributing
 
