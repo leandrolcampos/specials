@@ -18,6 +18,13 @@
 #
 # slatec/fnlib (https://www.netlib.org/slatec/fnlib):
 # Public-domain software. No copyright restrictions.
+#
+# References:
+#
+# Didonato, A. R., & Morris Jr, A. H. (1992). Algorithm 708: Significant digit
+# computation of the incomplete beta function ratios.
+# ACM Transactions on Mathematical Software (TOMS), 18(3), 360-373.
+# https://dl.acm.org/doi/abs/10.1145/131766.131776
 
 """Gamma-related functions."""
 
@@ -28,6 +35,94 @@ from ._internal.functional import fori_loop
 from ._internal.limits import FloatLimits
 from .elementary import exp, log
 from .polynomial import Chebyshev, Polynomial
+
+
+fn lbeta[
+    dtype: DType, simd_width: Int
+](x: SIMD[dtype, simd_width], y: SIMD[dtype, simd_width]) -> SIMD[dtype, simd_width]:
+    """Computes the natural logarithm of the beta function.
+
+    This function is semantically equivalent to `lgamma(x) + lgamma(y) - lgamma(x + y)`,
+    but it is more accurate for arguments greater than or equal to `8.0`.
+
+    Parameters:
+        dtype: The data type of the input and output SIMD vectors (float32 or float64).
+        simd_width: The width of the input and output SIMD vectors.
+
+    Args:
+        x: SIMD vector of non-negative floating-point values.
+        y: SIMD vector of non-negative floating-point values.
+
+    Returns:
+        SIMD vector containing the natural logarithm of the beta function.
+
+    Constraints:
+        The data type must be a floating-point of single (float32) or double (float64)
+        precision.
+    """
+    asserting.assert_float_dtype["dtype", dtype]()
+
+    alias inf: SIMD[dtype, simd_width] = math.limit.inf[dtype]()
+    alias nan: SIMD[dtype, simd_width] = math.nan[dtype]()
+    alias log_sqrt_2pi: SIMD[dtype, simd_width] = 0.91893853320467274178032973640562
+
+    # Ensure that `a` is the smaller of the two arguments and `b` is the larger one.
+    # Although the Beta function is mathematically symmetric, this procedure is not.
+    let a = math.min(x, y)
+    let b = math.max(x, y)
+
+    # The `math.lgamma`` operation is one of the most computationally expensive
+    # operations in this procedure. To avoid calling it when possible, we mask out
+    # large values of `a` and `b`.
+    let a_small = math.select(a < 8.0, a, nan)
+    let b_small = math.select(b < 8.0, b, nan)
+
+    let lgamma_a_small = math.lgamma(a_small)
+    let apb = a + b
+    let a_over_apb = a / apb
+    let log1p_neg_a_over_apb = math.log1p(-a_over_apb)
+
+    # `a` and `b` are small: `a <= b < 8.0`.
+    var result = lgamma_a_small + math.lgamma(b_small) - math.lgamma(a_small + b_small)
+
+    # `a` is small, but `b` is large: `a < 8.0 <= b`.
+    var correction = lgamma_correction(b) - lgamma_correction(apb)
+    let result_for_large_b = (
+        lgamma_a_small
+        + correction
+        + a
+        - a * log(apb)
+        + (b - 0.5) * log1p_neg_a_over_apb
+    )
+    result = math.select(b >= 8.0, result_for_large_b, result)
+
+    # `a` and `b` are large: `8.0 <= a <= b`.
+    correction += lgamma_correction(a)
+    let result_for_large_a = (
+        -0.5 * log(b)
+        + log_sqrt_2pi
+        + correction
+        + (a - 0.5) * log(a_over_apb)
+        + b * log1p_neg_a_over_apb
+    )
+    result = math.select(a >= 8.0, result_for_large_a, result)
+
+    # We have already computed the value of the log-beta function for positive arguments.
+    # For other cases, this procedure returns the same values as the corresponding one in
+    # the R language.
+    return math.select(
+        (a < 0.0) | math.isnan(x) | math.isnan(y),
+        nan,
+        math.select(
+            a == 0.0,
+            inf,
+            math.select(
+                math.limit.isinf(b),
+                -inf,
+                result,
+            ),
+        ),
+    )
 
 
 fn lgamma_correction[
@@ -204,94 +299,6 @@ fn lgamma1p[
         result = is_in_region3.select(math.lgamma(z), result)
 
     return result
-
-
-fn lbeta[
-    dtype: DType, simd_width: Int
-](x: SIMD[dtype, simd_width], y: SIMD[dtype, simd_width]) -> SIMD[dtype, simd_width]:
-    """Computes the natural logarithm of the beta function.
-
-    This function is semantically equivalent to `lgamma(x) + lgamma(y) - lgamma(x + y)`,
-    but it is more accurate for arguments greater than or equal to `8.0`.
-
-    Parameters:
-        dtype: The data type of the input and output SIMD vectors (float32 or float64).
-        simd_width: The width of the input and output SIMD vectors.
-
-    Args:
-        x: SIMD vector of non-negative floating-point values.
-        y: SIMD vector of non-negative floating-point values.
-
-    Returns:
-        SIMD vector containing the natural logarithm of the beta function.
-
-    Constraints:
-        The data type must be a floating-point of single (float32) or double (float64)
-        precision.
-    """
-    asserting.assert_float_dtype["dtype", dtype]()
-
-    alias inf: SIMD[dtype, simd_width] = math.limit.inf[dtype]()
-    alias nan: SIMD[dtype, simd_width] = math.nan[dtype]()
-    alias log_sqrt_2pi: SIMD[dtype, simd_width] = 0.91893853320467274178032973640562
-
-    # Ensure that `a` is the smaller of the two arguments and `b` is the larger one.
-    # Although the Beta function is mathematically symmetric, this procedure is not.
-    let a = math.min(x, y)
-    let b = math.max(x, y)
-
-    # The `math.lgamma`` operation is one of the most computationally expensive
-    # operations in this procedure. To avoid calling it when possible, we mask out
-    # large values of `a` and `b`.
-    let a_small = math.select(a < 8.0, a, nan)
-    let b_small = math.select(b < 8.0, b, nan)
-
-    let lgamma_a_small = math.lgamma(a_small)
-    let apb = a + b
-    let a_over_apb = a / apb
-    let log1p_neg_a_over_apb = math.log1p(-a_over_apb)
-
-    # `a` and `b` are small: `a <= b < 8.0`.
-    var result = lgamma_a_small + math.lgamma(b_small) - math.lgamma(a_small + b_small)
-
-    # `a` is small, but `b` is large: `a < 8.0 <= b`.
-    var correction = lgamma_correction(b) - lgamma_correction(apb)
-    let result_for_large_b = (
-        lgamma_a_small
-        + correction
-        + a
-        - a * log(apb)
-        + (b - 0.5) * log1p_neg_a_over_apb
-    )
-    result = math.select(b >= 8.0, result_for_large_b, result)
-
-    # `a` and `b` are large: `8.0 <= a <= b`.
-    correction += lgamma_correction(a)
-    let result_for_large_a = (
-        -0.5 * log(b)
-        + log_sqrt_2pi
-        + correction
-        + (a - 0.5) * log(a_over_apb)
-        + b * log1p_neg_a_over_apb
-    )
-    result = math.select(a >= 8.0, result_for_large_a, result)
-
-    # We have already computed the value of the log-beta function for positive arguments.
-    # For other cases, this procedure returns the same values as the corresponding one in
-    # the R language.
-    return math.select(
-        (a < 0.0) | math.isnan(x) | math.isnan(y),
-        nan,
-        math.select(
-            a == 0.0,
-            inf,
-            math.select(
-                math.limit.isinf(b),
-                -inf,
-                result,
-            ),
-        ),
-    )
 
 
 fn rgamma1pm1[
