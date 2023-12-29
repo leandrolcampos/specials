@@ -9,7 +9,7 @@ Special functions are particular mathematical functions that play a fundamental 
 ## Table of Contents
 
 - [Special Functions in AI](#special-functions-in-ai)
-- [Why Mojo 🔥 for Specials?](#why-mojo-🔥-for-specials)
+- [Why Mojo 🔥 for Specials?](#why-mojo--for-specials)
 - [Why the Focus on Special Functions?](#why-the-focus-on-special-functions)
 - [Mojo Version Requirement](#mojo-version-requirement)
 - [Example Usage](#example-usage)
