@@ -16,7 +16,7 @@
 
 """Tests for higher-order functions."""
 
-from utils.vector import DynamicVector
+from collections.vector import DynamicVector
 
 from specials._internal.functional import fori_loop
 from specials._internal.testing import UnitTest
