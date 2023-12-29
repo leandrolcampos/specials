@@ -47,7 +47,7 @@ Beyond the practical importance of special functions in scientific and industria
 
 ## Mojo Version Requirement
 
-Specials requires Mojo `v0.6.0`. Make sure you have the correct Mojo version installed before using it.
+Specials requires Mojo `v0.6.1`. Make sure you have the correct Mojo version installed before using it.
 
 ## Example Usage
 
@@ -86,11 +86,11 @@ The table below shows the results of comparing the natural logarithm implementat
 
 | Domain | Solution | Maximum<br>Relative Error | Mean<br>Relative Error | Mean Execution Time<br>(in milliseconds) |
 |---|---|---:|---:|---:|
-| 0,0.5 | Specials<br>Mojo | 2.22e-16<br>1.10e-09 | 1.29e-17<br>1.01e-10 | 0.162<br>0.108 |
-| 0.5,1.5 | Specials<br>Mojo | 3.51e-16<br>3.39e-09 | 5.12e-17<br>6.02e-10 | 0.155<br>0.101 |
-| 1.5,10 | Specials<br>Mojo | 2.68e-16<br>1.13e-09 | 1.13e-17<br>8.39e-11 | 0.163<br>0.099 |
-| 10,100 | Specials<br>Mojo | 2.22e-16<br>4.82e-10 | 5.15e-18<br>4.55e-11 | 0.162<br>0.105 |
-| 100,1e+36 | Specials<br>Mojo | 1.79e-16<br>1.48e-11 | 2.15e-19<br>2.05e-12 | 0.162<br>0.103 |
+| 0,0.5 | Specials<br>Mojo | 2.22e-16<br>1.10e-09 | 1.29e-17<br>1.01e-10 | 0.041<br>0.036 |
+| 0.5,1.5 | Specials<br>Mojo | 3.51e-16<br>3.39e-09 | 5.12e-17<br>6.02e-10 | 0.043<br>0.038 |
+| 1.5,10 | Specials<br>Mojo | 2.68e-16<br>1.13e-09 | 1.13e-17<br>8.39e-11 | 0.048<br>0.038 |
+| 10,100 | Specials<br>Mojo | 2.22e-16<br>4.82e-10 | 5.15e-18<br>4.55e-11 | 0.039<br>0.036 |
+| 100,1e+36 | Specials<br>Mojo | 1.79e-16<br>1.48e-11 | 2.15e-19<br>2.05e-12 | 0.041<br>0.035 |
 
 ## Some Implementations Available
 
