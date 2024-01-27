@@ -26,12 +26,12 @@
 """Provides utilities for efficiently working with polynomials."""
 
 import math
+
 from memory.unsafe import bitcast
 from utils.static_tuple import StaticTuple
 
 from specials._internal import asserting
 from specials._internal.functional import fori_loop
-from specials._internal.limits import FloatLimits
 from specials._internal.table import get_hexadecimal_dtype
 
 # TODO: Consider using a trait when it supports defining default method implementations.

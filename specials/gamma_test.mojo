@@ -17,10 +17,8 @@
 """Tests for gamma-related functions."""
 
 import math
-import testing
 
 from python import Python
-from python.object import PythonObject
 from utils.static_tuple import StaticTuple
 
 import specials
