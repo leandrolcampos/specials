@@ -27,7 +27,8 @@ from runtime.llcl import num_cores
 from sys.info import simdwidthof
 from tensor import Tensor
 
-from .asserting import assert_float_dtype
+from specials._internal.asserting import assert_float_dtype
+
 
 alias UnaryOperator = fn[dtype: DType, simd_width: Int] (
     SIMD[dtype, simd_width]

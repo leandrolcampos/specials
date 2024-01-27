@@ -30,11 +30,11 @@
 
 import math
 
-from ._internal import asserting
-from ._internal.functional import fori_loop
-from ._internal.limits import FloatLimits
-from .elementary import exp, log
-from .polynomial import Chebyshev, Polynomial
+from specials._internal import asserting
+from specials._internal.functional import fori_loop
+from specials._internal.limits import FloatLimits
+from specials._internal.polynomial import Chebyshev, Polynomial
+from specials.elementary import exp, log
 
 
 fn lbeta[

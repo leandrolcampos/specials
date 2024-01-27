@@ -24,9 +24,9 @@
 
 import math
 
-from ._internal import asserting
-from ._internal.limits import FloatLimits
-from .polynomial import Polynomial
+from specials._internal import asserting
+from specials._internal.limits import FloatLimits
+from specials._internal.polynomial import Polynomial
 
 
 fn exp[
