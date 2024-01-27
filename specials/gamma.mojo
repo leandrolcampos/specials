@@ -31,10 +31,9 @@
 import math
 
 from specials._internal import asserting
-from specials._internal.functional import fori_loop
 from specials._internal.limits import FloatLimits
 from specials._internal.polynomial import Chebyshev, Polynomial
-from specials.elementary import exp, log
+from specials.elementary.log import log
 
 
 fn lbeta[
@@ -46,7 +45,7 @@ fn lbeta[
     but it is more accurate for arguments greater than or equal to `8.0`.
 
     Parameters:
-        dtype: The data type of the input and output SIMD vectors (float32 or float64).
+        dtype: The data type of the input and output SIMD vectors.
         simd_width: The width of the input and output SIMD vectors.
 
     Args:
@@ -57,8 +56,8 @@ fn lbeta[
         SIMD vector containing the natural logarithm of the beta function.
 
     Constraints:
-        The data type must be a floating-point of single (float32) or double (float64)
-        precision.
+        The data type must be a floating-point of single (`float32`) or double
+        (`float64`) precision.
     """
     asserting.assert_float_dtype["dtype", dtype]()
 
@@ -137,8 +136,7 @@ fn lgamma_correction[
     for `x >= 8`.
 
     Parameters:
-        dtype: The data type of the input and output SIMD vectors (`float32` or
-            `float64`).
+        dtype: The data type of the input and output SIMD vectors.
         simd_width: The width of the input and output SIMD vectors.
 
     Args:
@@ -149,7 +147,8 @@ fn lgamma_correction[
         of `lgamma`. If `x` is less than `8.0`, this function returns `NaN`.
 
     Constraints:
-        The data type must be a floating-point of single or double precision.
+        The data type must be a floating-point of single (`float32`) or double
+        (`float64`) precision.
     """
     asserting.assert_float_dtype["dtype", dtype]()
 
@@ -214,8 +213,7 @@ fn lgamma1p[
     accurate for `x` close to zero.
 
     Parameters:
-        dtype: The data type of the input and output SIMD vectors (`float32` or
-            `float64`).
+        dtype: The data type of the input and output SIMD vectors.
         simd_width: The width of the input and output SIMD vectors.
 
     Args:
@@ -225,7 +223,8 @@ fn lgamma1p[
         SIMD vector containing the expression `lgamma(1 + x)` evaluated at `x`.
 
     Constraints:
-        The data type must be a floating-point of single or double precision.
+        The data type must be a floating-point of single (`float32`) or double
+        (`float64`) precision.
     """
     asserting.assert_float_dtype["dtype", dtype]()
 
@@ -310,8 +309,7 @@ fn rgamma1pm1[
     is more accurate for `x` close to zero or one.
 
     Parameters:
-        dtype: The data type of the input and output SIMD vectors (`float32` or
-            `float64`).
+        dtype: The data type of the input and output SIMD vectors.
         simd_width: The width of the input and output SIMD vectors.
 
     Args:
@@ -322,7 +320,8 @@ fn rgamma1pm1[
         at `x`.
 
     Constraints:
-        The data type must be a floating-point of single or double precision.
+        The data type must be a floating-point of single (`float32`) or double
+        (`float64`) precision.
     """
     asserting.assert_float_dtype["dtype", dtype]()
 
