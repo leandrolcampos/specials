@@ -44,7 +44,7 @@ fn test_elemwise_tensor[
 
     # The for loop is simple, direct, and so, good for testing.
     for i in range(x.num_elements()):
-        unit_test.assert_almost_equal(math.cos(x[i]), res[i], 0.0, rtol)
+        unit_test.assert_all_close(res[i], math.cos(x[i]), 0.0, rtol)
 
 
 fn test_elemwise_tensor_scalar[
@@ -69,7 +69,7 @@ fn test_elemwise_tensor_scalar[
 
     # The for loop is simple, direct, and so, good for testing.
     for i in range(x.num_elements()):
-        unit_test.assert_almost_equal(x[i] + y, res[i], 0.0, rtol)
+        unit_test.assert_all_close(res[i], x[i] + y, 0.0, rtol)
 
 
 fn test_elemwise_tensor_tensor[
@@ -94,7 +94,7 @@ fn test_elemwise_tensor_tensor[
 
     # The for loop is simple, direct, and so, good for testing.
     for i in range(x.num_elements()):
-        unit_test.assert_almost_equal(x[i] + y[i], res[i], 0.0, rtol)
+        unit_test.assert_all_close(res[i], x[i] + y[i], 0.0, rtol)
 
 
 fn main() raises:

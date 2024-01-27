@@ -62,7 +62,7 @@ fn test_exp[dtype: DType]() raises:
         let expected = _mp_exp[dtype](x)
         let actual = specials.exp(x)
 
-        unit_test.assert_almost_equal(expected, actual, 0.0, rtol)
+        unit_test.assert_all_close(actual, expected, 0.0, rtol)
 
 
 fn test_exp_special_cases[dtype: DType]() raises:
@@ -83,7 +83,7 @@ fn test_exp_special_cases[dtype: DType]() raises:
     let result = (
         (math.isnan(actual) & math.isnan(actual)) | (actual == expected)
     ).reduce_and()
-    unit_test.assert_true(result, str(expected) + " is not equal to " + str(actual))
+    unit_test.assert_true(result, str(actual) + " is not equal to " + str(expected))
 
 
 fn _mp_log[dtype: DType](x: SIMD[dtype, 1]) raises -> SIMD[dtype, 1]:
@@ -117,7 +117,7 @@ fn test_log[dtype: DType]() raises:
         let expected = _mp_log[dtype](x)
         let actual = specials.log(x)
 
-        unit_test.assert_almost_equal(expected, actual, 0.0, rtol)
+        unit_test.assert_all_close(actual, expected, 0.0, rtol)
 
 
 fn test_log_special_cases[dtype: DType]() raises:
@@ -137,7 +137,7 @@ fn test_log_special_cases[dtype: DType]() raises:
     let result = (
         (math.isnan(actual) & math.isnan(actual)) | (actual == expected)
     ).reduce_and()
-    unit_test.assert_true(result, str(expected) + " is not equal to " + str(actual))
+    unit_test.assert_true(result, str(actual) + " is not equal to " + str(expected))
 
 
 fn main() raises:
