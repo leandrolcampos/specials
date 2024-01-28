@@ -471,3 +471,18 @@ struct Polynomial[
             fori_loop[num_terms - 2, -1, -1, body_func]()
 
         return result
+
+
+fn _polynomial_evaluate[
+    num_terms: Int,
+    dtype: DType,
+    simd_width: Int,
+    polynomial: Polynomial[num_terms, dtype, simd_width],
+](x: SIMD[dtype, simd_width]) -> SIMD[dtype, simd_width]:
+    """Evaluates the Power series at `x` using the Mojo standard library procedure."""
+
+    # TODO: Evaluate the accuracy and computational performance of this function.
+
+    return math.polynomial_evaluate[
+        dtype, simd_width, num_terms, polynomial._coefficients
+    ](x)
