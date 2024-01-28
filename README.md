@@ -47,7 +47,7 @@ Beyond the practical importance of special functions in scientific and industria
 
 ## Mojo Version Requirement
 
-Specials requires Mojo `v0.6.1`. Make sure you have the correct Mojo version installed before using it.
+Specials requires Mojo `v0.7.0`. Make sure you have the correct Mojo version installed before using it.
 
 ## Example Usage
 
@@ -61,19 +61,19 @@ The following code snippet shows how to compute `exp(x) - 1` in a numerically st
 [0.0, 1.0000000000000001e-18, 0.22140275816016985, 1.7182818284590453]
 ```
 
-> 💡 In the notebook [The `expm1` function in Specials](./expm1_function.ipynb), we compare the implementation of the `expm1` function in Specials with the implementations from the Mojo standard library and NumPy.
+> 💡 In the notebook [The Expm1 Function in Specials](./expm1_function.ipynb), we compare the implementation of the `expm1` function in Specials with the implementations from the Mojo standard library and NumPy.
 
-The table below shows the results of comparing the `expm1` implementation in Specials with its counterparts in Mojo standard library and NumPy using `float64` as the data type. The results underscore Specials' ability to provide exceptional accuracy without compromising computational efficiency.
+The table below shows the results of comparing the `expm1` implementation in Specials with its counterparts in Mojo standard library and NumPy using `float32` as the data type. The results underscore Specials' ability to provide exceptional accuracy without compromising computational efficiency.
 
-**Experiment: Expm1 Function (float64)**
+**Experiment: Expm1 Function (float32)**
 
 | Domain | Solution | Maximum<br>Relative Error | Mean<br>Relative Error | Mean Execution Time<br>(in milliseconds) |
 |---|---|---:|---:|---:|
-| -2e-14,2e-14 | Specials<br>Mojo<br>NumPy | 2.22e-16<br>1.10e-09<br>0.0 | 1.29e-17<br>1.01e-10<br>0.0 | 0.041<br>0.036<br>0.0 |
-| -1,1 | Specials<br>Mojo<br>NumPy | 3.51e-16<br>3.39e-09<br>0.0 | 5.12e-17<br>6.02e-10<br>0.0 | 0.043<br>0.038<br>0.0 |
-| -10,10 | Specials<br>Mojo<br>NumPy | 2.68e-16<br>1.13e-09<br>0.0 | 1.13e-17<br>8.39e-11<br>0.0 | 0.048<br>0.038<br>0.0 |
-| -30,30 | Specials<br>Mojo<br>NumPy | 2.22e-16<br>4.82e-10<br>0.0 | 5.15e-18<br>4.55e-11<br>0.0 | 0.039<br>0.036<br>0.0 |
-| -85,85 | Specials<br>Mojo<br>NumPy | 1.79e-16<br>1.48e-11<br>0.0 | 2.15e-19<br>2.05e-12<br>0.0 | 0.041<br>0.035<br>0.0 |
+| -1e-05,1e-05 | Specials<br>Mojo<br>NumPy | 0.0<br>7.15e-08<br>7.15e-08 | 0.0<br>2.86e-13<br>2.86e-13 | 0.089<br>0.223<br>0.693 |
+| -1,1 | Specials<br>Mojo<br>NumPy | 1.19e-07<br>1.19e-07<br>1.19e-07 | 5.76e-10<br>7.66e-09<br>7.66e-09 | 0.200<br>0.433<br>1.810 |
+| -10,10 | Specials<br>Mojo<br>NumPy | 1.19e-07<br>1.19e-07<br>1.19e-07 | 1.95e-10<br>5.62e-09<br>5.62e-09 | 0.181<br>0.518<br>2.068 |
+| -30,30 | Specials<br>Mojo<br>NumPy | 1.19e-07<br>1.19e-07<br>1.19e-07 | 1.53e-10<br>4.61e-09<br>4.61e-09 | 0.173<br>0.538<br>2.374 |
+| -85,85 | Specials<br>Mojo<br>NumPy | 1.19e-07<br>1.19e-07<br>1.19e-07 | 1.59e-10<br>4.28e-09<br>4.28e-09 | 0.184<br>0.465<br>2.079 |
 
 ## Some Implementations Available
 
