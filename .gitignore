@@ -13,3 +13,4 @@ __pycache__
 # Except for the Jupyter notebooks specified below
 !lbeta_function.ipynb
 !exp_and_log_functions.ipynb
+!expm1_function.ipynb

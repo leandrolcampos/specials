@@ -51,46 +51,29 @@ Specials requires Mojo `v0.6.1`. Make sure you have the correct Mojo version ins
 
 ## Example Usage
 
-The following code snippet shows how to compute the log-beta function for given SIMD vectors:
+The following code snippet shows how to compute `exp(x) - 1` in a numerically stable way for a given SIMD vector:
 
 ```python
 >>> import specials
->>> let x = SIMD[DType.float64, 4](0.1, 8.0, 30.0, 1e10)
->>> let y = SIMD[DType.float64, 4](3.0, 1.0, 10.0, 1e-10)
->>> let res = specials.lbeta(x, y)
->>> print(res)
-[2.1584847490202885, -2.0794415416798362, -22.572893813393978, 23.025850927580152]
+>>> let x = SIMD[DType.float64, 4](0.0, 1e-18, 0.2, 1.0)
+>>> let result = specials.expm1(x)
+>>> print(result)
+[0.0, 1.0000000000000001e-18, 0.22140275816016985, 1.7182818284590453]
 ```
 
-> 💡 In the notebook [The Log-Beta Function in Specials](./lbeta_function.ipynb), we compare our implementation of the log-beta function with a naive one based on Mojo's standard library, as well as the corresponding implementations in SciPy and TensorFlow Probability.
+> 💡 In the notebook [The `expm1` function in Specials](./expm1_function.ipynb), we compare the implementation of the `expm1` function in Specials with the implementations from the Mojo standard library and NumPy.
 
-And the following code snippet shows how to compute the exponential and natural logarithm for given scalars:
+The table below shows the results of comparing the `expm1` implementation in Specials with its counterparts in Mojo standard library and NumPy using `float64` as the data type. The results underscore Specials' ability to provide exceptional accuracy without compromising computational efficiency.
 
-```python
->>> import specials
->>> let e = specials.exp(Float64(1.0))
->>> let one = specials.log(e)
->>> print("exp(1) =", e)
->>> print("log(exp(1)) =", one)
-exp(1) = 2.7182818284590455
-log(exp(1)) = 1.0
-```
-
-We provide implementations of the natural exponential and logarithmic functions in Specials due to their widespread use in AI applications. Our evaluation revealed accuracy issues in the current implementations of these functions in Mojo's standard library.
-
-> 💡 In the notebook [The Exponential and Logarithmic Functions in Specials](./exp_and_log_functions.ipynb), we compare our implementations of these functions with those in Mojo's standard library.
-
-The table below shows the results of comparing the natural logarithm implementation in Specials with the corresponding one in Mojo's standard library using `float64` as the data type. The results underscore Specials' ability to provide exceptional accuracy without compromising computational efficiency.
-
-**Experiment Results: Natural Logarithmic Function (float64)**
+**Experiment: Expm1 Function (float64)**
 
 | Domain | Solution | Maximum<br>Relative Error | Mean<br>Relative Error | Mean Execution Time<br>(in milliseconds) |
 |---|---|---:|---:|---:|
-| 0,0.5 | Specials<br>Mojo | 2.22e-16<br>1.10e-09 | 1.29e-17<br>1.01e-10 | 0.041<br>0.036 |
-| 0.5,1.5 | Specials<br>Mojo | 3.51e-16<br>3.39e-09 | 5.12e-17<br>6.02e-10 | 0.043<br>0.038 |
-| 1.5,10 | Specials<br>Mojo | 2.68e-16<br>1.13e-09 | 1.13e-17<br>8.39e-11 | 0.048<br>0.038 |
-| 10,100 | Specials<br>Mojo | 2.22e-16<br>4.82e-10 | 5.15e-18<br>4.55e-11 | 0.039<br>0.036 |
-| 100,1e+36 | Specials<br>Mojo | 1.79e-16<br>1.48e-11 | 2.15e-19<br>2.05e-12 | 0.041<br>0.035 |
+| -2e-14,2e-14 | Specials<br>Mojo<br>NumPy | 2.22e-16<br>1.10e-09<br>0.0 | 1.29e-17<br>1.01e-10<br>0.0 | 0.041<br>0.036<br>0.0 |
+| -1,1 | Specials<br>Mojo<br>NumPy | 3.51e-16<br>3.39e-09<br>0.0 | 5.12e-17<br>6.02e-10<br>0.0 | 0.043<br>0.038<br>0.0 |
+| -10,10 | Specials<br>Mojo<br>NumPy | 2.68e-16<br>1.13e-09<br>0.0 | 1.13e-17<br>8.39e-11<br>0.0 | 0.048<br>0.038<br>0.0 |
+| -30,30 | Specials<br>Mojo<br>NumPy | 2.22e-16<br>4.82e-10<br>0.0 | 5.15e-18<br>4.55e-11<br>0.0 | 0.039<br>0.036<br>0.0 |
+| -85,85 | Specials<br>Mojo<br>NumPy | 1.79e-16<br>1.48e-11<br>0.0 | 2.15e-19<br>2.05e-12<br>0.0 | 0.041<br>0.035<br>0.0 |
 
 ## Some Implementations Available
 
@@ -99,6 +82,7 @@ The table below shows the results of comparing the natural logarithm implementat
 | Function | Description |
 |----------|-------------|
 | `exp(x)` | The natural exponential function |
+| `expm1(x)` | The expression `exp(x) - 1` evaluated in a numerically stable way when `x` is near zero |
 | `log(x)` | The natural logarithmic function |
 
 ### Gamma-Related Functions
