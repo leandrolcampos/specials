@@ -13,15 +13,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===----------------------------------------------------------------------=== #
+#
+# Some of the code in this file is adapted from:
+#
+# numpy/numpy
+# Copyright (c) 2005-2023, NumPy Developers.
+# Licensed under BSD 3 clause.
 
 """Utilities for testing Specials code."""
 
+import math
 import testing
 
 
 @value
-struct UnitTest:
-    """Provides utilities for testing Specials code."""
+struct UnitTest[raise_error: Bool = False]:
+    """Provides utilities for testing Specials code.
+
+    Parameters:
+        raise_error: Whether to raise an `Error` if an assertion fails. If `False` then
+            the assertion message is printed instead.
+    """
 
     var name: String
     """The name of the unit test."""
@@ -41,70 +53,129 @@ struct UnitTest:
         """
         try:
             testing.assert_true(val, msg)
-        except e:
-            print(e)
+        except error:
 
-    fn assert_equal(self, lhs: Int, rhs: Int) raises:
+            @parameter
+            if raise_error:
+                raise error
+            else:
+                print(error)
+
+    fn assert_equal(self, actual: Int, desired: Int) raises:
         """Asserts that the input values are equal. If it is not then an `Error` is raised.
 
         Raises: An `Error` if assert fails and `None` otherwise.
 
         Args:
-            lhs: The lhs of the equality.
-            rhs: The rhs of the equality.
+            actual: The actual integer.
+            desired: The desired integer.
         """
         try:
-            testing.assert_equal(lhs, rhs)
-        except e:
-            print(e)
+            testing.assert_equal(actual, desired)
+        except error:
+
+            @parameter
+            if raise_error:
+                raise error
+            else:
+                print(error)
 
     fn assert_equal[
         dtype: DType, simd_width: Int
-    ](self, lhs: SIMD[dtype, simd_width], rhs: SIMD[dtype, simd_width]) raises:
+    ](self, actual: SIMD[dtype, simd_width], desired: SIMD[dtype, simd_width]) raises:
         """Asserts that the input values are equal. If it is not then an `Error` is raised.
+
+        In contrast to the standard usage in Mojo, `NaN`s are compared like numbers: no
+        assertion is raised if both objects have `NaN`s in the same positions.
 
         Raises: An `Error` if assert fails and `None` otherwise.
 
         Parameters:
-            dtype: The dtype of the left- and right-hand-side SIMD vectors.
-            simd_width: The width of the left- and right-hand-side SIMD vectors.
+            dtype: The dtype of the actual and desired SIMD vectors.
+            simd_width: The width of the actual and desired SIMD vectors.
 
         Args:
-            lhs: The lhs of the equality.
-            rhs: The rhs of the equality.
+            actual: The actual SIMD vector.
+            desired: The desired SIMD vector.
         """
-        try:
-            testing.assert_equal(lhs, rhs)
-        except e:
-            print(e)
+        var result = (actual == desired)
 
-    fn assert_almost_equal[
+        @parameter
+        if dtype.is_floating_point():
+            result |= math.isnan(actual) & math.isnan(desired)
+
+        try:
+            testing.assert_true(
+                result.reduce_and(), str(actual) + " is not equal to " + str(desired)
+            )
+        except error:
+
+            @parameter
+            if raise_error:
+                raise error
+            else:
+                print(error)
+
+    fn assert_all_close[
         dtype: DType, simd_width: Int
     ](
         self,
-        lhs: SIMD[dtype, simd_width],
-        rhs: SIMD[dtype, simd_width],
+        actual: SIMD[dtype, simd_width],
+        desired: SIMD[dtype, simd_width],
         absolute_tolerance: SIMD[dtype, 1],
         relative_tolerance: SIMD[dtype, 1],
     ) raises:
         """Asserts that the input values are equal up to a tolerance. If it is not then
         an `Error` is raised.
 
+        The test compares the difference between `actual` and `desired` to the sum of the
+        absolute tolerance `atol` and the relative tolerance `rtol * abs(desired)`.
+
+        In contrast to the standard usage in Mojo, `NaN`s are compared like numbers: no
+        assertion is raised if both objects have `NaN`s in the same positions.
+
         Raises: An `Error` if assert fails and `None` otherwise.
 
         Parameters:
-            dtype: The dtype of the left- and right-hand-side SIMD vectors.
-            simd_width: The width of the left- and right-hand-side SIMD vectors.
+            dtype: The dtype of the actual and desired SIMD vectors.
+            simd_width: The width of the actual and desired SIMD vectors.
 
         Args:
-            lhs: The lhs of the equality.
-            rhs: The rhs of the equality.
+            actual: The actual SIMD vector.
+            desired: The desired SIMD vector.
             absolute_tolerance: The absolute tolerance.
             relative_tolerance: The relative tolerance.
         """
+        constrained[
+            dtype.is_floating_point(),
+            "The parameter `dtype` should be a floating-point data type.",
+        ]()
+
+        let diff = actual - desired
+        var result = (actual == desired)
+
+        result |= math.limit.isfinite(desired) & math.less_equal(
+            math.abs(diff),
+            absolute_tolerance + relative_tolerance * math.abs(desired),
+        )
+
+        @parameter
+        if dtype.is_floating_point():
+            result |= math.isnan(actual) & math.isnan(desired)
+
         try:
-            testing.assert_almost_equal(
-                lhs, rhs, absolute_tolerance, relative_tolerance
+            testing.assert_true(
+                result.reduce_and(),
+                str(actual)
+                + " is not close to "
+                + str(desired)
+                + " with a diff of "
+                + str(diff),
             )
-        except e:
-            print(e)
+        except error:
+
+            @parameter
+            if raise_error:
+                raise error
+            else:
+                print(error)

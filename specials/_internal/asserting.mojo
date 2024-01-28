@@ -14,23 +14,34 @@
 # limitations under the License.
 # ===----------------------------------------------------------------------=== #
 
-"""Utilities for performing assertions within the package."""
+"""Utilities for performing compile-time assertions within the package."""
 
 import math
+
+
+@always_inline("nodebug")
+fn assert_integral_dtype[
+    parameter_name: StringLiteral, parameter_value: DType
+]() -> None:
+    """Asserts that the given parameter is an integral data type."""
+    constrained[
+        parameter_value.is_integral(),
+        "The parameter `" + parameter_name + "` must be an integral data type.",
+    ]()
 
 
 @always_inline("nodebug")
 fn assert_float_dtype[parameter_name: StringLiteral, parameter_value: DType]() -> None:
     """Asserts that the given parameter is a floating-point data type.
 
-    This package supports only floating-point data types of single (float32) or double
-    (float64) precision.
+    This package supports only floating-point data types of single (`float32`) or double
+    (`float64`) precision.
     """
     constrained[
         parameter_value == DType.float32 or parameter_value == DType.float64,
         "The parameter `"
         + parameter_name
-        + "` must be a floating-point of single (float32) or double (float64)"
+        + "` must be a floating-point of single (`float32`) or double (`float64`)"
         " precision.",
     ]()
 

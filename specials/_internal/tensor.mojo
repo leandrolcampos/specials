@@ -23,11 +23,11 @@ import random
 from algorithm.functional import parallelize, vectorize
 from python import Python
 from python.object import PythonObject
-from runtime.llcl import num_cores
-from sys.info import simdwidthof
+from sys.info import num_physical_cores, simdwidthof
 from tensor import Tensor
 
-from .asserting import assert_float_dtype
+from specials._internal.asserting import assert_float_dtype
+
 
 alias UnaryOperator = fn[dtype: DType, simd_width: Int] (
     SIMD[dtype, simd_width]
@@ -56,7 +56,7 @@ fn _elementwise_impl[
 
     @parameter
     if not force_sequential:
-        let num_worker = num_cores()
+        let num_worker = num_physical_cores()
         let num_work_items = num_worker
         let num_simds_per_work_item = (num_elements // simd_width) // num_work_items
 
@@ -124,7 +124,7 @@ fn _elementwise_impl[
 
     @parameter
     if not force_sequential:
-        let num_worker = num_cores()
+        let num_worker = num_physical_cores()
         let num_work_items = num_worker
         let num_simds_per_work_item = (num_elements // simd_width) // num_work_items
 
@@ -198,7 +198,7 @@ fn _elementwise_impl[
 
     @parameter
     if not force_sequential:
-        let num_worker = num_cores()
+        let num_worker = num_physical_cores()
         let num_work_items = num_worker
         let num_simds_per_work_item = (num_elements // simd_width) // num_work_items
 

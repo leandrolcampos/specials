@@ -1,3 +1,16 @@
+# Ignore Visual Studio Code settings folder
 .vscode
+
+# Ignore Jupyter Notebook checkpoints
 .ipynb_checkpoints
+
+# Ignore Python bytecode cache files
 __pycache__
+
+# Ignore all Jupyter notebooks (*.ipynb)
+*.ipynb
+
+# Except for the Jupyter notebooks specified below
+!lbeta_function.ipynb
+!exp_and_log_functions.ipynb
+!expm1_function.ipynb

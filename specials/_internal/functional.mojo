@@ -16,7 +16,7 @@
 
 """Implements higher-order functions."""
 
-from .asserting import assert_non_zero
+from specials._internal.asserting import assert_non_zero
 
 
 fn _fori_loop_impl[

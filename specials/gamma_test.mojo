@@ -17,10 +17,8 @@
 """Tests for gamma-related functions."""
 
 import math
-import testing
 
 from python import Python
-from python.object import PythonObject
 from utils.static_tuple import StaticTuple
 
 import specials
@@ -53,7 +51,7 @@ fn test_lgamma_correction[dtype: DType]() raises:
     else:  # dtype == DType.float64
         rtol = 1e-12
 
-    unit_test.assert_almost_equal(expected, actual, 0.0, rtol)
+    unit_test.assert_all_close(actual, expected, 0.0, rtol)
 
 
 fn test_lgamma_correction_special_cases[dtype: DType]() raises:
@@ -97,7 +95,7 @@ fn test_lgamma1p_region1[dtype: DType]() raises:
     else:  # dtype == DType.float64
         rtol = 1e-12
 
-    unit_test.assert_almost_equal[dtype, 4](expected, specials.lgamma1p(x), 0.0, rtol)
+    unit_test.assert_all_close[dtype, 4](specials.lgamma1p(x), expected, 0.0, rtol)
 
 
 fn test_lgamma1p_region2[dtype: DType]() raises:
@@ -122,7 +120,7 @@ fn test_lgamma1p_region2[dtype: DType]() raises:
     else:  # dtype == DType.float64
         rtol = 1e-12
 
-    unit_test.assert_almost_equal[dtype, 4](expected, specials.lgamma1p(x), 0.0, rtol)
+    unit_test.assert_all_close[dtype, 4](specials.lgamma1p(x), expected, 0.0, rtol)
 
 
 fn test_lgamma1p_edge_cases[dtype: DType]() raises:
@@ -157,11 +155,11 @@ fn test_lbeta() raises:
         -33513.609276569981795,
     )
 
-    unit_test.assert_almost_equal[DType.float64, 4](
-        expected, specials.lbeta(x, y), 0.0, 1e-12
+    unit_test.assert_all_close[DType.float64, 4](
+        specials.lbeta(x, y), expected, 0.0, 1e-12
     )
-    unit_test.assert_almost_equal[DType.float64, 4](
-        expected, specials.lbeta(y, x), 0.0, 1e-12
+    unit_test.assert_all_close[DType.float64, 4](
+        specials.lbeta(y, x), expected, 0.0, 1e-12
     )
 
 
@@ -220,7 +218,7 @@ fn test_rgamma1pm1[dtype: DType]() raises:
         let expected = _mp_rgamma1pm1[dtype](x)
         let actual = specials.rgamma1pm1(x)
 
-        unit_test.assert_almost_equal(expected, actual, 0.0, rtol)
+        unit_test.assert_all_close(actual, expected, 0.0, rtol)
 
 
 fn test_rgamma1pm1_special_cases[dtype: DType]() raises:
