@@ -32,14 +32,12 @@ from specials._internal.table import FloatTable, get_hexadecimal_dtype
 
 
 @always_inline
-fn _get_s_lead[
-    dtype: DType, hexadecimal_dtype: DType = get_hexadecimal_dtype[dtype]()
-]() -> FloatTable[32, dtype, hexadecimal_dtype]:
+fn _get_s_lead[dtype: DType]() -> FloatTable[32, dtype]:
     """Returns the table entries of `s_lead` for single or double precision."""
 
     @parameter
     if dtype == DType.float32:
-        return FloatTable[32, dtype, hexadecimal_dtype].from_hexadecimal_values[
+        return FloatTable[32, dtype].from_hexadecimal_values[
             0x3F80_0000,
             0x3F82_CD80,
             0x3F85_AAC0,
@@ -74,7 +72,7 @@ fn _get_s_lead[
             0x3FFA_8380,
         ]()
     else:  # dtype == DType.float64
-        return FloatTable[32, dtype, hexadecimal_dtype].from_hexadecimal_values[
+        return FloatTable[32, dtype].from_hexadecimal_values[
             0x3FF00000_00000000,
             0x3FF059B0_D3158540,
             0x3FF0B558_6CF98900,
@@ -111,14 +109,12 @@ fn _get_s_lead[
 
 
 @always_inline
-fn _get_s_trail[
-    dtype: DType, hexadecimal_dtype: DType = get_hexadecimal_dtype[dtype]()
-]() -> FloatTable[32, dtype, hexadecimal_dtype]:
+fn _get_s_trail[dtype: DType]() -> FloatTable[32, dtype]:
     """Returns the table entries of `s_trail` for single or double precision."""
 
     @parameter
     if dtype == DType.float32:
-        return FloatTable[32, dtype, hexadecimal_dtype].from_hexadecimal_values[
+        return FloatTable[32, dtype].from_hexadecimal_values[
             0x0000_0000,
             0x3553_1585,
             0x34D9_F312,
@@ -153,7 +149,7 @@ fn _get_s_trail[
             0x36CB_6DC9,
         ]()
     else:  # dtype == DType.float64
-        return FloatTable[32, dtype, hexadecimal_dtype].from_hexadecimal_values[
+        return FloatTable[32, dtype].from_hexadecimal_values[
             0x00000000_00000000,
             0x3D0A1D73_E2A475B4,
             0x3CEEC531_7256E308,
@@ -190,11 +186,11 @@ fn _get_s_trail[
 
 
 @register_passable("trivial")
-struct _STable[dtype: DType, hexadecimal_dtype: DType = get_hexadecimal_dtype[dtype]()]:
+struct _STable[dtype: DType]:
     """Table entries of `s_lead` and `s_trail` for single or double precision."""
 
-    alias lead = _get_s_lead[dtype, hexadecimal_dtype]()
-    alias trail = _get_s_trail[dtype, hexadecimal_dtype]()
+    alias lead = _get_s_lead[dtype]()
+    alias trail = _get_s_trail[dtype]()
 
 
 fn _expm1_procedure_1[

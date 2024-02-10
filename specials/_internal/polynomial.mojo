@@ -39,26 +39,12 @@ from specials._internal.table import get_hexadecimal_dtype
 
 @always_inline("nodebug")
 fn _check_polynomial_like_constraints[
-    num_terms: Int, dtype: DType, simd_width: Int, hexadecimal_dtype: DType
+    num_terms: Int, dtype: DType, simd_width: Int
 ]() -> None:
     """Checks the constraints of a polynomial-like."""
     asserting.assert_positive["num_terms", num_terms]()
     asserting.assert_float_dtype["dtype", dtype]()
     asserting.assert_simd_width["simd_width", simd_width]()
-
-    @parameter
-    if dtype == DType.float32:
-        constrained[
-            hexadecimal_dtype == DType.uint32,
-            "The parameter `hexadecimal_dtype` must be equal to `DType.uint32` when "
-            + "`dtype` is `DType.float32`.",
-        ]()
-    else:  # dtype == DType.float64
-        constrained[
-            hexadecimal_dtype == DType.uint64,
-            "The parameter `hexadecimal_dtype` must be equal to `DType.uint64` when "
-            + "`dtype` is `DType.float64`.",
-        ]()
 
 
 # ===-------------------------- Chebyshev Series --------------------------=== #
@@ -69,7 +55,6 @@ struct Chebyshev[
     num_terms: Int,
     dtype: DType,
     simd_width: Int,
-    hexadecimal_dtype: DType = get_hexadecimal_dtype[dtype](),
 ]:
     """Represents a finite Chebyshev series.
 
@@ -85,13 +70,10 @@ struct Chebyshev[
         num_terms: The number of terms in the series.
         dtype: The data type of the independent variable `x` in the series.
         simd_width: The SIMD width of the independent variable `x` in the series.
-        hexadecimal_dtype: The data type used for hexadecimal representation of the
-            coefficients. The default is automatically determined based on `dtype`.
 
     Constraints:
         The number of terms must be positive. The parameter `dtype` must be `float32`
-        or `float64`. The parameter `hexadecimal_dtype` must be `uint32` if `dtype` is
-        `float32` or `uint64` if `dtype` is `float64`.
+        or `float64`.
     """
 
     var _coefficients: StaticTuple[num_terms, SIMD[dtype, simd_width]]
@@ -102,7 +84,7 @@ struct Chebyshev[
 
         Parameters:
             coefficients: The sequence of coefficients in order of increasing degree,
-                i.e., `(1, 2, 3)` gives `1 * T[0](x) + 2 * T[1](x) + 3 * T[2](x)`.
+                i.e., `c[0] * T[0](x) + c[1] * T[1](x) + c[2] * T[2](x)`.
 
         Returns:
             A Chebyshev series with the given coefficients.
@@ -110,9 +92,7 @@ struct Chebyshev[
         Constraints:
             The number of coefficients must be equal to the parameter `num_terms`.
         """
-        _check_polynomial_like_constraints[
-            num_terms, dtype, simd_width, hexadecimal_dtype
-        ]()
+        _check_polynomial_like_constraints[num_terms, dtype, simd_width]()
 
         constrained[
             num_terms == len(VariadicList(coefficients)),
@@ -128,13 +108,17 @@ struct Chebyshev[
 
     @staticmethod
     fn from_hexadecimal_coefficients[
-        *coefficients: SIMD[hexadecimal_dtype, 1]
+        *coefficients: Scalar[get_hexadecimal_dtype[dtype]()]
     ]() -> Self:
         """Generates a Chebyshev series from a sequence of hexadecimal coefficients.
 
+        The data type used for hexadecimal representation of the coefficients is
+        automatically determined based on `dtype`: `uint32` if `dtype` is `float32`
+        or `uint64` if `dtype` is `float64`.
+
         Parameters:
             coefficients: The sequence of hexadecimal coefficients in order of increasing
-                degree, i.e., `(1, 2, 3)` gives `1 * T[0](x) + 2 * T[1](x) + 3 * T[2](x)`.
+                degree, i.e., `c[0] * T[0](x) + c[1] * T[1](x) + c[2] * T[2](x)`.
 
         Returns:
             A Chebyshev series with the given hexadecimal coefficients.
@@ -143,9 +127,7 @@ struct Chebyshev[
             The number of hexadecimal coefficients must be equal to the parameter
             `num_terms`.
         """
-        _check_polynomial_like_constraints[
-            num_terms, dtype, simd_width, hexadecimal_dtype
-        ]()
+        _check_polynomial_like_constraints[num_terms, dtype, simd_width]()
 
         constrained[
             num_terms == len(VariadicList(coefficients)),
@@ -308,7 +290,6 @@ struct Polynomial[
     num_terms: Int,
     dtype: DType,
     simd_width: Int,
-    hexadecimal_dtype: DType = get_hexadecimal_dtype[dtype](),
 ]:
     """Represents a finite Power series, commonly known as a polynomial.
 
@@ -323,13 +304,10 @@ struct Polynomial[
         num_terms: The number of terms in the series.
         dtype: The data type of the independent variable `x` in the series.
         simd_width: The SIMD width of the independent variable `x` in the series.
-        hexadecimal_dtype: The data type used for hexadecimal representation of the
-            coefficients. The default is automatically determined based on `dtype`.
 
     Constraints:
         The number of terms must be positive. The parameter `dtype` must be `float32`
-        or `float64`. The parameter `hexadecimal_dtype` must be `uint32` if `dtype` is
-        `float32` or `uint64` if `dtype` is `float64`.
+        or `float64`.
     """
 
     var _coefficients: StaticTuple[num_terms, SIMD[dtype, simd_width]]
@@ -340,7 +318,7 @@ struct Polynomial[
 
         Parameters:
             coefficients: The sequence of coefficients in order of increasing degree,
-                i.e., `(1, 2, 3)` gives `1 + 2 * x + 3 * x**2`.
+                i.e., `c[0] + c[1] * x + c[2] * x**2`.
 
         Returns:
             A Power series with the given coefficients.
@@ -348,9 +326,7 @@ struct Polynomial[
         Constraints:
             The number of coefficients must be equal to the parameter `num_terms`.
         """
-        _check_polynomial_like_constraints[
-            num_terms, dtype, simd_width, hexadecimal_dtype
-        ]()
+        _check_polynomial_like_constraints[num_terms, dtype, simd_width]()
 
         constrained[
             num_terms == len(VariadicList(coefficients)),
@@ -366,13 +342,17 @@ struct Polynomial[
 
     @staticmethod
     fn from_hexadecimal_coefficients[
-        *coefficients: SIMD[hexadecimal_dtype, 1]
+        *coefficients: Scalar[get_hexadecimal_dtype[dtype]()]
     ]() -> Self:
         """Generates a Power series from a sequence of hexadecimal coefficients.
 
+        The data type used for hexadecimal representation of the coefficients is
+        automatically determined based on `dtype`: `uint32` if `dtype` is `float32`
+        or `uint64` if `dtype` is `float64`.
+
         Parameters:
             coefficients: The sequence of hexadecimal coefficients in order of
-                increasing degree, i.e., `(1, 2, 3)` gives `1 + 2 * x + 3 * x**2`.
+                increasing degree, i.e., `c[0] + c[1] * x + c[2] * x**2`.
 
         Returns:
             A Power series with the given hexadecimal coefficients.
@@ -381,9 +361,7 @@ struct Polynomial[
             The number of hexadecimal coefficients must be equal to the parameter
             `num_terms`.
         """
-        _check_polynomial_like_constraints[
-            num_terms, dtype, simd_width, hexadecimal_dtype
-        ]()
+        _check_polynomial_like_constraints[num_terms, dtype, simd_width]()
 
         constrained[
             num_terms == len(VariadicList(coefficients)),

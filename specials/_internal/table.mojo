@@ -29,37 +29,21 @@ fn get_hexadecimal_dtype[decimal_dtype: DType]() -> DType:
     @parameter
     if decimal_dtype == DType.float32:
         return DType.uint32
-    else:  # decimal_dtype == DType.float64
+    elif decimal_dtype == DType.float64:
         return DType.uint64
+    else:
+        return DType.invalid
 
 
 @always_inline
-fn _check_float_table_constraints[
-    size: Int, dtype: DType, hexadecimal_dtype: DType
-]() -> None:
+fn _check_float_table_constraints[size: Int, dtype: DType]() -> None:
     """Checks the constraints of the `FloatTable`."""
     asserting.assert_positive["size", size]()
     asserting.assert_float_dtype["dtype", dtype]()
 
-    @parameter
-    if dtype == DType.float32:
-        constrained[
-            hexadecimal_dtype == DType.uint32,
-            "The parameter `hexadecimal_dtype` must be equal to `DType.uint32` when "
-            + "`dtype` is `DType.float32`.",
-        ]()
-    else:  # dtype == DType.float64
-        constrained[
-            hexadecimal_dtype == DType.uint64,
-            "The parameter `hexadecimal_dtype` must be equal to `DType.uint64` when "
-            + "`dtype` is `DType.float64`.",
-        ]()
-
 
 @register_passable("trivial")
-struct FloatTable[
-    size: Int, dtype: DType, hexadecimal_dtype: DType = get_hexadecimal_dtype[dtype]()
-](Sized):
+struct FloatTable[size: Int, dtype: DType](Sized):
     """Represents a table of floating-point values.
 
     It is used to implement table lookup algorithms.
@@ -67,14 +51,9 @@ struct FloatTable[
     Parameters:
         size: The number of floating-point values in the table.
         dtype: The data type of the floating-point values.
-        hexadecimal_dtype: The data type used for hexadecimal representation of the
-            floating-point values. The default is automatically determined based on
-            `dtype`.
 
     Constraints:
         The size must be positive. The parameter `dtype` must be `float32` or `float64`.
-        The parameter `hexadecimal_dtype` must be `uint32` if `dtype` is `float32` or
-        `uint64` if `dtype` is `float64`.
     """
 
     var _data: StaticTuple[size, Scalar[dtype]]
@@ -92,7 +71,7 @@ struct FloatTable[
         Constraints:
             The number of values must be equal to the parameter `size`.
         """
-        _check_float_table_constraints[size, dtype, hexadecimal_dtype]()
+        _check_float_table_constraints[size, dtype]()
 
         constrained[
             size == len(VariadicList(values)),
@@ -107,8 +86,14 @@ struct FloatTable[
         return Self {_data: data}
 
     @staticmethod
-    fn from_hexadecimal_values[*values: SIMD[hexadecimal_dtype, 1]]() -> Self:
+    fn from_hexadecimal_values[
+        *values: Scalar[get_hexadecimal_dtype[dtype]()]
+    ]() -> Self:
         """Creates a table from a sequence of hexadecimal floating-point values.
+
+        The data type used for hexadecimal representation of the floating-point values
+        is automatically determined based on `dtype`: `uint32` if `dtype` is `float32`
+        or `uint64` if `dtype` is `float64`.
 
         Parameters:
             values: The sequence of hexadecimal floating-point values.
@@ -119,7 +104,7 @@ struct FloatTable[
         Constraints:
             The number of hexadecimal values must be equal to the parameter `size`.
         """
-        _check_float_table_constraints[size, dtype, hexadecimal_dtype]()
+        _check_float_table_constraints[size, dtype]()
 
         constrained[
             size == len(VariadicList(values)),
