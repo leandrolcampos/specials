@@ -437,6 +437,11 @@ struct Polynomial[
         Returns:
             SIMD vector containing the values of the Power series at points `x`.
         """
+        # In terms of accuracy and execution time, there is no reason to use
+        # `math.polynomial_evaluate`. See the Jupyter notebooks below:
+        # - https://github.com/leandrolcampos/specials/blob/polynomial_evaluate/polyval_f32.ipynb
+        # - https://github.com/leandrolcampos/specials/blob/polynomial_evaluate/polyval_f64.ipynb
+
         var result = self.get[num_terms - 1]()
 
         @parameter
@@ -449,18 +454,3 @@ struct Polynomial[
             fori_loop[num_terms - 2, -1, -1, body_func]()
 
         return result
-
-
-fn _polynomial_evaluate[
-    num_terms: Int,
-    dtype: DType,
-    simd_width: Int,
-    polynomial: Polynomial[num_terms, dtype, simd_width],
-](x: SIMD[dtype, simd_width]) -> SIMD[dtype, simd_width]:
-    """Evaluates the Power series at `x` using the Mojo standard library procedure."""
-
-    # TODO: Evaluate the accuracy and computational performance of this function.
-
-    return math.polynomial_evaluate[
-        dtype, simd_width, num_terms, polynomial._coefficients
-    ](x)
