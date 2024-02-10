@@ -43,7 +43,7 @@ fn test_lgamma_correction[dtype: DType]() raises:
     )
     let actual = specials.lgamma_correction(x)
 
-    let rtol: SIMD[dtype, 1]
+    let rtol: Scalar[dtype]
 
     @parameter
     if dtype == DType.float32:
@@ -59,7 +59,7 @@ fn test_lgamma_correction_special_cases[dtype: DType]() raises:
 
     let inf = math.limit.inf[dtype]()
     let nan = math.nan[dtype]()
-    let zero = SIMD[dtype, 1](0.0)
+    let zero = Scalar[dtype](0.0)
     let x = SIMD[dtype, 4](nan, -inf, zero, inf)
 
     let expected = SIMD[dtype, 4](nan, nan, nan, zero)
@@ -87,7 +87,7 @@ fn test_lgamma1p_region1[dtype: DType]() raises:
         -1.12591780722776981673572240680e-1,
     )
 
-    let rtol: SIMD[dtype, 1]
+    let rtol: Scalar[dtype]
 
     @parameter
     if dtype == DType.float32:
@@ -112,7 +112,7 @@ fn test_lgamma1p_region2[dtype: DType]() raises:
         1.248717148923965943024412876132e-1,
     )
 
-    let rtol: SIMD[dtype, 1]
+    let rtol: Scalar[dtype]
 
     @parameter
     if dtype == DType.float32:
@@ -184,7 +184,7 @@ fn test_lbeta_edge_cases() raises:
     unit_test.assert_true(result, "Some of the results are incorrect.")
 
 
-fn _mp_rgamma1pm1[dtype: DType](x: SIMD[dtype, 1]) raises -> SIMD[dtype, 1]:
+fn _mp_rgamma1pm1[dtype: DType](x: Scalar[dtype]) raises -> Scalar[dtype]:
     let mp = Python.import_module("mpmath")
     mp.mp.dps += 300
 
@@ -201,11 +201,11 @@ fn test_rgamma1pm1[dtype: DType]() raises:
     let epsneg = FloatLimits[dtype].epsneg
     let eps = FloatLimits[dtype].eps
 
-    let xs = StaticTuple[10, SIMD[dtype, 1]](
+    let xs = StaticTuple[10, Scalar[dtype]](
         -1.0 + epsneg, -0.5, -tiny, 0.0, tiny, 0.5, 1.0 - epsneg, 1.0, 1.5 - eps, 7.0
     )
 
-    let rtol: SIMD[dtype, 1]
+    let rtol: Scalar[dtype]
 
     @parameter
     if dtype == DType.float32:

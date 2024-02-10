@@ -116,7 +116,7 @@ fn _elementwise_impl[
     dtype: DType,
     simd_width: Int,
     force_sequential: Bool,
-](x: Tensor[dtype], scalar: SIMD[dtype, 1], inout result: Tensor[dtype]) -> None:
+](x: Tensor[dtype], scalar: Scalar[dtype], inout result: Tensor[dtype]) -> None:
     """Implements the elementwise operation on a tensor and a scalar."""
     let num_elements = x.num_elements()
     var remaining_elements = num_elements
@@ -296,7 +296,7 @@ fn elementwise[
     dtype: DType,
     simd_width: Int = simdwidthof[dtype](),
     force_sequential: Bool = False,
-](x: Tensor[dtype], scalar: SIMD[dtype, 1]) -> Tensor[dtype]:
+](x: Tensor[dtype], scalar: Scalar[dtype]) -> Tensor[dtype]:
     """Applies a binary operator to a tensor and a scalar element-wise.
 
     Parameters:
@@ -423,7 +423,7 @@ fn run_benchmark[
     force_sequential: Bool = False,
 ](
     x: Tensor[dtype],
-    scalar: SIMD[dtype, 1],
+    scalar: Scalar[dtype],
     num_warmup: Int = 2,
     max_iters: Int = 100_000,
     min_runtime_secs: SIMD[DType.float64, 1] = 0.5,
@@ -539,8 +539,8 @@ fn run_benchmark[
 fn random_uniform[
     dtype: DType, simd_width: Int = simdwidthof[dtype]()
 ](
-    min_value: SIMD[dtype, 1],
-    max_value: SIMD[dtype, 1],
+    min_value: Scalar[dtype],
+    max_value: Scalar[dtype],
     *shape: Int,
 ) raises -> Tensor[
     dtype

@@ -77,10 +77,10 @@ struct FloatTable[
         `uint64` if `dtype` is `float64`.
     """
 
-    var _data: StaticTuple[size, SIMD[dtype, 1]]
+    var _data: StaticTuple[size, Scalar[dtype]]
 
     @staticmethod
-    fn from_values[*values: SIMD[dtype, 1]]() -> Self:
+    fn from_values[*values: Scalar[dtype]]() -> Self:
         """Creates a table from a sequence of floating-point values.
 
         Parameters:
@@ -99,7 +99,7 @@ struct FloatTable[
             "The number of values must be equal to the parameter `size`.",
         ]()
 
-        var data = StaticTuple[size, SIMD[dtype, 1]]()
+        var data = StaticTuple[size, Scalar[dtype]]()
 
         for i in range(size):
             data[i] = values[i]
@@ -126,7 +126,7 @@ struct FloatTable[
             "The number of hexadecimal values must be equal to the parameter `size`.",
         ]()
 
-        var data = StaticTuple[size, SIMD[dtype, 1]]()
+        var data = StaticTuple[size, Scalar[dtype]]()
 
         for i in range(size):
             data[i] = bitcast[dtype](values[i])
@@ -145,7 +145,7 @@ struct FloatTable[
         return size
 
     @always_inline
-    fn get[index: Int](self: Self) -> SIMD[dtype, 1]:
+    fn get[index: Int](self: Self) -> Scalar[dtype]:
         """Returns the floating-point value of the table at the given index.
 
         Parameters:

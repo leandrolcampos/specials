@@ -97,7 +97,7 @@ struct Chebyshev[
     var _coefficients: StaticTuple[num_terms, SIMD[dtype, simd_width]]
 
     @staticmethod
-    fn from_coefficients[*coefficients: SIMD[dtype, 1]]() -> Self:
+    fn from_coefficients[*coefficients: Scalar[dtype]]() -> Self:
         """Generates a Chebyshev series from a sequence of coefficients.
 
         Parameters:
@@ -249,7 +249,7 @@ struct Chebyshev[
 
         return math.select(math.abs(x) > 1.0, nan, result)
 
-    fn economize[error_tolerance: SIMD[dtype, 1]](self) -> Int:
+    fn economize[error_tolerance: Scalar[dtype]](self) -> Int:
         """Economizes the Chebyshev series by minimizing the number of terms.
 
         Given a Chebyshev series `p` with `n` terms, this function returns the minimum
@@ -275,7 +275,7 @@ struct Chebyshev[
         asserting.assert_positive[dtype, "error_tolerance", error_tolerance]()
 
         var num_terms_required = num_terms
-        var error = SIMD[dtype, 1](0.0)
+        var error = Scalar[dtype](0.0)
 
         @parameter
         fn body_func[i: Int]() -> Bool:
@@ -335,7 +335,7 @@ struct Polynomial[
     var _coefficients: StaticTuple[num_terms, SIMD[dtype, simd_width]]
 
     @staticmethod
-    fn from_coefficients[*coefficients: SIMD[dtype, 1]]() -> Self:
+    fn from_coefficients[*coefficients: Scalar[dtype]]() -> Self:
         """Generates a Power series from a sequence of coefficients.
 
         Parameters:

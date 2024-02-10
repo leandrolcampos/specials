@@ -34,7 +34,7 @@ fn test_elemwise_tensor[
     let unit_test = UnitTest(
         "test_elemwise_tensor_" + str(x.spec()) + "_" + str(force_sequential)
     )
-    let rtol: SIMD[dtype, 1]
+    let rtol: Scalar[dtype]
 
     @parameter
     if dtype == DType.float32:
@@ -53,13 +53,13 @@ fn test_elemwise_tensor_scalar[
     random.seed(42)
 
     let x = random.rand[dtype](shape)
-    let y = SIMD[dtype, 1](1.5)
+    let y = Scalar[dtype](1.5)
     let res = elementwise[math.add, force_sequential=force_sequential](x, y)
 
     let unit_test = UnitTest(
         "test_elemwise_tensor_scalar_" + str(x.spec()) + "_" + str(force_sequential)
     )
-    let rtol: SIMD[dtype, 1]
+    let rtol: Scalar[dtype]
 
     @parameter
     if dtype == DType.float32:
@@ -84,7 +84,7 @@ fn test_elemwise_tensor_tensor[
     let unit_test = UnitTest(
         "test_elemwise_tensor_tensor_" + str(x.spec()) + "_" + str(force_sequential)
     )
-    let rtol: SIMD[dtype, 1]
+    let rtol: Scalar[dtype]
 
     @parameter
     if dtype == DType.float32:

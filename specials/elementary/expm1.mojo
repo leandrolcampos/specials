@@ -333,7 +333,7 @@ fn _expm1_procedure_2[
 
     @parameter
     if dtype == DType.float32:
-        alias exp2 = math.ldexp(SIMD[dtype, 1](1.0), 16)
+        alias exp2 = math.ldexp(Scalar[dtype](1.0), 16)
         x_exp2 = safe_x * exp2
 
         alias g = Polynomial[5, dtype, simd_width].from_hexadecimal_coefficients[
@@ -346,7 +346,7 @@ fn _expm1_procedure_2[
         x3_gval = safe_x * safe_x * safe_x * g(safe_x)
 
     else:  # dtype == DType.float64
-        alias exp2 = math.ldexp(SIMD[dtype, 1](1.0), 30)
+        alias exp2 = math.ldexp(Scalar[dtype](1.0), 30)
         x_exp2 = safe_x * exp2
 
         alias g = Polynomial[9, dtype, simd_width].from_hexadecimal_coefficients[

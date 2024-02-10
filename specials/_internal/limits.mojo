@@ -74,25 +74,25 @@ fn _maxexp_impl[dtype: DType]() -> Int:
         return 1024
 
 
-fn _eps_impl[dtype: DType]() -> SIMD[dtype, 1]:
+fn _eps_impl[dtype: DType]() -> Scalar[dtype]:
     """Computes the floating-point arithmetic parameter `eps`."""
     alias machep = _machep_impl[dtype]()
     return math.ldexp[dtype, 1](1.0, machep)
 
 
-fn _epsneg_impl[dtype: DType]() -> SIMD[dtype, 1]:
+fn _epsneg_impl[dtype: DType]() -> Scalar[dtype]:
     """Computes the floating-point arithmetic parameter `epsneg`."""
     alias negep = _negep_impl[dtype]()
     return math.ldexp[dtype, 1](1.0, negep)
 
 
-fn _min_impl[dtype: DType]() -> SIMD[dtype, 1]:
+fn _min_impl[dtype: DType]() -> Scalar[dtype]:
     """Returns the floating-point arithmetic parameter `min`."""
     alias minexp = _minexp_impl[dtype]()
     return math.ldexp[dtype, 1](1.0, minexp)
 
 
-fn _max_impl[dtype: DType]() -> SIMD[dtype, 1]:
+fn _max_impl[dtype: DType]() -> Scalar[dtype]:
     """Returns the floating-point arithmetic parameter `max`."""
     alias epsneg = _epsneg_impl[dtype]()
     alias maxexp = _maxexp_impl[dtype]()
@@ -126,14 +126,14 @@ struct FloatLimits[dtype: DType]:
     alias maxexp: Int = _maxexp_impl[dtype]()
     """The smallest positive power of the base (2) that causes overflow."""
 
-    alias eps: SIMD[dtype, 1] = _eps_impl[dtype]()
+    alias eps: Scalar[dtype] = _eps_impl[dtype]()
     """The smallest positive floating-point number such that `1.0 + eps != 1.0`."""
 
-    alias epsneg: SIMD[dtype, 1] = _epsneg_impl[dtype]()
+    alias epsneg: Scalar[dtype] = _epsneg_impl[dtype]()
     """The smallest positive floating-point number such that `1.0 - epsneg != 1.0`."""
 
-    alias min: SIMD[dtype, 1] = _min_impl[dtype]()
+    alias min: Scalar[dtype] = _min_impl[dtype]()
     """The smallest positive floating-point number."""
 
-    alias max: SIMD[dtype, 1] = _max_impl[dtype]()
+    alias max: Scalar[dtype] = _max_impl[dtype]()
     """The largest positive floating-point number."""
