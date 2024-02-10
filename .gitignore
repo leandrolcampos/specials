@@ -14,3 +14,5 @@ __pycache__
 !lbeta_function.ipynb
 !exp_and_log_functions.ipynb
 !expm1_function.ipynb
+!polyval_f32.ipynb
+!polyval_f64.ipynb
