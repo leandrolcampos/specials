@@ -32,7 +32,7 @@ from specials._internal.table import FloatTable, get_hexadecimal_dtype
 
 
 @always_inline
-fn _get_s_lead[dtype: DType]() -> FloatTable[32, dtype]:
+fn _get_s_lead_table[dtype: DType]() -> FloatTable[32, dtype]:
     """Returns the table entries of `s_lead` for single or double precision."""
 
     @parameter
@@ -109,7 +109,7 @@ fn _get_s_lead[dtype: DType]() -> FloatTable[32, dtype]:
 
 
 @always_inline
-fn _get_s_trail[dtype: DType]() -> FloatTable[32, dtype]:
+fn _get_s_trail_table[dtype: DType]() -> FloatTable[32, dtype]:
     """Returns the table entries of `s_trail` for single or double precision."""
 
     @parameter
@@ -185,14 +185,7 @@ fn _get_s_trail[dtype: DType]() -> FloatTable[32, dtype]:
         ]()
 
 
-@register_passable("trivial")
-struct _STable[dtype: DType]:
-    """Table entries of `s_lead` and `s_trail` for single or double precision."""
-
-    alias lead = _get_s_lead[dtype]()
-    alias trail = _get_s_trail[dtype]()
-
-
+@always_inline
 fn _expm1_procedure_1[
     dtype: DType, simd_width: Int
 ](x: SIMD[dtype, simd_width], cond: SIMD[DType.bool, simd_width]) -> SIMD[
@@ -200,6 +193,9 @@ fn _expm1_procedure_1[
 ]:
     """Implements the procedure 1 of `expm1` as specified in the reference paper."""
     alias max_exponent: SIMD[DType.int32, simd_width] = FloatLimits[dtype].maxexp - 1
+    alias s_lead_table = _get_s_lead_table[dtype]()
+    alias s_trail_table = _get_s_trail_table[dtype]()
+
     let safe_x = cond.select(x, 1.0)
 
     let index: SIMD[DType.int32, simd_width]
@@ -286,8 +282,8 @@ fn _expm1_procedure_1[
         precision_minus_1 = 52  # 53 - 1
 
     let inv_exp2 = math.ldexp[dtype, simd_width](0.25, 2 - exponent)
-    let s_lead = _STable[dtype].lead.unsafe_lookup(index)
-    let s_trail = _STable[dtype].trail.unsafe_lookup(index)
+    let s_lead = s_lead_table.unsafe_lookup(index)
+    let s_trail = s_trail_table.unsafe_lookup(index)
     let s = s_lead + s_trail
 
     var mantissa = (s_lead - inv_exp2) + math.fma(
@@ -319,6 +315,7 @@ fn _expm1_procedure_1[
     return result
 
 
+@always_inline
 fn _expm1_procedure_2[
     dtype: DType, simd_width: Int
 ](x: SIMD[dtype, simd_width], cond: SIMD[DType.bool, simd_width]) -> SIMD[
