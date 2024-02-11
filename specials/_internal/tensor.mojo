@@ -73,7 +73,9 @@ fn _elementwise_impl[
             and num_worker >= 2
         ):
             let num_elements_per_work_item = num_simds_per_work_item * simd_width
-            remaining_elements -= num_simds_per_work_item * num_work_items * simd_width
+            remaining_elements = math.fma(
+                -num_elements_per_work_item, num_work_items, remaining_elements
+            )
 
             @parameter
             fn execute_work_item(work_item_id: Int):
@@ -141,7 +143,9 @@ fn _elementwise_impl[
             and num_worker >= 2
         ):
             let num_elements_per_work_item = num_simds_per_work_item * simd_width
-            remaining_elements -= num_simds_per_work_item * num_work_items * simd_width
+            remaining_elements = math.fma(
+                -num_elements_per_work_item, num_work_items, remaining_elements
+            )
 
             @parameter
             fn execute_work_item(work_item_id: Int):
@@ -215,7 +219,9 @@ fn _elementwise_impl[
             and num_worker >= 2
         ):
             let num_elements_per_work_item = num_simds_per_work_item * simd_width
-            remaining_elements -= num_simds_per_work_item * num_work_items * simd_width
+            remaining_elements = math.fma(
+                -num_elements_per_work_item, num_work_items, remaining_elements
+            )
 
             @parameter
             fn execute_work_item(work_item_id: Int):

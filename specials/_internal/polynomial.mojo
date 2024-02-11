@@ -212,7 +212,7 @@ struct Chebyshev[
         if num_terms == 1:
             result = self.get[0]()
         elif num_terms == 2:
-            result = self.get[0]() + self.get[1]() * x
+            result = math.fma(self.get[1](), x, self.get[0]())
         else:
             let two_x = 2.0 * x
             var tmp = SIMD[dtype, simd_width](0.0)
@@ -227,7 +227,7 @@ struct Chebyshev[
 
             fori_loop[num_terms - 3, -1, -1, body_func]()
 
-            result = c0 + c1 * x
+            result = math.fma(c1, x, c0)
 
         return math.select(math.abs(x) > 1.0, nan, result)
 
@@ -437,7 +437,7 @@ struct Polynomial[
         Returns:
             SIMD vector containing the values of the Power series at points `x`.
         """
-        # In terms of accuracy and execution time, there is no reason to use
+        # In terms of accuracy or execution time, there is no reason to use
         # `math.polynomial_evaluate`. See the Jupyter notebooks below:
         # - https://github.com/leandrolcampos/specials/blob/polynomial_evaluate/polyval_f32.ipynb
         # - https://github.com/leandrolcampos/specials/blob/polynomial_evaluate/polyval_f64.ipynb

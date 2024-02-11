@@ -230,8 +230,8 @@ fn _expm1_procedure_1[
         let xn1 = xn - xn2
         let x_reduced_lead = math.select(
             math.abs(xn) < 512,
-            safe_x - xn * ln2_over_32_lead,
-            (safe_x - xn1 * ln2_over_32_lead) - xn2 * ln2_over_32_lead,
+            math.fma(-xn, ln2_over_32_lead, safe_x),
+            math.fma(-xn2, ln2_over_32_lead, math.fma(-xn1, ln2_over_32_lead, safe_x)),
         )
         let x_reduced_trail = -xn * ln2_over_32_trail
 
@@ -241,7 +241,7 @@ fn _expm1_procedure_1[
         let x_reduced = x_reduced_lead + x_reduced_trail
 
         expm1_r = x_reduced_lead + (
-            x_reduced_trail + (x_reduced * x_reduced * polynomial(x_reduced))
+            math.fma(x_reduced * x_reduced, polynomial(x_reduced), x_reduced_trail)
         )
         precision_minus_1 = 23  # 24 - 1
 
@@ -270,8 +270,8 @@ fn _expm1_procedure_1[
         let xn1 = xn - xn2
         let x_reduced_lead = math.select(
             math.abs(xn) < 512,
-            safe_x - xn * ln2_over_32_lead,
-            (safe_x - xn1 * ln2_over_32_lead) - xn2 * ln2_over_32_lead,
+            math.fma(-xn, ln2_over_32_lead, safe_x),
+            math.fma(-xn2, ln2_over_32_lead, math.fma(-xn1, ln2_over_32_lead, safe_x)),
         )
         let x_reduced_trail = -xn * ln2_over_32_trail
 
@@ -281,7 +281,7 @@ fn _expm1_procedure_1[
         let x_reduced = x_reduced_lead + x_reduced_trail
 
         expm1_r = x_reduced_lead + (
-            x_reduced_trail + (x_reduced * x_reduced * polynomial(x_reduced))
+            math.fma(x_reduced * x_reduced, polynomial(x_reduced), x_reduced_trail)
         )
         precision_minus_1 = 52  # 53 - 1
 
@@ -290,16 +290,18 @@ fn _expm1_procedure_1[
     let s_trail = _STable[dtype].trail.unsafe_lookup(index)
     let s = s_lead + s_trail
 
-    var mantissa = (s_lead - inv_exp2) + (s_lead * expm1_r + s_trail * (1.0 + expm1_r))
+    var mantissa = (s_lead - inv_exp2) + math.fma(
+        s_lead, expm1_r, s_trail * (1.0 + expm1_r)
+    )
     mantissa = math.select(
         exponent > precision_minus_1,
-        s_lead + (s * expm1_r + (s_trail - inv_exp2)),
+        s_lead + math.fma(s, expm1_r, s_trail - inv_exp2),
         mantissa,
     )
 
     let exponent_is_too_negative = (exponent <= -8.0)
     mantissa = math.select(
-        exponent_is_too_negative, s_lead + (s * expm1_r + s_trail), mantissa
+        exponent_is_too_negative, s_lead + math.fma(s, expm1_r, s_trail), mantissa
     )
 
     var result: SIMD[dtype, simd_width]
