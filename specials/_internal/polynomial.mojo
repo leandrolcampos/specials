@@ -55,7 +55,7 @@ struct Chebyshev[
     num_terms: Int,
     dtype: DType,
     simd_width: Int,
-]:
+](Sized):
     """Represents a finite Chebyshev series.
 
     A Chebyshev series with `n + 1` terms is a polynomial of the form
@@ -143,6 +143,17 @@ struct Chebyshev[
             splatted_coefficients[i] = bitcast[dtype](coefficients[i])
 
         return Self {_coefficients: splatted_coefficients}
+
+    @always_inline
+    fn __len__(self: Self) -> Int:
+        """Returns the number of terms in the Chebyshev series.
+
+        This is known at compile time.
+
+        Returns:
+            The number of terms in the Chebyshev series.
+        """
+        return num_terms
 
     @always_inline
     fn degree(self: Self) -> Int:
@@ -290,7 +301,7 @@ struct Polynomial[
     num_terms: Int,
     dtype: DType,
     simd_width: Int,
-]:
+](Sized):
     """Represents a finite Power series, commonly known as a polynomial.
 
     A Power series with `n + 1` terms is a polynomial of the form
@@ -377,6 +388,17 @@ struct Polynomial[
             splatted_coefficients[i] = bitcast[dtype](coefficients[i])
 
         return Self {_coefficients: splatted_coefficients}
+
+    @always_inline
+    fn __len__(self: Self) -> Int:
+        """Returns the number of terms in the Power series.
+
+        This is known at compile time.
+
+        Returns:
+            The number of terms in the Power series.
+        """
+        return num_terms
 
     @always_inline
     fn degree(self: Self) -> Int:

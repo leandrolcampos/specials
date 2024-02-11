@@ -20,6 +20,16 @@ from specials._internal.table import FloatTable
 from specials._internal.testing import UnitTest
 
 
+fn test_sized() raises:
+    let unit_test = UnitTest("test_sized")
+
+    let table = FloatTable[4, DType.float32].from_values[1.0, 2.0, 3.0, 4.0]()
+    let expected = 4
+    let actual = len(table)
+
+    unit_test.assert_equal(actual, expected)
+
+
 fn test_unsafe_lookup[dtype: DType]() raises:
     let unit_test = UnitTest("test_unsafe_lookup_" + str(dtype))
 
@@ -78,6 +88,8 @@ fn test_hexadecimal_values[dtype: DType]() raises:
 
 
 fn main() raises:
+    test_sized()
+
     test_unsafe_lookup[DType.float32]()
     test_unsafe_lookup[DType.float64]()
 
