@@ -78,12 +78,7 @@ struct FloatTable[size: Int, dtype: DType](Sized):
             "The number of values must be equal to the parameter `size`.",
         ]()
 
-        var data = StaticTuple[size, Scalar[dtype]]()
-
-        for i in range(size):
-            data[i] = values[i]
-
-        return Self {_data: data}
+        return Self {_data: StaticTuple[size, Scalar[dtype]](values)}
 
     @staticmethod
     fn from_hexadecimal_values[
