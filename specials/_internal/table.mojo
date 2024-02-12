@@ -142,9 +142,7 @@ struct FloatTable[size: Int, dtype: DType](Sized):
         return self._data[index]
 
     @always_inline
-    fn unsafe_lookup[
-        index_dtype: DType, simd_width: Int
-    ](self: Self, index: SIMD[index_dtype, simd_width]) -> SIMD[dtype, simd_width]:
+    fn unsafe_lookup(self: Self, index: SIMD) -> SIMD[dtype, index.size]:
         """Returns the floating-point values of the table at the given indices.
 
         For performance reasons, this method does not perform bounds checking.
@@ -156,6 +154,9 @@ struct FloatTable[size: Int, dtype: DType](Sized):
         Returns:
             SIMD vector containing the floating-point values of the table at the
             given indices.
+
+        Constraints:
+            The parameter `index.type` must be an integer.
         """
         # TODO: Use the overload of `DTypePointer.simd_load` when it is available.
         # This overload will allow to load a SIMD vector of floating-point values
@@ -163,18 +164,16 @@ struct FloatTable[size: Int, dtype: DType](Sized):
         # data storage to a `DTypePointer`. See the feature request:
         # https://github.com/modularml/mojo/issues/1626
 
-        asserting.assert_integral_dtype["index_dtype", index_dtype]()
-        var result = SIMD[dtype, simd_width]()
+        asserting.assert_integral_dtype["index.type", index.type]()
+        var result = SIMD[dtype, index.size]()
 
         @unroll
-        for i in range(simd_width):
+        for i in range(index.size):
             result[i] = self._data[int(index[i])]
 
         return result
 
-    fn lookup[
-        index_dtype: DType, simd_width: Int
-    ](self: Self, index: SIMD[index_dtype, simd_width]) -> SIMD[dtype, simd_width]:
+    fn lookup(self: Self, index: SIMD) -> SIMD[dtype, index.size]:
         """Returns the floating-point values of the table at the given indices.
 
         Args:
@@ -185,8 +184,11 @@ struct FloatTable[size: Int, dtype: DType](Sized):
             SIMD vector containing the floating-point values of the table at the
             given indices. If an index is out of range, the corresponding result
             is `NaN`.
+
+        Constraints:
+            The parameter `index.type` must be an integer.
         """
-        asserting.assert_integral_dtype["index_dtype", index_dtype]()
+        asserting.assert_integral_dtype["index.type", index.type]()
 
         let is_safe = (index >= 0) & (index < size)
         let safe_index = is_safe.select(index, 0)
