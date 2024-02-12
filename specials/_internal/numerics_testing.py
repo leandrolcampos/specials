@@ -19,6 +19,13 @@
 # tensorflow/probability:
 # Copyright 2018 The TensorFlow Probability Authors. All rights reserved.
 # Licensed under the Apache License, Version 2.0 (the "License").
+#
+# References:
+#
+# Brown, B. W., & Levy, L. B. (1994). Certification of Algorithm 708:
+#   significant-digit computation of the incomplete beta.
+# ACM Transactions on Mathematical Software (TOMS), 20(3), 393-397.
+# https://dl.acm.org/doi/10.1145/192115.192155
 
 """Numerical testing utilities."""
 
@@ -58,7 +65,7 @@ def py_accuracy_in_significant_digits(relerr):
     which is the usual definition: `n` significant digits of accuracy in a value allows
     an error of `5` in the `(n + l)`st decimal place.
 
-    To avoid taking the logarithm of `O`, the relative error is bounded below by the
+    To avoid taking the logarithm of `0`, the relative error is bounded below by the
     `epsneg` value of `float64`: the smallest positive floating-point number such that
     `1.0 - epsneg != 1.0`.
 

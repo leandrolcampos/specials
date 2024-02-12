@@ -22,7 +22,7 @@
 # References:
 #
 # Didonato, A. R., & Morris Jr, A. H. (1992). Algorithm 708: Significant digit
-# computation of the incomplete beta function ratios.
+#   computation of the incomplete beta function ratios.
 # ACM Transactions on Mathematical Software (TOMS), 18(3), 360-373.
 # https://dl.acm.org/doi/abs/10.1145/131766.131776
 
