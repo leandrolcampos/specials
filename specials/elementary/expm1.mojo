@@ -32,14 +32,12 @@ from specials._internal.table import FloatTable, get_hexadecimal_dtype
 
 
 @always_inline
-fn _get_s_lead[
-    dtype: DType, hexadecimal_dtype: DType = get_hexadecimal_dtype[dtype]()
-]() -> FloatTable[32, dtype, hexadecimal_dtype]:
+fn _get_s_lead_table[dtype: DType]() -> FloatTable[32, dtype]:
     """Returns the table entries of `s_lead` for single or double precision."""
 
     @parameter
     if dtype == DType.float32:
-        return FloatTable[32, dtype, hexadecimal_dtype].from_hexadecimal_values[
+        return FloatTable[32, dtype].from_hexadecimal_values[
             0x3F80_0000,
             0x3F82_CD80,
             0x3F85_AAC0,
@@ -74,7 +72,7 @@ fn _get_s_lead[
             0x3FFA_8380,
         ]()
     else:  # dtype == DType.float64
-        return FloatTable[32, dtype, hexadecimal_dtype].from_hexadecimal_values[
+        return FloatTable[32, dtype].from_hexadecimal_values[
             0x3FF00000_00000000,
             0x3FF059B0_D3158540,
             0x3FF0B558_6CF98900,
@@ -111,14 +109,12 @@ fn _get_s_lead[
 
 
 @always_inline
-fn _get_s_trail[
-    dtype: DType, hexadecimal_dtype: DType = get_hexadecimal_dtype[dtype]()
-]() -> FloatTable[32, dtype, hexadecimal_dtype]:
+fn _get_s_trail_table[dtype: DType]() -> FloatTable[32, dtype]:
     """Returns the table entries of `s_trail` for single or double precision."""
 
     @parameter
     if dtype == DType.float32:
-        return FloatTable[32, dtype, hexadecimal_dtype].from_hexadecimal_values[
+        return FloatTable[32, dtype].from_hexadecimal_values[
             0x0000_0000,
             0x3553_1585,
             0x34D9_F312,
@@ -153,7 +149,7 @@ fn _get_s_trail[
             0x36CB_6DC9,
         ]()
     else:  # dtype == DType.float64
-        return FloatTable[32, dtype, hexadecimal_dtype].from_hexadecimal_values[
+        return FloatTable[32, dtype].from_hexadecimal_values[
             0x00000000_00000000,
             0x3D0A1D73_E2A475B4,
             0x3CEEC531_7256E308,
@@ -189,14 +185,7 @@ fn _get_s_trail[
         ]()
 
 
-@register_passable("trivial")
-struct _STable[dtype: DType, hexadecimal_dtype: DType = get_hexadecimal_dtype[dtype]()]:
-    """Table entries of `s_lead` and `s_trail` for single or double precision."""
-
-    alias lead = _get_s_lead[dtype, hexadecimal_dtype]()
-    alias trail = _get_s_trail[dtype, hexadecimal_dtype]()
-
-
+@always_inline
 fn _expm1_procedure_1[
     dtype: DType, simd_width: Int
 ](x: SIMD[dtype, simd_width], cond: SIMD[DType.bool, simd_width]) -> SIMD[
@@ -204,6 +193,9 @@ fn _expm1_procedure_1[
 ]:
     """Implements the procedure 1 of `expm1` as specified in the reference paper."""
     alias max_exponent: SIMD[DType.int32, simd_width] = FloatLimits[dtype].maxexp - 1
+    alias s_lead_table = _get_s_lead_table[dtype]()
+    alias s_trail_table = _get_s_trail_table[dtype]()
+
     let safe_x = cond.select(x, 1.0)
 
     let index: SIMD[DType.int32, simd_width]
@@ -234,8 +226,8 @@ fn _expm1_procedure_1[
         let xn1 = xn - xn2
         let x_reduced_lead = math.select(
             math.abs(xn) < 512,
-            safe_x - xn * ln2_over_32_lead,
-            (safe_x - xn1 * ln2_over_32_lead) - xn2 * ln2_over_32_lead,
+            math.fma(-xn, ln2_over_32_lead, safe_x),
+            math.fma(-xn2, ln2_over_32_lead, math.fma(-xn1, ln2_over_32_lead, safe_x)),
         )
         let x_reduced_trail = -xn * ln2_over_32_trail
 
@@ -245,7 +237,7 @@ fn _expm1_procedure_1[
         let x_reduced = x_reduced_lead + x_reduced_trail
 
         expm1_r = x_reduced_lead + (
-            x_reduced_trail + (x_reduced * x_reduced * polynomial(x_reduced))
+            math.fma(x_reduced * x_reduced, polynomial(x_reduced), x_reduced_trail)
         )
         precision_minus_1 = 23  # 24 - 1
 
@@ -274,8 +266,8 @@ fn _expm1_procedure_1[
         let xn1 = xn - xn2
         let x_reduced_lead = math.select(
             math.abs(xn) < 512,
-            safe_x - xn * ln2_over_32_lead,
-            (safe_x - xn1 * ln2_over_32_lead) - xn2 * ln2_over_32_lead,
+            math.fma(-xn, ln2_over_32_lead, safe_x),
+            math.fma(-xn2, ln2_over_32_lead, math.fma(-xn1, ln2_over_32_lead, safe_x)),
         )
         let x_reduced_trail = -xn * ln2_over_32_trail
 
@@ -285,25 +277,27 @@ fn _expm1_procedure_1[
         let x_reduced = x_reduced_lead + x_reduced_trail
 
         expm1_r = x_reduced_lead + (
-            x_reduced_trail + (x_reduced * x_reduced * polynomial(x_reduced))
+            math.fma(x_reduced * x_reduced, polynomial(x_reduced), x_reduced_trail)
         )
         precision_minus_1 = 52  # 53 - 1
 
     let inv_exp2 = math.ldexp[dtype, simd_width](0.25, 2 - exponent)
-    let s_lead = _STable[dtype].lead.unsafe_lookup(index)
-    let s_trail = _STable[dtype].trail.unsafe_lookup(index)
+    let s_lead = s_lead_table.unsafe_lookup(index)
+    let s_trail = s_trail_table.unsafe_lookup(index)
     let s = s_lead + s_trail
 
-    var mantissa = (s_lead - inv_exp2) + (s_lead * expm1_r + s_trail * (1.0 + expm1_r))
+    var mantissa = (s_lead - inv_exp2) + math.fma(
+        s_lead, expm1_r, s_trail * (1.0 + expm1_r)
+    )
     mantissa = math.select(
         exponent > precision_minus_1,
-        s_lead + (s * expm1_r + (s_trail - inv_exp2)),
+        s_lead + math.fma(s, expm1_r, s_trail - inv_exp2),
         mantissa,
     )
 
     let exponent_is_too_negative = (exponent <= -8.0)
     mantissa = math.select(
-        exponent_is_too_negative, s_lead + (s * expm1_r + s_trail), mantissa
+        exponent_is_too_negative, s_lead + math.fma(s, expm1_r, s_trail), mantissa
     )
 
     var result: SIMD[dtype, simd_width]
@@ -321,6 +315,7 @@ fn _expm1_procedure_1[
     return result
 
 
+@always_inline
 fn _expm1_procedure_2[
     dtype: DType, simd_width: Int
 ](x: SIMD[dtype, simd_width], cond: SIMD[DType.bool, simd_width]) -> SIMD[
@@ -333,7 +328,7 @@ fn _expm1_procedure_2[
 
     @parameter
     if dtype == DType.float32:
-        alias exp2 = math.ldexp(SIMD[dtype, 1](1.0), 16)
+        alias exp2 = math.ldexp(Scalar[dtype](1.0), 16)
         x_exp2 = safe_x * exp2
 
         alias g = Polynomial[5, dtype, simd_width].from_hexadecimal_coefficients[
@@ -346,7 +341,7 @@ fn _expm1_procedure_2[
         x3_gval = safe_x * safe_x * safe_x * g(safe_x)
 
     else:  # dtype == DType.float64
-        alias exp2 = math.ldexp(SIMD[dtype, 1](1.0), 30)
+        alias exp2 = math.ldexp(Scalar[dtype](1.0), 30)
         x_exp2 = safe_x * exp2
 
         alias g = Polynomial[9, dtype, simd_width].from_hexadecimal_coefficients[

@@ -29,37 +29,21 @@ fn get_hexadecimal_dtype[decimal_dtype: DType]() -> DType:
     @parameter
     if decimal_dtype == DType.float32:
         return DType.uint32
-    else:  # decimal_dtype == DType.float64
+    elif decimal_dtype == DType.float64:
         return DType.uint64
+    else:
+        return DType.invalid
 
 
 @always_inline
-fn _check_float_table_constraints[
-    size: Int, dtype: DType, hexadecimal_dtype: DType
-]() -> None:
+fn _check_float_table_constraints[size: Int, dtype: DType]() -> None:
     """Checks the constraints of the `FloatTable`."""
     asserting.assert_positive["size", size]()
     asserting.assert_float_dtype["dtype", dtype]()
 
-    @parameter
-    if dtype == DType.float32:
-        constrained[
-            hexadecimal_dtype == DType.uint32,
-            "The parameter `hexadecimal_dtype` must be equal to `DType.uint32` when "
-            + "`dtype` is `DType.float32`.",
-        ]()
-    else:  # dtype == DType.float64
-        constrained[
-            hexadecimal_dtype == DType.uint64,
-            "The parameter `hexadecimal_dtype` must be equal to `DType.uint64` when "
-            + "`dtype` is `DType.float64`.",
-        ]()
-
 
 @register_passable("trivial")
-struct FloatTable[
-    size: Int, dtype: DType, hexadecimal_dtype: DType = get_hexadecimal_dtype[dtype]()
-](Sized):
+struct FloatTable[size: Int, dtype: DType](Sized):
     """Represents a table of floating-point values.
 
     It is used to implement table lookup algorithms.
@@ -67,20 +51,15 @@ struct FloatTable[
     Parameters:
         size: The number of floating-point values in the table.
         dtype: The data type of the floating-point values.
-        hexadecimal_dtype: The data type used for hexadecimal representation of the
-            floating-point values. The default is automatically determined based on
-            `dtype`.
 
     Constraints:
         The size must be positive. The parameter `dtype` must be `float32` or `float64`.
-        The parameter `hexadecimal_dtype` must be `uint32` if `dtype` is `float32` or
-        `uint64` if `dtype` is `float64`.
     """
 
-    var _data: StaticTuple[size, SIMD[dtype, 1]]
+    var _data: StaticTuple[size, Scalar[dtype]]
 
     @staticmethod
-    fn from_values[*values: SIMD[dtype, 1]]() -> Self:
+    fn from_values[*values: Scalar[dtype]]() -> Self:
         """Creates a table from a sequence of floating-point values.
 
         Parameters:
@@ -92,23 +71,24 @@ struct FloatTable[
         Constraints:
             The number of values must be equal to the parameter `size`.
         """
-        _check_float_table_constraints[size, dtype, hexadecimal_dtype]()
+        _check_float_table_constraints[size, dtype]()
 
         constrained[
             size == len(VariadicList(values)),
             "The number of values must be equal to the parameter `size`.",
         ]()
 
-        var data = StaticTuple[size, SIMD[dtype, 1]]()
-
-        for i in range(size):
-            data[i] = values[i]
-
-        return Self {_data: data}
+        return Self {_data: StaticTuple[size, Scalar[dtype]](values)}
 
     @staticmethod
-    fn from_hexadecimal_values[*values: SIMD[hexadecimal_dtype, 1]]() -> Self:
+    fn from_hexadecimal_values[
+        *values: Scalar[get_hexadecimal_dtype[dtype]()]
+    ]() -> Self:
         """Creates a table from a sequence of hexadecimal floating-point values.
+
+        The data type used for hexadecimal representation of the floating-point values
+        is automatically determined based on `dtype`: `uint32` if `dtype` is `float32`
+        or `uint64` if `dtype` is `float64`.
 
         Parameters:
             values: The sequence of hexadecimal floating-point values.
@@ -119,14 +99,14 @@ struct FloatTable[
         Constraints:
             The number of hexadecimal values must be equal to the parameter `size`.
         """
-        _check_float_table_constraints[size, dtype, hexadecimal_dtype]()
+        _check_float_table_constraints[size, dtype]()
 
         constrained[
             size == len(VariadicList(values)),
             "The number of hexadecimal values must be equal to the parameter `size`.",
         ]()
 
-        var data = StaticTuple[size, SIMD[dtype, 1]]()
+        var data = StaticTuple[size, Scalar[dtype]]()
 
         for i in range(size):
             data[i] = bitcast[dtype](values[i])
@@ -145,7 +125,7 @@ struct FloatTable[
         return size
 
     @always_inline
-    fn get[index: Int](self: Self) -> SIMD[dtype, 1]:
+    fn get[index: Int](self: Self) -> Scalar[dtype]:
         """Returns the floating-point value of the table at the given index.
 
         Parameters:
@@ -162,9 +142,7 @@ struct FloatTable[
         return self._data[index]
 
     @always_inline
-    fn unsafe_lookup[
-        index_dtype: DType, simd_width: Int
-    ](self: Self, index: SIMD[index_dtype, simd_width]) -> SIMD[dtype, simd_width]:
+    fn unsafe_lookup(self: Self, index: SIMD) -> SIMD[dtype, index.size]:
         """Returns the floating-point values of the table at the given indices.
 
         For performance reasons, this method does not perform bounds checking.
@@ -176,6 +154,9 @@ struct FloatTable[
         Returns:
             SIMD vector containing the floating-point values of the table at the
             given indices.
+
+        Constraints:
+            The parameter `index.type` must be an integer.
         """
         # TODO: Use the overload of `DTypePointer.simd_load` when it is available.
         # This overload will allow to load a SIMD vector of floating-point values
@@ -183,18 +164,16 @@ struct FloatTable[
         # data storage to a `DTypePointer`. See the feature request:
         # https://github.com/modularml/mojo/issues/1626
 
-        asserting.assert_integral_dtype["index_dtype", index_dtype]()
-        var result = SIMD[dtype, simd_width]()
+        asserting.assert_integral_dtype["index.type", index.type]()
+        var result = SIMD[dtype, index.size]()
 
         @unroll
-        for i in range(simd_width):
+        for i in range(index.size):
             result[i] = self._data[int(index[i])]
 
         return result
 
-    fn lookup[
-        index_dtype: DType, simd_width: Int
-    ](self: Self, index: SIMD[index_dtype, simd_width]) -> SIMD[dtype, simd_width]:
+    fn lookup(self: Self, index: SIMD) -> SIMD[dtype, index.size]:
         """Returns the floating-point values of the table at the given indices.
 
         Args:
@@ -205,8 +184,11 @@ struct FloatTable[
             SIMD vector containing the floating-point values of the table at the
             given indices. If an index is out of range, the corresponding result
             is `NaN`.
+
+        Constraints:
+            The parameter `index.type` must be an integer.
         """
-        asserting.assert_integral_dtype["index_dtype", index_dtype]()
+        asserting.assert_integral_dtype["index.type", index.type]()
 
         let is_safe = (index >= 0) & (index < size)
         let safe_index = is_safe.select(index, 0)

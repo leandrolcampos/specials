@@ -27,7 +27,7 @@ from specials.elementary.exp import exp
 from specials.elementary.log import log
 
 
-fn _mp_exp[dtype: DType](x: SIMD[dtype, 1]) raises -> SIMD[dtype, 1]:
+fn _mp_exp[dtype: DType](x: Scalar[dtype]) raises -> Scalar[dtype]:
     let mp = Python.import_module("mpmath")
     let result = mp.exp(mp.mpf(x))
     return result.to_float64().cast[dtype]()
@@ -45,9 +45,9 @@ fn test_exp[dtype: DType]() raises:
     else:
         pass
 
-    let xs = StaticTuple[5, SIMD[dtype, 1]](xmin, 0.0, 0.5 * xeps, 1.0, xmax)
+    let xs = StaticTuple[5, Scalar[dtype]](xmin, 0.0, 0.5 * xeps, 1.0, xmax)
 
-    let rtol: SIMD[dtype, 1]
+    let rtol: Scalar[dtype]
 
     @parameter
     if dtype == DType.float32:

@@ -80,7 +80,7 @@ fn assert_positive[parameter_name: StringLiteral, parameter_value: Int]() -> Non
 
 @always_inline("nodebug")
 fn assert_positive[
-    dtype: DType, parameter_name: StringLiteral, parameter_value: SIMD[dtype, 1]
+    dtype: DType, parameter_name: StringLiteral, parameter_value: Scalar[dtype]
 ]() -> None:
     """Asserts the condition `parameter_value > 0` holds."""
     constrained[

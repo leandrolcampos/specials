@@ -25,6 +25,7 @@ fn test_chebyshev() raises:
 
     let p = P.Chebyshev[4, DType.float64, 1].from_coefficients[4.0, 3.0, 2.0, 1.0]()
 
+    unit_test.assert_equal(len(p), 4)
     unit_test.assert_equal(p.degree(), 3)
     unit_test.assert_equal(p.get[0](), 4.0)
     unit_test.assert_equal(p.get[1](), 3.0)
@@ -33,6 +34,7 @@ fn test_chebyshev() raises:
 
     let p_truncated = p.truncate[1]()
 
+    unit_test.assert_equal(len(p_truncated), 1)
     unit_test.assert_equal(p_truncated.degree(), 0)
     unit_test.assert_equal(p_truncated.get[0](), 4.0)
 
@@ -54,6 +56,7 @@ fn test_chebyshev_hex[dtype: DType]() raises:
             0x3FE00000_00000000,
         ]()
 
+    unit_test.assert_equal(len(p), 2)
     unit_test.assert_equal(p.degree(), 1)
     unit_test.assert_equal(p.get[0](), 1.0)
     unit_test.assert_equal(p.get[1](), 0.5)
@@ -86,6 +89,7 @@ fn test_polynomial() raises:
 
     let p = P.Polynomial[4, DType.float64, 1].from_coefficients[4.0, 3.0, 2.0, 1.0]()
 
+    unit_test.assert_equal(len(p), 4)
     unit_test.assert_equal(p.degree(), 3)
     unit_test.assert_equal(p.get[0](), 4.0)
     unit_test.assert_equal(p.get[1](), 3.0)
@@ -94,6 +98,7 @@ fn test_polynomial() raises:
 
     let p_truncated = p.truncate[1]()
 
+    unit_test.assert_equal(len(p_truncated), 1)
     unit_test.assert_equal(p_truncated.degree(), 0)
     unit_test.assert_equal(p_truncated.get[0](), 4.0)
 
@@ -115,6 +120,7 @@ fn test_polynomial_hex[dtype: DType]() raises:
             0x3FE00000_00000000,
         ]()
 
+    unit_test.assert_equal(len(p), 2)
     unit_test.assert_equal(p.degree(), 1)
     unit_test.assert_equal(p.get[0](), 1.0)
     unit_test.assert_equal(p.get[1](), 0.5)

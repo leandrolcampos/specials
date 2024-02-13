@@ -122,8 +122,8 @@ struct UnitTest[raise_error: Bool = False]:
         self,
         actual: SIMD[dtype, simd_width],
         desired: SIMD[dtype, simd_width],
-        absolute_tolerance: SIMD[dtype, 1],
-        relative_tolerance: SIMD[dtype, 1],
+        absolute_tolerance: Scalar[dtype],
+        relative_tolerance: Scalar[dtype],
     ) raises:
         """Asserts that the input values are equal up to a tolerance. If it is not then
         an `Error` is raised.

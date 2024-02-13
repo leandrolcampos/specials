@@ -29,7 +29,7 @@ from specials.elementary.expm1 import expm1
 from specials.elementary.log import log
 
 
-fn _mp_expm1[dtype: DType](x: SIMD[dtype, 1]) raises -> SIMD[dtype, 1]:
+fn _mp_expm1[dtype: DType](x: Scalar[dtype]) raises -> Scalar[dtype]:
     let mp = Python.import_module("mpmath")
     let result = mp.expm1(mp.mpf(x))
     return result.to_float64().cast[dtype]()
@@ -39,9 +39,9 @@ fn test_expm1[dtype: DType]() raises:
     let unit_test = UnitTest("test_expm1_" + str(dtype))
 
     let xeps = FloatLimits[dtype].eps
-    let xs = StaticTuple[5, SIMD[dtype, 1]](0.1 * xeps, 0.01, 0.1, 1.0, 10.0)
+    let xs = StaticTuple[5, Scalar[dtype]](0.1 * xeps, 0.01, 0.1, 1.0, 10.0)
 
-    let rtol: SIMD[dtype, 1]
+    let rtol: Scalar[dtype]
 
     @parameter
     if dtype == DType.float32:
@@ -60,11 +60,11 @@ fn test_expm1[dtype: DType]() raises:
 fn test_expm1_special_cases[dtype: DType]() raises:
     let unit_test = UnitTest("test_expm1_special_cases_" + str(dtype))
 
-    let xeps: SIMD[dtype, 1]
-    let xsml_inf: SIMD[dtype, 1]
-    let xsml_sup: SIMD[dtype, 1]
-    let xmin: SIMD[dtype, 1]
-    let xmax: SIMD[dtype, 1]
+    let xeps: Scalar[dtype]
+    let xsml_inf: Scalar[dtype]
+    let xsml_sup: Scalar[dtype]
+    let xmin: Scalar[dtype]
+    let xmax: Scalar[dtype]
     let nan = math.nan[dtype]()
     let inf = math.limit.inf[dtype]()
 
@@ -82,7 +82,7 @@ fn test_expm1_special_cases[dtype: DType]() raises:
         xmin = bitcast[dtype, DType.uint64](0xC042B708_872320E1)
         xmax = log(FloatLimits[dtype].max)
 
-    let xs = StaticTuple[12, SIMD[dtype, 1]](
+    let xs = StaticTuple[12, Scalar[dtype]](
         nan,
         -inf,
         2.0 * xmin,
@@ -97,7 +97,7 @@ fn test_expm1_special_cases[dtype: DType]() raises:
         inf,
     )
 
-    let rtol: SIMD[dtype, 1]
+    let rtol: Scalar[dtype]
 
     @parameter
     if dtype == DType.float32:
@@ -108,7 +108,7 @@ fn test_expm1_special_cases[dtype: DType]() raises:
     for i in range(len(xs)):
         let x = xs[i]
         let actual = expm1(x)
-        let expected: SIMD[dtype, 1]
+        let expected: Scalar[dtype]
 
         if math.isnan(x):
             expected = nan

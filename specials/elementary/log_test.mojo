@@ -26,7 +26,7 @@ from specials._internal.testing import UnitTest
 from specials.elementary.log import log
 
 
-fn _mp_log[dtype: DType](x: SIMD[dtype, 1]) raises -> SIMD[dtype, 1]:
+fn _mp_log[dtype: DType](x: Scalar[dtype]) raises -> Scalar[dtype]:
     let mp = Python.import_module("mpmath")
     let result = mp.log(mp.mpf(x))
     return result.to_float64().cast[dtype]()
@@ -40,11 +40,11 @@ fn test_log[dtype: DType]() raises:
     let eps = FloatLimits[dtype].eps
     let xmax = FloatLimits[dtype].max
 
-    let xs = StaticTuple[7, SIMD[dtype, 1]](
+    let xs = StaticTuple[7, Scalar[dtype]](
         xmin, epsneg, eps, 1.0 - epsneg, 1.0, 1.0 + eps, xmax
     )
 
-    let rtol: SIMD[dtype, 1]
+    let rtol: Scalar[dtype]
 
     @parameter
     if dtype == DType.float32:
