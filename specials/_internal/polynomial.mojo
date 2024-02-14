@@ -201,48 +201,6 @@ struct Chebyshev[
 
         return Chebyshev[num_terms, dtype, simd_width] {_coefficients: coefficients}
 
-    fn __call__(self, x: SIMD[dtype, simd_width]) -> SIMD[dtype, simd_width]:
-        """Evaluates the Chebyshev series at `x` using the Clenshaw algorithm.
-
-        If the series `p` has `n + 1` terms, this function computes `p(x)` element-wise:
-
-        `p(x) = c[0] * T[0](x) + c[1] * T[1](x) + ... + c[n] * T[n](x)`.
-
-        Args:
-            x: A SIMD vector containing the points at which to evaluate the Chebyshev
-                series. These points should be within the interval `[-1, 1]`.
-
-        Returns:
-            A SIMD vector containing the values of the Chebyshev series evaluated at
-            the points specified by `x`.
-        """
-        alias nan: SIMD[dtype, simd_width] = math.nan[dtype]()
-
-        var result = SIMD[dtype, simd_width](0.0)
-
-        @parameter
-        if num_terms == 1:
-            result = self.get[0]()
-        elif num_terms == 2:
-            result = math.fma(self.get[1](), x, self.get[0]())
-        else:
-            let two_x = 2.0 * x
-            var tmp = SIMD[dtype, simd_width](0.0)
-            var c0 = self.get[num_terms - 2]()
-            var c1 = self.get[num_terms - 1]()
-
-            @parameter
-            fn body_func[i: Int]() -> None:
-                tmp = c0
-                c0 = self.get[i]() - c1
-                c1 = math.fma(c1, two_x, tmp)
-
-            fori_loop[num_terms - 3, -1, -1, body_func]()
-
-            result = math.fma(c1, x, c0)
-
-        return math.select(math.abs(x) > 1.0, nan, result)
-
     fn economize[error_tolerance: Scalar[dtype]](self) -> Int:
         """Economizes the Chebyshev series by minimizing the number of terms.
 
@@ -292,6 +250,48 @@ struct Chebyshev[
         fori_loop[num_terms - 1, 0, -1, body_func]()
 
         return num_terms_required
+
+    fn __call__(self, x: SIMD[dtype, simd_width]) -> SIMD[dtype, simd_width]:
+        """Evaluates the Chebyshev series at `x` using the Clenshaw algorithm.
+
+        If the series `p` has `n + 1` terms, this function computes `p(x)` element-wise:
+
+        `p(x) = c[0] * T[0](x) + c[1] * T[1](x) + ... + c[n] * T[n](x)`.
+
+        Args:
+            x: A SIMD vector containing the points at which to evaluate the Chebyshev
+                series. These points should be within the interval `[-1, 1]`.
+
+        Returns:
+            A SIMD vector containing the values of the Chebyshev series evaluated at
+            the points specified by `x`.
+        """
+        alias nan: SIMD[dtype, simd_width] = math.nan[dtype]()
+
+        var result = SIMD[dtype, simd_width](0.0)
+
+        @parameter
+        if num_terms == 1:
+            result = self.get[0]()
+        elif num_terms == 2:
+            result = math.fma(self.get[1](), x, self.get[0]())
+        else:
+            let two_x = 2.0 * x
+            var tmp = SIMD[dtype, simd_width](0.0)
+            var c0 = self.get[num_terms - 2]()
+            var c1 = self.get[num_terms - 1]()
+
+            @parameter
+            fn body_func[i: Int]() -> None:
+                tmp = c0
+                c0 = self.get[i]() - c1
+                c1 = math.fma(c1, two_x, tmp)
+
+            fori_loop[num_terms - 3, -1, -1, body_func]()
+
+            result = math.fma(c1, x, c0)
+
+        return math.select(math.abs(x) > 1.0, nan, result)
 
 
 # ===---------------------------- Power Series ----------------------------=== #
