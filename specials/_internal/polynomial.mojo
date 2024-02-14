@@ -58,7 +58,7 @@ struct Chebyshev[
 ](Sized):
     """Represents a finite Chebyshev series.
 
-    A Chebyshev series with `n + 1` terms is a polynomial of the form
+    A Chebyshev series with `n + 1` terms is a linear combination of the form
 
     `p(x) = c[0] * T[0](x) + c[1] * T[1](x) + ... + c[n] * T[n](x)`
 
@@ -84,7 +84,7 @@ struct Chebyshev[
 
         Parameters:
             coefficients: The sequence of coefficients in order of increasing degree,
-                i.e., `c[0] * T[0](x) + c[1] * T[1](x) + c[2] * T[2](x)`.
+                i.e., `(1, 2, 3)` gives `1 * T[0](x) + 2 * T[1](x) + 3 * T[2](x)`.
 
         Returns:
             A Chebyshev series with the given coefficients.
@@ -117,8 +117,8 @@ struct Chebyshev[
         or `uint64` if `dtype` is `float64`.
 
         Parameters:
-            coefficients: The sequence of hexadecimal coefficients in order of increasing
-                degree, i.e., `c[0] * T[0](x) + c[1] * T[1](x) + c[2] * T[2](x)`.
+            coefficients: The sequence of hexadecimal coefficients in order of
+                increasing degree. See the method `from_coefficients`.
 
         Returns:
             A Chebyshev series with the given hexadecimal coefficients.
@@ -168,11 +168,11 @@ struct Chebyshev[
             index: The index of the coefficient to return.
 
         Returns:
-            SIMD vector containing the coefficient of the Chebyshev series at the
-            given index.
+            A SIMD vector containing the coefficient of the Chebyshev series at
+            the given index.
 
         Constraints:
-            The index must be in the range `[0, num_terms)`.
+            The index must be within the range `[0, num_terms)`.
         """
         asserting.assert_in_range["index", index, 0, num_terms]()
         return self._coefficients[index]
@@ -202,18 +202,19 @@ struct Chebyshev[
         return Chebyshev[num_terms, dtype, simd_width] {_coefficients: coefficients}
 
     fn __call__(self, x: SIMD[dtype, simd_width]) -> SIMD[dtype, simd_width]:
-        """Evaluates the Chebyshev series at points `x` using the Clenshaw algorithm.
+        """Evaluates the Chebyshev series at `x` using the Clenshaw algorithm.
 
-        If the series `p` has `n + 1` terms, this function returns the values:
+        If the series `p` has `n + 1` terms, this function computes `p(x)` element-wise:
 
         `p(x) = c[0] * T[0](x) + c[1] * T[1](x) + ... + c[n] * T[n](x)`.
 
         Args:
-            x: The points at which to evaluate the Chebyshev series. These points should
-                be in the interval `[-1, 1]`.
+            x: A SIMD vector containing the points at which to evaluate the Chebyshev
+                series. These points should be within the interval `[-1, 1]`.
 
         Returns:
-            SIMD vector containing the values of the Chebyshev series at points `x`.
+            A SIMD vector containing the values of the Chebyshev series evaluated at
+            the points specified by `x`.
         """
         alias nan: SIMD[dtype, simd_width] = math.nan[dtype]()
 
@@ -246,7 +247,7 @@ struct Chebyshev[
         """Economizes the Chebyshev series by minimizing the number of terms.
 
         Given a Chebyshev series `p` with `n` terms, this function returns the minimum
-        number of terms `m` such that
+        number of terms `m` such that the condition
 
         `|p(x) - p_m(x)| <= |c[m]| + ... + |c[n-1]| <= error_tolerance`
 
@@ -254,8 +255,8 @@ struct Chebyshev[
         obtained by truncating `p` to `m <= n` terms.
 
         Parameters:
-            error_tolerance: Tolerance for the approximation error between the original
-                series and its truncated version with `m` terms.
+            error_tolerance: The tolerance for the approximation error between the
+                original series and its truncated version with `m` terms.
 
         Returns:
             The minimum number of terms `m` required to ensure the approximation error
@@ -304,7 +305,7 @@ struct Polynomial[
 ](Sized):
     """Represents a finite Power series, commonly known as a polynomial.
 
-    A Power series with `n + 1` terms is a polynomial of the form
+    A Power series with `n + 1` terms is a linear combination of the form
 
     `p(x) = c[0] + c[1] * x + ... + c[n] * x**n`
 
@@ -329,7 +330,7 @@ struct Polynomial[
 
         Parameters:
             coefficients: The sequence of coefficients in order of increasing degree,
-                i.e., `c[0] + c[1] * x + c[2] * x**2`.
+                i.e., `(1, 2, 3)` gives `1 + 2 * x + 3 * x**2`.
 
         Returns:
             A Power series with the given coefficients.
@@ -363,7 +364,7 @@ struct Polynomial[
 
         Parameters:
             coefficients: The sequence of hexadecimal coefficients in order of
-                increasing degree, i.e., `c[0] + c[1] * x + c[2] * x**2`.
+                increasing degree. See the method `from_coefficients`.
 
         Returns:
             A Power series with the given hexadecimal coefficients.
@@ -413,11 +414,11 @@ struct Polynomial[
             index: The index of the coefficient to return.
 
         Returns:
-            SIMD vector containing the coefficient of the Power series at the
-            given index.
+            A SIMD vector containing the coefficient of the Power series at
+            the given index.
 
         Constraints:
-            The index must be in the range `[0, num_terms)`.
+            The index must be within the range `[0, num_terms)`.
         """
         asserting.assert_in_range["index", index, 0, num_terms]()
         return self._coefficients[index]
@@ -447,17 +448,19 @@ struct Polynomial[
         return Polynomial[num_terms, dtype, simd_width] {_coefficients: coefficients}
 
     fn __call__(self, x: SIMD[dtype, simd_width]) -> SIMD[dtype, simd_width]:
-        """Evaluates the Power series at points `x` using the Horner's scheme.
+        """Evaluates the Power series at `x` using the Horner's scheme.
 
-        If the series `p` has `n + 1` terms, this function returns the values:
+        If the series `p` has `n + 1` terms, this function computes `p(x)` element-wise:
 
         `p(x) = c[0] + c[1] * x + ... + c[n] * x**n`.
 
         Args:
-            x: The points at which to evaluate the Power series.
+            x: A SIMD vector containing the points at which to evaluate the Power
+                series.
 
         Returns:
-            SIMD vector containing the values of the Power series at points `x`.
+            A SIMD vector containing the values of the Power series evaluated at the
+            points specified by `x`.
         """
         # In terms of accuracy or execution time, there is no reason to use
         # `math.polynomial_evaluate`. See the Jupyter notebooks below:

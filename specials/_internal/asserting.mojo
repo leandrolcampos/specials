@@ -53,10 +53,10 @@ fn assert_in_range[
     lower: Int,
     upper: Int,
 ]() -> None:
-    """Asserts that the given parameter is in the given range."""
+    """Asserts that the given parameter is within the specified range."""
     constrained[
         parameter_value >= lower and parameter_value < upper,
-        "The parameter `" + parameter_name + "` must be in the given range.",
+        "The parameter `" + parameter_name + "` must be within the specified range.",
     ]()
 
 
