@@ -22,8 +22,8 @@ from specials._internal.functional import fori_loop
 from specials._internal.testing import UnitTest
 
 
-fn test_fori_loop_increase_by_1() raises:
-    let unit_test = UnitTest("test_fori_loop_increase_by_1")
+fn test_fori_loop_increasing_by_1() raises:
+    let unit_test = UnitTest("test_fori_loop_increasing_by_1")
     var actual = DynamicVector[Int](5)
     var expected = DynamicVector[Int](5)
 
@@ -43,8 +43,8 @@ fn test_fori_loop_increase_by_1() raises:
         unit_test.assert_equal(actual[i], expected[i])
 
 
-fn test_fori_loop_decrease_by_2() raises:
-    let unit_test = UnitTest("test_fori_loop_decrease_by_2")
+fn test_fori_loop_decreasing_by_2() raises:
+    let unit_test = UnitTest("test_fori_loop_decreasing_by_2")
     var actual = DynamicVector[Int](5)
     var expected = DynamicVector[Int](5)
 
@@ -91,6 +91,6 @@ fn test_fori_loop_with_conditional() raises:
 
 
 fn main() raises:
-    test_fori_loop_increase_by_1()
-    test_fori_loop_decrease_by_2()
+    test_fori_loop_increasing_by_1()
+    test_fori_loop_decreasing_by_2()
     test_fori_loop_with_conditional()
