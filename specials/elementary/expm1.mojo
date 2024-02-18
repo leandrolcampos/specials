@@ -28,7 +28,7 @@ from memory.unsafe import bitcast
 from specials._internal.asserting import assert_float_dtype
 from specials._internal.limits import FloatLimits
 from specials._internal.polynomial import Polynomial
-from specials._internal.table import FloatTable, get_hexadecimal_dtype
+from specials._internal.table import FloatTable
 
 
 @always_inline
