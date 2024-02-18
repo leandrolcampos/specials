@@ -386,10 +386,10 @@ fn expm1[
         simd_width: The width of the input and output SIMD vectors.
 
     Args:
-        x: SIMD vector of floating-point values.
+        x: A SIMD vector of floating-point values.
 
     Returns:
-        SIMD vector containing the expression `exp(x) - 1` evaluated at `x`.
+        A SIMD vector containing the expression `exp(x) - 1` evaluated at `x`.
 
     Constraints:
         The data type must be a floating-point of single (`float32`) or double
