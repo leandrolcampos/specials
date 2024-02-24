@@ -18,8 +18,6 @@
 
 import math
 
-from memory.unsafe import bitcast
-
 from python import Python
 from utils.static_tuple import StaticTuple
 
@@ -38,7 +36,6 @@ fn _mp_exp2[dtype: DType](x: Scalar[dtype]) raises -> Scalar[dtype]:
 fn test_exp2[dtype: DType]() raises:
     let unit_test = UnitTest("test_exp2_" + str(dtype))
 
-    let xeps = FloatLimits[dtype].eps
     let xs = StaticTuple[9, Scalar[dtype]](
         -10.0, -1.0, -0.1, -0.01, 0.0, 0.01, 0.1, 1.0, 10.0
     )
