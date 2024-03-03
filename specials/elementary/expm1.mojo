@@ -224,10 +224,13 @@ fn _expm1_procedure_1[
         let xn = math.round(safe_x * inv_ln2_over_32)
         let xn2 = math.mod(xn, 32.0)
         let xn1 = xn - xn2
-        let x_reduced_lead = math.select(
-            math.abs(xn) < 512,
-            math.fma(-xn, ln2_over_32_lead, safe_x),
-            math.fma(-xn2, ln2_over_32_lead, math.fma(-xn1, ln2_over_32_lead, safe_x)),
+
+        let xn_is_large = (math.abs(xn) >= 512)
+        var x_reduced_lead = math.fma(
+            -xn_is_large.select(xn1, xn), ln2_over_32_lead, safe_x
+        )
+        x_reduced_lead = xn_is_large.select(
+            math.fma(-xn2, ln2_over_32_lead, x_reduced_lead), x_reduced_lead
         )
         let x_reduced_trail = -xn * ln2_over_32_trail
 
@@ -264,10 +267,13 @@ fn _expm1_procedure_1[
         let xn = math.round(safe_x * inv_ln2_over_32)
         let xn2 = math.mod(xn, 32.0)
         let xn1 = xn - xn2
-        let x_reduced_lead = math.select(
-            math.abs(xn) < 512,
-            math.fma(-xn, ln2_over_32_lead, safe_x),
-            math.fma(-xn2, ln2_over_32_lead, math.fma(-xn1, ln2_over_32_lead, safe_x)),
+
+        let xn_is_large = (math.abs(xn) >= 512)
+        var x_reduced_lead = math.fma(
+            -xn_is_large.select(xn1, xn), ln2_over_32_lead, safe_x
+        )
+        x_reduced_lead = xn_is_large.select(
+            math.fma(-xn2, ln2_over_32_lead, x_reduced_lead), x_reduced_lead
         )
         let x_reduced_trail = -xn * ln2_over_32_trail
 
