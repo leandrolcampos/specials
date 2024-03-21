@@ -34,9 +34,7 @@ from memory.unsafe import bitcast
 
 from specials._internal import math as math_lib
 from specials._internal.asserting import assert_float_dtype
-from specials._internal.limits import FloatLimits
 from specials._internal.polynomial import Polynomial
-from specials._internal.table import FloatTable
 from specials.elementary.common_constants import ExpTable
 
 

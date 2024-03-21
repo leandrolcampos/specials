@@ -24,7 +24,6 @@ from utils.static_tuple import StaticTuple
 from specials._internal.limits import FloatLimits
 from specials._internal.testing import UnitTest
 from specials.elementary.exp2 import exp2
-from specials.elementary.log import log
 
 
 fn _mp_exp2[dtype: DType](x: Scalar[dtype]) raises -> Scalar[dtype]:
