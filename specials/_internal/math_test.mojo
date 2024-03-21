@@ -67,7 +67,7 @@ fn test_ldexp_float_smallest_subnormal[dtype: DType]() raises:
     var unit_test = UnitTest("test_ldexp_float_smallest_subnormal_" + str(dtype))
 
     var x: Scalar[dtype] = 1.0
-    var exp: Scalar[DType.int32] = FloatLimits[dtype].minexp - FloatLimits[dtype].machep
+    var exp: Scalar[DType.int32] = FloatLimits[dtype].minexp + FloatLimits[dtype].machep
 
     var expected = _np_ldexp[dtype](x, exp)
     var actual = ldexp[dtype](x, exp)
