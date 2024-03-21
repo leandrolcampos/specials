@@ -28,19 +28,19 @@ from specials.elementary.log import log
 
 
 fn _mp_exp2[dtype: DType](x: Scalar[dtype]) raises -> Scalar[dtype]:
-    let mp = Python.import_module("mpmath")
-    let result = mp.power(mp.mpf(2), mp.mpf(x))
+    var mp = Python.import_module("mpmath")
+    var result = mp.power(mp.mpf(2), mp.mpf(x))
     return result.to_float64().cast[dtype]()
 
 
 fn test_exp2[dtype: DType]() raises:
-    let unit_test = UnitTest("test_exp2_" + str(dtype))
+    var unit_test = UnitTest("test_exp2_" + str(dtype))
 
-    let xs = StaticTuple[9, Scalar[dtype]](
+    var xs = StaticTuple[9, Scalar[dtype]](
         -10.0, -1.0, -0.1, -0.01, 0.0, 0.01, 0.1, 1.0, 10.0
     )
 
-    let rtol: Scalar[dtype]
+    var rtol: Scalar[dtype]
 
     @parameter
     if dtype == DType.float32:
@@ -49,39 +49,39 @@ fn test_exp2[dtype: DType]() raises:
         rtol = 1e-15
 
     for i in range(len(xs)):
-        let x = xs[i]
-        let expected = _mp_exp2[dtype](x)
-        let actual = exp2(x)
+        var x = xs[i]
+        var expected = _mp_exp2[dtype](x)
+        var actual = exp2(x)
 
         unit_test.assert_all_close(actual, expected, 0.0, rtol)
 
 
 fn test_exp2_special_cases[dtype: DType]() raises:
-    let unit_test = UnitTest("test_exp2_special_cases_" + str(dtype))
+    var unit_test = UnitTest("test_exp2_special_cases_" + str(dtype))
 
-    let xmin = Scalar[dtype](FloatLimits[dtype].minexp)
-    let xeps = 0.5 * FloatLimits[dtype].epsneg
-    let xmax = math.nextafter(Scalar[dtype](FloatLimits[dtype].maxexp), 0.0)
-    let nan = math.nan[dtype]()
-    let inf = math.limit.inf[dtype]()
+    var xmin = Scalar[dtype](FloatLimits[dtype].minexp)
+    var xeps = 0.5 * FloatLimits[dtype].epsneg
+    var xmax = math.nextafter(Scalar[dtype](FloatLimits[dtype].maxexp), 0.0)
+    var nan = math.nan[dtype]()
+    var inf = math.limit.inf[dtype]()
 
-    let xs = StaticTuple[13, Scalar[dtype]](
+    var xs = StaticTuple[13, Scalar[dtype]](
         nan,
         -inf,
-        2.0 * xmin,
+        xmin - 1.0,
         xmin,
-        0.5 * xmin,
+        xmin + 1.0,
         -xeps,
         -0.1 * xeps,
         0.0,
         0.1 * xeps,
-        0.5 * xmax,
+        xmax - 1.0,
         xmax,
-        2.0 * xmax,
+        xmax + 1.0,
         inf,
     )
 
-    let rtol: Scalar[dtype]
+    var rtol: Scalar[dtype]
 
     @parameter
     if dtype == DType.float32:
@@ -90,14 +90,12 @@ fn test_exp2_special_cases[dtype: DType]() raises:
         rtol = 1e-15
 
     for i in range(len(xs)):
-        let x = xs[i]
-        let actual = exp2(x)
-        let expected: Scalar[dtype]
+        var x = xs[i]
+        var actual = exp2(x)
+        var expected: Scalar[dtype]
 
         if math.isnan(x):
             expected = nan
-        elif x < xmin:
-            expected = 0.0
         elif x > xmax:
             expected = inf
         else:
@@ -108,7 +106,7 @@ fn test_exp2_special_cases[dtype: DType]() raises:
 
 fn main() raises:
     # Setting the mpmath precision for this module
-    let mp = Python.import_module("mpmath")
+    var mp = Python.import_module("mpmath")
     mp.mp.dps = 100
 
     test_exp2[DType.float64]()
