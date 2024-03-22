@@ -13,9 +13,9 @@ Special functions are particular mathematical functions that play a fundamental 
 - [Why the Focus on Special Functions?](#why-the-focus-on-special-functions)
 - [Mojo Version Requirement](#mojo-version-requirement)
 - [Example Usage](#example-usage)
+- [Benchmarks](#benchmarks)
 - [Some Implementations Available](#some-implementations-available)
   * [Elementary Functions](#elementary-functions)
-  * [Gamma-Related Functions](#gamma-related-functions)
 - [Contributing](#contributing)
 - [References](#references)
 
@@ -61,19 +61,11 @@ The following code snippet shows how to compute `exp(x) - 1` in a numerically st
 [0.0, 1.0000000000000001e-18, 0.22140275816016985, 1.7182818284590453]
 ```
 
-> 💡 In the notebook [The Expm1 Function in Specials](./expm1_function.ipynb), we compare the implementation of the `expm1` function in Specials with the implementations from the Mojo standard library and NumPy.
+## Benchmarks
 
-The table below shows the results of comparing the `expm1` implementation in Specials with its counterparts in Mojo standard library and NumPy using `float32` as the data type. The results underscore Specials' ability to provide exceptional accuracy without compromising computational efficiency.
+The [`benchmarks`](./benchmarks/) directory contains a collection of Mojo notebooks designed to compare the accuracy and runtime performance of functions from the Specials package against those found in well-known Mojo and Python packages.
 
-**Experiment: Expm1 Function (float32)**
-
-| Domain | Solution | Maximum<br>Relative Error | Mean<br>Relative Error | Mean Execution Time<br>(in milliseconds) |
-|---|---|---:|---:|---:|
-| -1e-05,1e-05 | Specials<br>Mojo<br>NumPy | 0.0<br>7.15e-08<br>7.15e-08 | 0.0<br>2.86e-13<br>2.86e-13 | 0.089<br>0.223<br>0.693 |
-| -1,1 | Specials<br>Mojo<br>NumPy | 1.19e-07<br>1.19e-07<br>1.19e-07 | 5.76e-10<br>7.66e-09<br>7.66e-09 | 0.200<br>0.433<br>1.810 |
-| -10,10 | Specials<br>Mojo<br>NumPy | 1.19e-07<br>1.19e-07<br>1.19e-07 | 1.95e-10<br>5.62e-09<br>5.62e-09 | 0.181<br>0.518<br>2.068 |
-| -30,30 | Specials<br>Mojo<br>NumPy | 1.19e-07<br>1.19e-07<br>1.19e-07 | 1.53e-10<br>4.61e-09<br>4.61e-09 | 0.173<br>0.538<br>2.374 |
-| -85,85 | Specials<br>Mojo<br>NumPy | 1.19e-07<br>1.19e-07<br>1.19e-07 | 1.59e-10<br>4.28e-09<br>4.28e-09 | 0.184<br>0.465<br>2.079 |
+These benchmarks aim to highlight the correctness and efficiency of Specials implementations.
 
 ## Some Implementations Available
 
@@ -82,17 +74,8 @@ The table below shows the results of comparing the `expm1` implementation in Spe
 | Function | Description |
 |----------|-------------|
 | `exp(x)` | The natural exponential function |
+| `exp2(x)` | The base-2 exponential function |
 | `expm1(x)` | The expression `exp(x) - 1` evaluated in a numerically stable way when `x` is near zero |
-| `log(x)` | The natural logarithmic function |
-
-### Gamma-Related Functions
-
-| Function | Description |
-|----------|-------------|
-| `lbeta(x, y)` | The natural logarithm of the beta function |
-| `lgamma_correction(x)` | The correction term for the Rocktaeschel's approximation of `lgamma` |
-| `lgamma1p(x)` | The expression `lgamma(1 + x)` evaluated in a numerically stable way when `x` is near zero |
-| `rgamma1pm1(x)` | The expression `1 / gamma(1 + x) - 1` evaluated in a numerically stable way when `x` is near zero or one |
 
 ## Contributing
 
