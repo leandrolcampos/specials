@@ -119,12 +119,12 @@ struct FloatLimits[dtype: DType]:
 
     alias minexp: Int = _minexp_impl[dtype]()
     """
-    The most negative power of the base (2) consistent with there being no leading
+    The most negative power of the base-2 consistent with there being no leading
     zeros in the mantissa.
     """
 
     alias maxexp: Int = _maxexp_impl[dtype]()
-    """The smallest positive power of the base (2) that causes overflow."""
+    """The smallest positive power of the base-2 that causes overflow."""
 
     alias eps: Scalar[dtype] = _eps_impl[dtype]()
     """The smallest positive floating-point number such that `1.0 + eps != 1.0`."""
