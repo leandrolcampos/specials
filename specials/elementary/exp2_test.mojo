@@ -14,32 +14,30 @@
 # limitations under the License.
 # ===----------------------------------------------------------------------=== #
 
-"""Tests for the `expm1` function."""
+"""Tests for the `exp2` function."""
 
 import math
-
-from memory.unsafe import bitcast
 
 from python import Python
 from utils.static_tuple import StaticTuple
 
 from specials._internal.limits import FloatLimits
 from specials._internal.testing import UnitTest
-from specials.elementary.expm1 import expm1
-from specials.elementary.log import log
+from specials.elementary.exp2 import exp2
 
 
-fn _mp_expm1[dtype: DType](x: Scalar[dtype]) raises -> Scalar[dtype]:
+fn _mp_exp2[dtype: DType](x: Scalar[dtype]) raises -> Scalar[dtype]:
     var mp = Python.import_module("mpmath")
-    var result = mp.expm1(mp.mpf(x))
+    var result = mp.power(mp.mpf(2), mp.mpf(x))
     return result.to_float64().cast[dtype]()
 
 
-fn test_expm1[dtype: DType]() raises:
-    var unit_test = UnitTest("test_expm1_" + str(dtype))
+fn test_exp2[dtype: DType]() raises:
+    var unit_test = UnitTest("test_exp2_" + str(dtype))
 
-    var xeps = FloatLimits[dtype].eps
-    var xs = StaticTuple[5, Scalar[dtype]](0.1 * xeps, 0.01, 0.1, 1.0, 10.0)
+    var xs = StaticTuple[9, Scalar[dtype]](
+        -10.0, -1.0, -0.1, -0.01, 0.0, 0.01, 0.1, 1.0, 10.0
+    )
 
     var rtol: Scalar[dtype]
 
@@ -51,47 +49,32 @@ fn test_expm1[dtype: DType]() raises:
 
     for i in range(len(xs)):
         var x = xs[i]
-        var expected = _mp_expm1[dtype](x)
-        var actual = expm1(x)
+        var expected = _mp_exp2[dtype](x)
+        var actual = exp2(x)
 
         unit_test.assert_all_close(actual, expected, 0.0, rtol)
 
 
-fn test_expm1_special_cases[dtype: DType]() raises:
-    var unit_test = UnitTest("test_expm1_special_cases_" + str(dtype))
+fn test_exp2_special_cases[dtype: DType]() raises:
+    var unit_test = UnitTest("test_exp2_special_cases_" + str(dtype))
 
-    var xeps: Scalar[dtype]
-    var xsml_inf: Scalar[dtype]
-    var xsml_sup: Scalar[dtype]
-    var xmin: Scalar[dtype]
-    var xmax: Scalar[dtype]
+    var xmin = Scalar[dtype](FloatLimits[dtype].minexp)
+    var xeps = 0.5 * FloatLimits[dtype].epsneg
+    var xmax = math.nextafter(Scalar[dtype](FloatLimits[dtype].maxexp), 0.0)
     var nan = math.nan[dtype]()
     var inf = math.limit.inf[dtype]()
 
-    @parameter
-    if dtype == DType.float32:
-        xeps = bitcast[dtype, DType.uint32](0x3300_0000)
-        xsml_inf = bitcast[dtype, DType.uint32](0xBE93_4B11)
-        xsml_sup = bitcast[dtype, DType.uint32](0x3E64_7FBF)
-        xmin = bitcast[dtype, DType.uint32](0xC18A_A122)
-        xmax = math.nextafter(log(FloatLimits[dtype].max), 0.0)
-    else:  # dtype == DType.float64
-        xeps = bitcast[dtype, DType.uint64](0x3C900000_00000000)
-        xsml_inf = bitcast[dtype, DType.uint64](0xBFD26962_1134DB93)
-        xsml_sup = bitcast[dtype, DType.uint64](0x3FCC8FF7_C79A9A22)
-        xmin = bitcast[dtype, DType.uint64](0xC042B708_872320E1)
-        xmax = log(FloatLimits[dtype].max)
-
-    var xs = StaticTuple[12, Scalar[dtype]](
+    var xs = StaticTuple[13, Scalar[dtype]](
         nan,
         -inf,
         xmin - 1.0,
         xmin,
-        xsml_inf,
+        xmin + 1.0,
         -xeps,
+        -0.1 * xeps,
         0.0,
-        xeps,
-        xsml_sup,
+        0.1 * xeps,
+        xmax - 1.0,
         xmax,
         xmax + 1.0,
         inf,
@@ -107,17 +90,15 @@ fn test_expm1_special_cases[dtype: DType]() raises:
 
     for i in range(len(xs)):
         var x = xs[i]
-        var actual = expm1(x)
+        var actual = exp2(x)
         var expected: Scalar[dtype]
 
         if math.isnan(x):
             expected = nan
-        elif x < xmin:
-            expected = -1.0
         elif x > xmax:
             expected = inf
         else:
-            expected = _mp_expm1[dtype](x)
+            expected = _mp_exp2[dtype](x)
 
         unit_test.assert_all_close(actual, expected, 0.0, rtol)
 
@@ -125,10 +106,10 @@ fn test_expm1_special_cases[dtype: DType]() raises:
 fn main() raises:
     # Setting the mpmath precision for this module
     var mp = Python.import_module("mpmath")
-    mp.mp.dps = 50
+    mp.mp.dps = 100
 
-    test_expm1[DType.float64]()
-    test_expm1[DType.float32]()
+    test_exp2[DType.float64]()
+    test_exp2[DType.float32]()
 
-    test_expm1_special_cases[DType.float64]()
-    test_expm1_special_cases[DType.float32]()
+    test_exp2_special_cases[DType.float64]()
+    test_exp2_special_cases[DType.float32]()

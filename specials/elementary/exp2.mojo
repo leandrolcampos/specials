@@ -20,8 +20,13 @@
 #   in IEEE floating-point arithmetic.
 # ACM Transactions on Mathematical Software (TOMS), 15(2), 144-157.
 # https://doi.org/10.1145/63522.214389
+#
+# Tang, P. T. P. (1991). Table-lookup algorithms for elementary functions and
+#   their error analysis.
+# Proceedings 10th IEEE Symposium on Computer Arithmetic, pp. 232-236.
+# https://doi.org/10.1109/ARITH.1991.145565
 
-"""Exponential function."""
+"""Base-2 exponential function."""
 
 import math
 
@@ -34,113 +39,101 @@ from specials.elementary.common_constants import ExpTable
 
 
 @always_inline
-fn _exp_impl[
+fn _exp2_impl[
     dtype: DType, simd_width: Int
 ](x: SIMD[dtype, simd_width], cond: SIMD[DType.bool, simd_width]) -> SIMD[
     dtype, simd_width
 ]:
-    """Implements the exponential function as specified in the reference paper."""
+    """Implements the base-2 exponential function."""
+    # Reduction: Find the breakpoint c[k] = k/32, k = 0, 1, ..., 31 such that
+    #     |x - (m + c[k])| <= 1/64
+    #   where m = -1, 0 or 1. Then calculate r by r = x - (m + c[k]). Note that
+    #   r is in the range [-1/64, 1/64].
+    # Approximation: Approximate 2^r - 1 by a polynomial p(r) whose coefficients
+    #   were obtained using Sollya:
+    #     > f = (2^x - 1)/x;
+    #     > P = fpminimax(f, 2, [|single...|], [-1/64, 1/64]);
+    #     or
+    #     > P = fpminimax(f, 5, [|D...|], [-1/64, 1/64]);
+    #     > P;
+    #     > dirtyinfnorm(f-P, [-1/64, 1/64]);
+    # Reconstruction: Reconstruct 2^x by the relationship
+    #     2^x ~= 2^m * (2^c[k] + 2^c[k] * p(r))
     var safe_x = cond.select(x, 1.0)
 
     var index: SIMD[DType.int32, simd_width]
     var exponent: SIMD[DType.int32, simd_width]
-    var expm1_r: SIMD[dtype, simd_width]
+    var exp2m1_r: SIMD[dtype, simd_width]
 
     @parameter
     if dtype == DType.float32:
-        alias inv_ln2_over_32: SIMD[dtype, simd_width] = bitcast[dtype, DType.uint32](
-            0x4238_AA3B,
-        )
-        alias ln2_over_32_lead: SIMD[dtype, simd_width] = bitcast[dtype, DType.uint32](
-            0x3CB1_7200,
-        )
-        alias ln2_over_32_trail: SIMD[dtype, simd_width] = bitcast[dtype, DType.uint32](
-            0x333F_BE8E,
+        alias one_over_32: SIMD[dtype, simd_width] = bitcast[dtype, DType.uint32](
+            0x3D00_0000,
         )
         alias polynomial = Polynomial[
-            2, dtype, simd_width
+            3, dtype, simd_width
         ].from_hexadecimal_coefficients[
-            0x3F00_0044,
-            0x3E2A_AAEC,
+            0x3F31_7218,
+            0x3E75_FE66,
+            0x3D63_4D8A,
         ]()
 
-        var xn = math.round(safe_x * inv_ln2_over_32)
-        var xn2 = math.mod(xn, 32.0)
-        var xn1 = xn - xn2
+        var xn = math.round(safe_x)
+        var xf = safe_x - xn
 
-        var xn_is_large = (math.abs(xn) >= 512)
-        var x_reduced_lead = math.fma(
-            -xn_is_large.select(xn1, xn), ln2_over_32_lead, safe_x
-        )
-        x_reduced_lead = xn_is_large.select(
-            math.fma(-xn2, ln2_over_32_lead, x_reduced_lead), x_reduced_lead
-        )
-        var x_reduced_trail = -xn * ln2_over_32_trail
+        var yn = math.round(xf * 32.0)
+        var yn2 = math.mod(yn, 32.0)
+        var yn1 = yn - yn2
 
-        index = xn2.cast[DType.int32]()
-        exponent = xn1.cast[DType.int32]() / 32
+        var y_reduced = math.fma(-yn, one_over_32, xf)
 
-        var x_reduced = x_reduced_lead + x_reduced_trail
+        index = yn2.cast[DType.int32]()
+        exponent = (xn + yn1 / 32).cast[DType.int32]()
 
-        expm1_r = x_reduced_lead + (
-            math.fma(x_reduced * x_reduced, polynomial(x_reduced), x_reduced_trail)
-        )
+        exp2m1_r = y_reduced * polynomial(y_reduced)
 
     else:  # dtype == DType.float64
-        alias inv_ln2_over_32: SIMD[dtype, simd_width] = bitcast[dtype, DType.uint64](
-            0x40471547_652B82FE,
-        )
-        alias ln2_over_32_lead: SIMD[dtype, simd_width] = bitcast[dtype, DType.uint64](
-            0x3F962E42_FEF00000,
-        )
-        alias ln2_over_32_trail: SIMD[dtype, simd_width] = bitcast[dtype, DType.uint64](
-            0x3D8473DE_6AF278ED,
+        alias one_over_32: SIMD[dtype, simd_width] = bitcast[dtype, DType.uint64](
+            0x3FA00000_00000000,
         )
         alias polynomial = Polynomial[
-            5, dtype, simd_width
+            6, dtype, simd_width
         ].from_hexadecimal_coefficients[
-            0x3FE00000_00000000,
-            0x3FC55555_55548F7C,
-            0x3FA55555_55545D4E,
-            0x3F811115_B7AA905E,
-            0x3F56C172_8D739765,
+            0x3FE62E42_FEFA39EF,
+            0x3FCEBFBD_FF82C58E,
+            0x3FAC6B08_D70496BC,
+            0x3F83B2AB_6FBCFDA6,
+            0x3F55D884_2A55CA01,
+            0x3F24308B_04A657CB,
         ]()
 
-        var xn = math.round(safe_x * inv_ln2_over_32)
-        var xn2 = math.mod(xn, 32.0)
-        var xn1 = xn - xn2
+        var xn = math.round(safe_x)
+        var xf = safe_x - xn
 
-        var xn_is_large = (math.abs(xn) >= 512)
-        var x_reduced_lead = math.fma(
-            -xn_is_large.select(xn1, xn), ln2_over_32_lead, safe_x
-        )
-        x_reduced_lead = xn_is_large.select(
-            math.fma(-xn2, ln2_over_32_lead, x_reduced_lead), x_reduced_lead
-        )
-        var x_reduced_trail = -xn * ln2_over_32_trail
+        var yn = math.round(xf * 32.0)
+        var yn2 = math.mod(yn, 32.0)
+        var yn1 = yn - yn2
 
-        index = xn2.cast[DType.int32]()
-        exponent = xn1.cast[DType.int32]() / 32
+        var y_reduced = math.fma(-yn, one_over_32, xf)
 
-        var x_reduced = x_reduced_lead + x_reduced_trail
+        index = yn2.cast[DType.int32]()
+        exponent = (xn + yn1 / 32).cast[DType.int32]()
 
-        expm1_r = x_reduced_lead + (
-            math.fma(x_reduced * x_reduced, polynomial(x_reduced), x_reduced_trail)
-        )
+        exp2m1_r = y_reduced * polynomial(y_reduced)
 
     var s_lead = ExpTable[dtype].lead.unsafe_lookup(index)
     var s_trail = ExpTable[dtype].trail.unsafe_lookup(index)
     var s = s_lead + s_trail
 
-    var mantissa = s_lead + math.fma(s, expm1_r, s_trail)
+    var mantissa = s_lead + math.fma(s, exp2m1_r, s_trail)
 
     return math_lib.ldexp(mantissa, exponent)
 
 
-fn exp[
+fn exp2[
     dtype: DType, simd_width: Int
 ](x: SIMD[dtype, simd_width]) -> SIMD[dtype, simd_width]:
-    """Computes the exponential of `x`.
+    """Computes the base-2 exponential of `x`.
 
     Parameters:
         dtype: The data type of the input and output SIMD vectors.
@@ -150,7 +143,7 @@ fn exp[
         x: A SIMD vector of floating-point values.
 
     Returns:
-        A SIMD vector containing the exponential of `x`.
+        A SIMD vector containing the base-2 exponential of `x`.
 
     Constraints:
         The data type must be a floating-point of single (`float32`) or double
@@ -177,12 +170,12 @@ fn exp[
             0x3300_0000,
         )
         # `xmax` is different from what is specified in the reference paper:
-        # `alias xmax = math.nextafter(log(FloatLimits[dtype].max), 0.0)`
+        # `alias xmax = math.nextafter(Float32(FloatLimits[dtype].maxexp), 0.0)`
         alias xmax: SIMD[dtype, simd_width] = bitcast[dtype, DType.uint32](
-            0x42B1_7217,
+            0x42FF_FFFF,
         )
         alias xmin: SIMD[dtype, simd_width] = bitcast[dtype, DType.uint32](
-            0xC2CE_8ECF,
+            0xC315_0000,
         )
 
         is_in_region1 = x_abs < xeps
@@ -195,12 +188,12 @@ fn exp[
             0x3C900000_00000000,
         )
         # `xmax` is different from what is specified in the reference paper:
-        # `alias xmax = log(FloatLimits[dtype].max)`
+        # `alias xmax = math.nextafter(Float64(FloatLimits[dtype].maxexp), 0.0)`
         alias xmax: SIMD[dtype, simd_width] = bitcast[dtype, DType.uint64](
-            0x40862E42_FEFA39EF,
+            0x408FFFFF_FFFFFFFF,
         )
         alias xmin: SIMD[dtype, simd_width] = bitcast[dtype, DType.uint64](
-            0xC0874385_446D71C3,
+            0xC090C800_00000000,
         )
 
         is_in_region1 = x_abs < xeps
@@ -213,6 +206,6 @@ fn exp[
     result = is_in_region3.select(0.0, result)
 
     if is_in_region4.reduce_or():
-        result = is_in_region4.select(_exp_impl(x, is_in_region4), result)
+        result = is_in_region4.select(_exp2_impl(x, is_in_region4), result)
 
     return result

@@ -23,130 +23,157 @@ import pytest
 import numerics_testing
 
 
-def test_py_relative_error():
-    result = np.array([0.0, 1.1, 2.0, 3.0])
-    truth = np.array([0.0, 1.0, 0.0, 3.0])
+@pytest.mark.parametrize(
+    "result_dtype, truth_dtype",
+    [
+        (np.float32, np.dtype("O")),
+        (np.float32, np.float64),
+        (np.float64, np.dtype("O")),
+        (np.float64, np.longdouble),
+    ],
+)
+def test_py_relative_error(result_dtype, truth_dtype):
+    result = np.array([0.0, 1.1, 2.0, 3.0], dtype=result_dtype)
+    truth = np.array([0.0, 1.0, 0.0, 3.0], dtype=truth_dtype)
 
+    output_dtype = numerics_testing._promote_dtype(result_dtype)
     actual = numerics_testing.py_relative_error(result, truth)
-    expected = np.array([0.0, 0.1, np.inf, 0.0])
+    expected = np.array([0.0, 0.1, np.inf, 0.0], dtype=output_dtype)
 
-    np.testing.assert_allclose(actual, expected, rtol=1e-15, atol=0.0)
+    np.testing.assert_equal(actual.dtype, output_dtype)
+    if result_dtype == np.float32:
+        np.testing.assert_allclose(actual, expected, rtol=1e-6, atol=0.0)
+    else:
+        np.testing.assert_allclose(actual, expected, rtol=1e-15, atol=0.0)
 
 
-def test_py_accuracy_in_significant_digits():
-    relerr = np.array([0.0, 0.1, np.inf, 0.0])
+def test_py_relative_error_invalid_result_dtype():
+    result = np.array([0.0, 1.1, 2.0, 3.0], dtype=np.float16)
+    truth = np.array([0.0, 1.0, 0.0, 3.0], dtype=np.float32)
 
-    actual = numerics_testing.py_accuracy_in_significant_digits(relerr)
-    expected = np.array(
-        [15.653559774527022, 0.6989700043360187, -np.inf, 15.653559774527022]
-    )
+    with pytest.raises(TypeError, match="single .* or double"):
+        _ = numerics_testing.py_relative_error(result, truth)
 
-    np.testing.assert_allclose(actual, expected, rtol=1e-15, atol=0.0)
+
+def test_py_relative_error_invalid_truth_dtype():
+    result = np.array([0.0, 1.1, 2.0, 3.0], dtype=np.float32)
+    truth = np.array([0.0, 1.0, 0.0, 3.0], dtype=np.float32)
+
+    with pytest.raises(TypeError, match="higher precision"):
+        _ = numerics_testing.py_relative_error(result, truth)
 
 
 @pytest.mark.parametrize(
-    "x, output_dtype, expected",
+    "x, target_dtype, expected",
     [
         (
             np.array(
-                [np.nan, -1.0, 0.0, 1.0, np.finfo(np.float64).max, np.inf],
-                dtype=np.float128,
+                [np.nan, -1.0, 0.0, 1.0, 5.0, np.finfo(np.float64).max, np.inf],
+                dtype=np.longdouble,
             ),
             np.float64,
             np.array(
                 [
                     np.nan,
-                    4.440892098500626e-16,
-                    5e-324,
-                    4.440892098500626e-16,
-                    3.99168061906944e292,
-                    3.99168061906944e292,
+                    1.1102230246251565404e-16,
+                    4.940656458412465442e-324,
+                    1.1102230246251565404e-16,
+                    8.8817841970012523234e-16,
+                    1.9958403095347198117e292,
+                    1.9958403095347198117e292,
                 ],
-                dtype=np.float64,
+                dtype=np.longdouble,
             ),
         ),
         (
             np.array(
-                [np.nan, -1.0, 0.0, 1.0, np.finfo(np.float32).max, np.inf],
+                [np.nan, -1.0, 0.0, 1.0, 5.0, np.finfo(np.float32).max, np.inf],
                 dtype=np.float64,
             ),
             np.float32,
             np.array(
                 [
                     np.nan,
-                    2.3841858e-07,
-                    1e-45,
-                    2.3841858e-07,
-                    4.056482e31,
-                    4.056482e31,
+                    5.960464477539063e-08,
+                    1.401298464324817e-45,
+                    5.960464477539063e-08,
+                    4.76837158203125e-07,
+                    2.028240960365167e31,
+                    2.028240960365167e31,
                 ],
-                dtype=np.float32,
+                dtype=np.float64,
             ),
         ),
     ],
 )
-def test_py_kahan_ulp(x, output_dtype, expected):
-    actual = numerics_testing.py_kahan_ulp(x, output_dtype)
+def test_py_kahan_ulp(x, target_dtype, expected):
+    output_dtype = numerics_testing._promote_dtype(target_dtype)
+    actual = numerics_testing.py_kahan_ulp(x, target_dtype)
 
-    if output_dtype == np.float32:
-        np.testing.assert_allclose(actual, expected, rtol=1e-6, atol=0.0)
-    else:
-        np.testing.assert_allclose(actual, expected, rtol=1e-15, atol=0.0)
-
-
-def test_py_kahan_ulp_invalid_dtype():
-    x = np.array([0.0, 1.0], dtype=np.int64)
-    output_dtype = np.float32
-
-    with pytest.raises(TypeError):
-        numerics_testing.py_kahan_ulp(x, output_dtype)
+    np.testing.assert_equal(actual.dtype, output_dtype)
+    np.testing.assert_allclose(actual, expected, rtol=1e-15, atol=0.0)
 
 
-def test_py_kahan_ulp_invalid_output_dtype():
-    x = np.array([0.0, 1.0], dtype=np.float64)
-    output_dtype = np.int32
-
-    with pytest.raises(TypeError):
-        numerics_testing.py_kahan_ulp(x, output_dtype)
-
-
-def test_py_kahan_ulp_higher_precision_output_dtype():
+def test_py_kahan_ulp_invalid_x_dtype():
     x = np.array([0.0, 1.0], dtype=np.float32)
-    output_dtype = np.float64
+    target_dtype = np.float32
 
-    with pytest.raises(TypeError):
-        numerics_testing.py_kahan_ulp(x, output_dtype)
+    with pytest.raises(TypeError, match="higher precision"):
+        numerics_testing.py_kahan_ulp(x, target_dtype)
+
+
+def test_py_kahan_ulp_invalid_target_dtype():
+    x = np.array([0.0, 1.0], dtype=np.float64)
+    target_dtype = np.int32
+
+    with pytest.raises(TypeError, match="single .* or double"):
+        numerics_testing.py_kahan_ulp(x, target_dtype)
 
 
 @pytest.mark.parametrize(
     "result, truth, expected",
     [
-        (np.float64(1.0) + np.finfo(np.float64).eps, np.float128(1.0), np.float64(0.5)),
-        (np.float64(1.0) + np.finfo(np.float64).eps, np.float64(1.0), np.float64(0.5)),
-        (np.float64(1.0) + np.finfo(np.float64).eps, np.int64(1), np.float64(0.5)),
-        (np.float32(1.0) + np.finfo(np.float32).eps, np.float64(1.0), np.float32(0.5)),
+        (
+            np.float64(1.0) + np.finfo(np.float64).eps,
+            np.longdouble(1.0),
+            np.longdouble(2.0),
+        ),
+        (
+            np.float64(1.0) + np.finfo(np.float64).eps,
+            np.int64(1.0),
+            np.longdouble(2.0),
+        ),
+        (
+            np.float32(1.0) + np.finfo(np.float32).eps,
+            np.float64(1.0),
+            np.float64(2.0),
+        ),
+        (
+            np.float32(1.0) + np.finfo(np.float32).eps,
+            np.int32(1.0),
+            np.float64(2.0),
+        ),
     ],
 )
 def test_py_error_in_ulps(result, truth, expected):
+    output_dtype = numerics_testing._promote_dtype(result.dtype)
     actual = numerics_testing.py_error_in_ulps(result, truth)
 
-    if result.dtype == np.float32:
-        np.testing.assert_allclose(actual, expected, rtol=1e-6, atol=0.0)
-    else:
-        np.testing.assert_allclose(actual, expected, rtol=1e-15, atol=0.0)
+    np.testing.assert_equal(actual.dtype, output_dtype)
+    np.testing.assert_allclose(actual, expected, rtol=1e-15, atol=0.0)
 
 
-def test_py_error_in_ulps_invalid_dtype():
+def test_py_error_in_ulps_invalid_result_dtype():
     result = np.int32(1)
     truth = np.float64(1.0)
 
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match="single .* or double"):
         numerics_testing.py_error_in_ulps(result, truth)
 
 
-def test_py_error_in_ulps_higher_precision_result_dtype():
-    result = np.float64(1)
+def test_py_error_in_ulps_invalid_truth_dtype():
+    result = np.float64(1.0)
     truth = np.float32(1.0)
 
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match="higher precision"):
         numerics_testing.py_error_in_ulps(result, truth)
