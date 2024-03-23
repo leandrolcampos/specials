@@ -90,7 +90,7 @@ fn _elementwise_impl[
                         func[dtype, simd_width](x.simd_load[simd_width](index_shifted)),
                     )
 
-                vectorize[simd_width, subtask_func](num_elements_per_work_item)
+                vectorize[subtask_func, simd_width](num_elements_per_work_item)
 
             parallelize[execute_work_item](num_work_items, num_worker)
 
@@ -110,7 +110,7 @@ fn _elementwise_impl[
                 func[dtype, simd_width](x.simd_load[simd_width](index_shifted)),
             )
 
-        vectorize[simd_width, body_func](remaining_elements)
+        vectorize[body_func, simd_width](remaining_elements)
 
 
 fn _elementwise_impl[
@@ -163,7 +163,7 @@ fn _elementwise_impl[
                         ),
                     )
 
-                vectorize[simd_width, subtask_func](num_elements_per_work_item)
+                vectorize[subtask_func, simd_width](num_elements_per_work_item)
 
             parallelize[execute_work_item](num_work_items, num_worker)
 
@@ -186,7 +186,7 @@ fn _elementwise_impl[
                 ),
             )
 
-        vectorize[simd_width, body_func](remaining_elements)
+        vectorize[body_func, simd_width](remaining_elements)
 
 
 fn _elementwise_impl[
@@ -239,7 +239,7 @@ fn _elementwise_impl[
                         ),
                     )
 
-                vectorize[simd_width, subtask_func](num_elements_per_work_item)
+                vectorize[subtask_func, simd_width](num_elements_per_work_item)
 
             parallelize[execute_work_item](num_work_items, num_worker)
 
@@ -262,7 +262,7 @@ fn _elementwise_impl[
                 ),
             )
 
-        vectorize[simd_width, body_func](remaining_elements)
+        vectorize[body_func, simd_width](remaining_elements)
 
 
 fn elementwise[
