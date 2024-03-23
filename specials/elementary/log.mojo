@@ -58,28 +58,28 @@ fn log[
     var result: SIMD[dtype, simd_width] = math.nan[dtype]()
 
     # Regions of computation.
-    let is_in_region1 = (x == 0.0)
-    let is_in_region2 = (x == inf)
-    let is_in_region3 = (x > 0.0) & ~is_in_region2
+    var is_in_region1 = (x == 0.0)
+    var is_in_region2 = (x == inf)
+    var is_in_region3 = (x > 0.0) & ~is_in_region2
 
     result = is_in_region1.select(-inf, result)
     result = is_in_region2.select(inf, result)
 
     if is_in_region3.reduce_or():
-        let fraction_and_exponent = math.frexp(x)
-        let fraction = fraction_and_exponent[0]
-        let fraction_gt_sqrt_half = (fraction > sqrt_half)
+        var fraction_and_exponent = math.frexp(x)
+        var fraction = fraction_and_exponent[0]
+        var fraction_gt_sqrt_half = (fraction > sqrt_half)
 
         var exponent = fraction_and_exponent[1]
         exponent = fraction_gt_sqrt_half.select(exponent, exponent - 1)
 
         var znum = fraction - 0.5
         znum = fraction_gt_sqrt_half.select(znum - 0.5, znum)
-        let zden = fraction_gt_sqrt_half.select(fraction, znum) * 0.5 + 0.5
-        let z = znum / zden
-        let z_squared = z * z
+        var zden = fraction_gt_sqrt_half.select(fraction, znum) * 0.5 + 0.5
+        var z = znum / zden
+        var z_squared = z * z
 
-        let r: SIMD[dtype, simd_width]
+        var r: SIMD[dtype, simd_width]
 
         @parameter
         if dtype == DType.float32:

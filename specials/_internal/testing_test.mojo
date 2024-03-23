@@ -22,12 +22,12 @@ from specials._internal.testing import UnitTest
 
 
 fn test_assert_true_success() raises:
-    let unit_test = UnitTest("test_assert_true_success")
+    var unit_test = UnitTest("test_assert_true_success")
     unit_test.assert_true(True, "this test should not have failed")
 
 
 fn test_assert_true_failure() raises:
-    let unit_test = UnitTest[True]("test_assert_true_failure")
+    var unit_test = UnitTest[True]("test_assert_true_failure")
 
     try:
         unit_test.assert_true(False, "test")
@@ -38,12 +38,12 @@ fn test_assert_true_failure() raises:
 
 
 fn test_assert_equal_int_success() raises:
-    let unit_test = UnitTest("test_assert_equal_int_success")
+    var unit_test = UnitTest("test_assert_equal_int_success")
     unit_test.assert_equal(0, 0)
 
 
 fn test_assert_equal_int_failure() raises:
-    let unit_test = UnitTest[True]("test_assert_equal_int_failure")
+    var unit_test = UnitTest[True]("test_assert_equal_int_failure")
 
     try:
         unit_test.assert_equal(0, 1)
@@ -54,19 +54,19 @@ fn test_assert_equal_int_failure() raises:
 
 
 fn test_assert_equal_success() raises:
-    let unit_test = UnitTest("test_assert_equal_success")
+    var unit_test = UnitTest("test_assert_equal_success")
 
-    let actual = SIMD[DType.float32, 4](1.0, 2.0, 3.0, 4.0)
-    let desired = SIMD[DType.float32, 4](1.0, 2.0, 3.0, 4.0)
+    var actual = SIMD[DType.float32, 4](1.0, 2.0, 3.0, 4.0)
+    var desired = SIMD[DType.float32, 4](1.0, 2.0, 3.0, 4.0)
 
     unit_test.assert_equal(actual, desired)
 
 
 fn test_assert_equal_failure() raises:
-    let unit_test = UnitTest[True]("test_assert_equal_failure")
+    var unit_test = UnitTest[True]("test_assert_equal_failure")
 
-    let actual = SIMD[DType.float32, 4](1.0, 2.0, 3.0, 4.0)
-    let desired = SIMD[DType.float32, 4](0.0, 2.0, 3.0, 4.0)
+    var actual = SIMD[DType.float32, 4](1.0, 2.0, 3.0, 4.0)
+    var desired = SIMD[DType.float32, 4](0.0, 2.0, 3.0, 4.0)
 
     try:
         unit_test.assert_equal(actual, desired)
@@ -77,25 +77,25 @@ fn test_assert_equal_failure() raises:
 
 
 fn test_assert_all_close_success() raises:
-    let unit_test = UnitTest("test_assert_all_close_success")
+    var unit_test = UnitTest("test_assert_all_close_success")
 
-    let nan = math.nan[DType.float32]()
-    let inf = math.limit.inf[DType.float32]()
+    var nan = math.nan[DType.float32]()
+    var inf = math.limit.inf[DType.float32]()
 
-    let actual = SIMD[DType.float32, 4](nan, inf, 1.1, 10.2)
-    let desired = SIMD[DType.float32, 4](nan, inf, 1.0, 10.0)
+    var actual = SIMD[DType.float32, 4](nan, inf, 1.1, 10.2)
+    var desired = SIMD[DType.float32, 4](nan, inf, 1.0, 10.0)
 
     unit_test.assert_all_close(actual, desired, 0.1, 1.0e-2)
 
 
 fn test_assert_all_close_failure_nan() raises:
-    let unit_test = UnitTest[True]("test_assert_all_close_failure_nan")
+    var unit_test = UnitTest[True]("test_assert_all_close_failure_nan")
 
-    let nan = math.nan[DType.float32]()
-    let inf = math.limit.inf[DType.float32]()
+    var nan = math.nan[DType.float32]()
+    var inf = math.limit.inf[DType.float32]()
 
-    let actual = SIMD[DType.float32, 4](nan, inf, 1.1, 10.2)
-    let desired = SIMD[DType.float32, 4](0.0, inf, 1.0, 10.0)
+    var actual = SIMD[DType.float32, 4](nan, inf, 1.1, 10.2)
+    var desired = SIMD[DType.float32, 4](0.0, inf, 1.0, 10.0)
 
     try:
         unit_test.assert_all_close(actual, desired, 0.1, 1.0e-2)
@@ -106,13 +106,13 @@ fn test_assert_all_close_failure_nan() raises:
 
 
 fn test_assert_all_close_failure_inf() raises:
-    let unit_test = UnitTest[True]("test_assert_all_close_failure_inf")
+    var unit_test = UnitTest[True]("test_assert_all_close_failure_inf")
 
-    let nan = math.nan[DType.float32]()
-    let inf = math.limit.inf[DType.float32]()
+    var nan = math.nan[DType.float32]()
+    var inf = math.limit.inf[DType.float32]()
 
-    let actual = SIMD[DType.float32, 4](nan, 0.0, 1.1, 10.2)
-    let desired = SIMD[DType.float32, 4](nan, inf, 1.0, 10.0)
+    var actual = SIMD[DType.float32, 4](nan, 0.0, 1.1, 10.2)
+    var desired = SIMD[DType.float32, 4](nan, inf, 1.0, 10.0)
 
     try:
         unit_test.assert_all_close(actual, desired, 0.1, 1.0e-2)
@@ -123,13 +123,13 @@ fn test_assert_all_close_failure_inf() raises:
 
 
 fn test_assert_all_close_failure_atol() raises:
-    let unit_test = UnitTest[True]("test_assert_all_close_failure_atol")
+    var unit_test = UnitTest[True]("test_assert_all_close_failure_atol")
 
-    let nan = math.nan[DType.float32]()
-    let inf = math.limit.inf[DType.float32]()
+    var nan = math.nan[DType.float32]()
+    var inf = math.limit.inf[DType.float32]()
 
-    let actual = SIMD[DType.float32, 4](nan, inf, 1.11, 10.2)
-    let desired = SIMD[DType.float32, 4](nan, inf, 1.0, 10.0)
+    var actual = SIMD[DType.float32, 4](nan, inf, 1.11, 10.2)
+    var desired = SIMD[DType.float32, 4](nan, inf, 1.0, 10.0)
 
     try:
         unit_test.assert_all_close(actual, desired, 0.1, 1.0e-2)
@@ -140,13 +140,13 @@ fn test_assert_all_close_failure_atol() raises:
 
 
 fn test_assert_all_close_failure_rtol() raises:
-    let unit_test = UnitTest[True]("test_assert_all_close_failure_rtol")
+    var unit_test = UnitTest[True]("test_assert_all_close_failure_rtol")
 
-    let nan = math.nan[DType.float32]()
-    let inf = math.limit.inf[DType.float32]()
+    var nan = math.nan[DType.float32]()
+    var inf = math.limit.inf[DType.float32]()
 
-    let actual = SIMD[DType.float32, 4](nan, inf, 1.1, 10.21)
-    let desired = SIMD[DType.float32, 4](nan, inf, 1.0, 10.0)
+    var actual = SIMD[DType.float32, 4](nan, inf, 1.1, 10.21)
+    var desired = SIMD[DType.float32, 4](nan, inf, 1.0, 10.0)
 
     try:
         unit_test.assert_all_close(actual, desired, 0.1, 1.0e-2)

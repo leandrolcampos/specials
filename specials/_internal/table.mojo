@@ -190,7 +190,7 @@ struct FloatTable[size: Int, dtype: DType](Sized):
         """
         asserting.assert_integral_dtype["index.type", index.type]()
 
-        let is_safe = (index >= 0) & (index < size)
-        let safe_index = is_safe.select(index, 0)
+        var is_safe = (index >= 0) & (index < size)
+        var safe_index = is_safe.select(index, 0)
 
         return is_safe.select(self.unsafe_lookup(safe_index), math.nan[dtype]())

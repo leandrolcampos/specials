@@ -28,13 +28,13 @@ fn test_elemwise_tensor[
 ](*shape: Int) raises:
     random.seed(42)
 
-    let x = random.rand[dtype](shape)
-    let res = elementwise[math.cos, force_sequential=force_sequential](x)
+    var x = random.rand[dtype](shape)
+    var res = elementwise[math.cos, force_sequential=force_sequential](x)
 
-    let unit_test = UnitTest(
+    var unit_test = UnitTest(
         "test_elemwise_tensor_" + str(x.spec()) + "_" + str(force_sequential)
     )
-    let rtol: Scalar[dtype]
+    var rtol: Scalar[dtype]
 
     @parameter
     if dtype == DType.float32:
@@ -52,14 +52,14 @@ fn test_elemwise_tensor_scalar[
 ](*shape: Int) raises:
     random.seed(42)
 
-    let x = random.rand[dtype](shape)
-    let y = Scalar[dtype](1.5)
-    let res = elementwise[math.add, force_sequential=force_sequential](x, y)
+    var x = random.rand[dtype](shape)
+    var y = Scalar[dtype](1.5)
+    var res = elementwise[math.add, force_sequential=force_sequential](x, y)
 
-    let unit_test = UnitTest(
+    var unit_test = UnitTest(
         "test_elemwise_tensor_scalar_" + str(x.spec()) + "_" + str(force_sequential)
     )
-    let rtol: Scalar[dtype]
+    var rtol: Scalar[dtype]
 
     @parameter
     if dtype == DType.float32:
@@ -77,14 +77,14 @@ fn test_elemwise_tensor_tensor[
 ](*shape: Int) raises:
     random.seed(42)
 
-    let x = random.rand[dtype](shape)
-    let y = random.rand[dtype](x.shape())
-    let res = elementwise[math.add, force_sequential=force_sequential](x, y)
+    var x = random.rand[dtype](shape)
+    var y = random.rand[dtype](x.shape())
+    var res = elementwise[math.add, force_sequential=force_sequential](x, y)
 
-    let unit_test = UnitTest(
+    var unit_test = UnitTest(
         "test_elemwise_tensor_tensor_" + str(x.spec()) + "_" + str(force_sequential)
     )
-    let rtol: Scalar[dtype]
+    var rtol: Scalar[dtype]
 
     @parameter
     if dtype == DType.float32:
