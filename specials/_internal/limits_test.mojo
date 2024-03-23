@@ -23,45 +23,45 @@ from specials._internal.testing import UnitTest
 
 
 fn test_eps[dtype: DType]() raises:
-    let unit_test = UnitTest("test_eps_" + str(dtype))
+    var unit_test = UnitTest("test_eps_" + str(dtype))
 
-    let np = Python.import_module("numpy")
+    var np = Python.import_module("numpy")
 
-    let actual = FloatLimits[dtype].eps
-    let expected = np.finfo(str(dtype)).eps.to_float64().cast[dtype]()
+    var actual = FloatLimits[dtype].eps
+    var expected = np.finfo(str(dtype)).eps.to_float64().cast[dtype]()
 
     unit_test.assert_equal(actual, expected)
 
 
 fn test_epsneg[dtype: DType]() raises:
-    let unit_test = UnitTest("test_epsneg_" + str(dtype))
+    var unit_test = UnitTest("test_epsneg_" + str(dtype))
 
-    let np = Python.import_module("numpy")
+    var np = Python.import_module("numpy")
 
-    let actual = FloatLimits[dtype].epsneg
-    let expected = np.finfo(str(dtype)).epsneg.to_float64().cast[dtype]()
+    var actual = FloatLimits[dtype].epsneg
+    var expected = np.finfo(str(dtype)).epsneg.to_float64().cast[dtype]()
 
     unit_test.assert_equal(actual, expected)
 
 
 fn test_min[dtype: DType]() raises:
-    let unit_test = UnitTest("test_min_" + str(dtype))
+    var unit_test = UnitTest("test_min_" + str(dtype))
 
-    let np = Python.import_module("numpy")
+    var np = Python.import_module("numpy")
 
-    let actual = FloatLimits[dtype].min
-    let expected = np.finfo(str(dtype)).smallest_normal.to_float64().cast[dtype]()
+    var actual = FloatLimits[dtype].min
+    var expected = np.finfo(str(dtype)).smallest_normal.to_float64().cast[dtype]()
 
     unit_test.assert_equal(actual, expected)
 
 
 fn test_max[dtype: DType]() raises:
-    let unit_test = UnitTest("test_max_" + str(dtype))
+    var unit_test = UnitTest("test_max_" + str(dtype))
 
-    let np = Python.import_module("numpy")
+    var np = Python.import_module("numpy")
 
-    let actual = FloatLimits[dtype].max
-    let expected = np.finfo(str(dtype)).max.to_float64().cast[dtype]()
+    var actual = FloatLimits[dtype].max
+    var expected = np.finfo(str(dtype)).max.to_float64().cast[dtype]()
 
     unit_test.assert_equal(actual, expected)
 

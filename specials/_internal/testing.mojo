@@ -151,7 +151,7 @@ struct UnitTest[raise_error: Bool = False]:
             "The parameter `dtype` should be a floating-point data type.",
         ]()
 
-        let diff = actual - desired
+        var diff = actual - desired
         var result = (actual == desired)
 
         result |= math.limit.isfinite(desired) & math.less_equal(

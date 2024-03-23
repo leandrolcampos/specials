@@ -23,10 +23,10 @@ from specials._internal.testing import UnitTest
 
 
 fn test_chebyshev[dtype: DType]() raises:
-    let unit_test = UnitTest("test_chebyshev_" + str(dtype))
+    var unit_test = UnitTest("test_chebyshev_" + str(dtype))
 
     alias simd_width = simdwidthof[dtype]()
-    let p = P.Chebyshev[4, dtype, simd_width].from_coefficients[4.0, 3.0, 2.0, 1.0]()
+    var p = P.Chebyshev[4, dtype, simd_width].from_coefficients[4.0, 3.0, 2.0, 1.0]()
 
     unit_test.assert_equal(len(p), 4)
     unit_test.assert_equal(p.degree(), 3)
@@ -37,10 +37,10 @@ fn test_chebyshev[dtype: DType]() raises:
 
 
 fn test_chebyshev_small[dtype: DType]() raises:
-    let unit_test = UnitTest("test_chebyshev_small_" + str(dtype))
+    var unit_test = UnitTest("test_chebyshev_small_" + str(dtype))
 
     alias simd_width = simdwidthof[dtype]()
-    let p = P.Chebyshev[1, dtype, simd_width].from_coefficients[1.0]()
+    var p = P.Chebyshev[1, dtype, simd_width].from_coefficients[1.0]()
 
     unit_test.assert_equal(len(p), 1)
     unit_test.assert_equal(p.degree(), 0)
@@ -48,10 +48,10 @@ fn test_chebyshev_small[dtype: DType]() raises:
 
 
 fn test_chebyshev_hexadecimal[dtype: DType]() raises:
-    let unit_test = UnitTest("test_chebyshev_hexadecimal_" + str(dtype))
+    var unit_test = UnitTest("test_chebyshev_hexadecimal_" + str(dtype))
 
     alias simd_width = simdwidthof[dtype]()
-    let p: P.Chebyshev[2, dtype, simd_width]
+    var p: P.Chebyshev[2, dtype, simd_width]
 
     @parameter
     if dtype == DType.float32:
@@ -72,18 +72,18 @@ fn test_chebyshev_hexadecimal[dtype: DType]() raises:
 
 
 fn test_chebyshev_truncate[dtype: DType]() raises:
-    let unit_test = UnitTest("test_chebyshev_truncate_" + str(dtype))
+    var unit_test = UnitTest("test_chebyshev_truncate_" + str(dtype))
 
     alias simd_width = simdwidthof[dtype]()
-    let p = P.Chebyshev[4, dtype, simd_width].from_coefficients[4.0, 3.0, 2.0, 1.0]()
+    var p = P.Chebyshev[4, dtype, simd_width].from_coefficients[4.0, 3.0, 2.0, 1.0]()
 
-    let q = p.truncate[1]()
+    var q = p.truncate[1]()
 
     unit_test.assert_equal(len(q), 1)
     unit_test.assert_equal(q.degree(), 0)
     unit_test.assert_equal(q.get[0](), SIMD[dtype, simd_width](4.0))
 
-    let r = p.truncate[4]()
+    var r = p.truncate[4]()
 
     unit_test.assert_equal(len(r), 4)
     unit_test.assert_equal(r.degree(), 3)
@@ -94,7 +94,7 @@ fn test_chebyshev_truncate[dtype: DType]() raises:
 
 
 fn test_chebyshev_economize[dtype: DType]() raises:
-    let unit_test = UnitTest("test_chebyshev_economize_" + str(dtype))
+    var unit_test = UnitTest("test_chebyshev_economize_" + str(dtype))
 
     alias simd_width = simdwidthof[dtype]()
     alias p = P.Chebyshev[4, dtype, simd_width].from_coefficients[4.0, 2.0, 1.0, 0.5]()
@@ -102,7 +102,7 @@ fn test_chebyshev_economize[dtype: DType]() raises:
 
     unit_test.assert_equal(num_terms, 2)
 
-    let q = p.truncate[num_terms]()
+    var q = p.truncate[num_terms]()
 
     unit_test.assert_equal(len(q), 2)
     unit_test.assert_equal(q.degree(), 1)
@@ -111,24 +111,24 @@ fn test_chebyshev_economize[dtype: DType]() raises:
 
 
 fn test_chebyshev_evaluate[dtype: DType]() raises:
-    let unit_test = UnitTest("test_chebyshev_evaluate_" + str(dtype))
+    var unit_test = UnitTest("test_chebyshev_evaluate_" + str(dtype))
 
     alias simd_width = 4
-    let p = P.Chebyshev[4, dtype, simd_width].from_coefficients[4.0, 3.0, 2.0, 1.0]()
-    let x = SIMD[dtype, simd_width](-1.0, -0.5, 0.5, 1.0)
+    var p = P.Chebyshev[4, dtype, simd_width].from_coefficients[4.0, 3.0, 2.0, 1.0]()
+    var x = SIMD[dtype, simd_width](-1.0, -0.5, 0.5, 1.0)
 
     # Expected values computed using `numpy.polynomial.Chebyshev`.
-    let expected = SIMD[dtype, simd_width](2.0, 2.5, 3.5, 10.0)
-    let actual = p(x)
+    var expected = SIMD[dtype, simd_width](2.0, 2.5, 3.5, 10.0)
+    var actual = p(x)
 
     unit_test.assert_all_close(actual, expected, 0.0, 1e-12)
 
 
 fn test_polynomial[dtype: DType]() raises:
-    let unit_test = UnitTest("test_polynomial_" + str(dtype))
+    var unit_test = UnitTest("test_polynomial_" + str(dtype))
 
     alias simd_width = simdwidthof[dtype]()
-    let p = P.Polynomial[4, dtype, simd_width].from_coefficients[4.0, 3.0, 2.0, 1.0]()
+    var p = P.Polynomial[4, dtype, simd_width].from_coefficients[4.0, 3.0, 2.0, 1.0]()
 
     unit_test.assert_equal(len(p), 4)
     unit_test.assert_equal(p.degree(), 3)
@@ -139,10 +139,10 @@ fn test_polynomial[dtype: DType]() raises:
 
 
 fn test_polynomial_small[dtype: DType]() raises:
-    let unit_test = UnitTest("test_polynomial_small_" + str(dtype))
+    var unit_test = UnitTest("test_polynomial_small_" + str(dtype))
 
     alias simd_width = simdwidthof[dtype]()
-    let p = P.Polynomial[1, dtype, simd_width].from_coefficients[1.0]()
+    var p = P.Polynomial[1, dtype, simd_width].from_coefficients[1.0]()
 
     unit_test.assert_equal(len(p), 1)
     unit_test.assert_equal(p.degree(), 0)
@@ -150,10 +150,10 @@ fn test_polynomial_small[dtype: DType]() raises:
 
 
 fn test_polynomial_hexadecimal[dtype: DType]() raises:
-    let unit_test = UnitTest("test_polynomial_hexadecimal" + str(dtype))
+    var unit_test = UnitTest("test_polynomial_hexadecimal" + str(dtype))
 
     alias simd_width = simdwidthof[dtype]()
-    let p: P.Polynomial[2, dtype, simd_width]
+    var p: P.Polynomial[2, dtype, simd_width]
 
     @parameter
     if dtype == DType.float32:
@@ -174,18 +174,18 @@ fn test_polynomial_hexadecimal[dtype: DType]() raises:
 
 
 fn test_polynomial_truncate[dtype: DType]() raises:
-    let unit_test = UnitTest("test_polynomial_truncate_" + str(dtype))
+    var unit_test = UnitTest("test_polynomial_truncate_" + str(dtype))
 
     alias simd_width = simdwidthof[dtype]()
-    let p = P.Polynomial[4, dtype, simd_width].from_coefficients[4.0, 3.0, 2.0, 1.0]()
+    var p = P.Polynomial[4, dtype, simd_width].from_coefficients[4.0, 3.0, 2.0, 1.0]()
 
-    let q = p.truncate[1]()
+    var q = p.truncate[1]()
 
     unit_test.assert_equal(len(q), 1)
     unit_test.assert_equal(q.degree(), 0)
     unit_test.assert_equal(q.get[0](), SIMD[dtype, simd_width](4.0))
 
-    let r = p.truncate[4]()
+    var r = p.truncate[4]()
 
     unit_test.assert_equal(len(r), 4)
     unit_test.assert_equal(r.degree(), 3)
@@ -196,15 +196,15 @@ fn test_polynomial_truncate[dtype: DType]() raises:
 
 
 fn test_polynomial_evaluate[dtype: DType]() raises:
-    let unit_test = UnitTest("test_polynomial_evaluate_" + str(dtype))
+    var unit_test = UnitTest("test_polynomial_evaluate_" + str(dtype))
 
     alias simd_width = 4
-    let p = P.Polynomial[4, dtype, simd_width].from_coefficients[4.0, 3.0, 2.0, 1.0]()
-    let x = SIMD[dtype, simd_width](-10.0, -2.5, 0.0, 1.0)
+    var p = P.Polynomial[4, dtype, simd_width].from_coefficients[4.0, 3.0, 2.0, 1.0]()
+    var x = SIMD[dtype, simd_width](-10.0, -2.5, 0.0, 1.0)
 
     # Expected values computed using `numpy.polynomial.Polynomial`.
-    let expected = SIMD[dtype, simd_width](-826.0, -6.625, 4.0, 10.0)
-    let actual = p(x)
+    var expected = SIMD[dtype, simd_width](-826.0, -6.625, 4.0, 10.0)
+    var actual = p(x)
 
     unit_test.assert_all_close(actual, expected, 0.0, 1e-12)
 

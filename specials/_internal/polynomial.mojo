@@ -233,7 +233,7 @@ struct Chebyshev[
         fn body_func[i: Int]() -> Bool:
             # For any coefficient `c` of the Chebyshev series `p`, the following condition
             # holds: `c[0] == c[1] == ... == c[simd_width - 1]`.
-            let value = self.get[i]()[0]
+            var value = self.get[i]()[0]
             # TODO: Use `math.abs` when the problem evaluating it in compile-time is fixed.
             # https://github.com/modularml/mojo/issues/1244
             if value < 0:
@@ -276,7 +276,7 @@ struct Chebyshev[
         elif num_terms == 2:
             result = math.fma(self.get[1](), x, self.get[0]())
         else:
-            let two_x = 2.0 * x
+            var two_x = 2.0 * x
             var tmp = SIMD[dtype, simd_width](0.0)
             var c0 = self.get[num_terms - 2]()
             var c1 = self.get[num_terms - 1]()

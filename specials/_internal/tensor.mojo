@@ -50,18 +50,18 @@ fn _elementwise_impl[
     force_sequential: Bool,
 ](x: Tensor[dtype], inout result: Tensor[dtype]) -> None:
     """Implements the elementwise operation on a tensor."""
-    let num_elements = x.num_elements()
+    var num_elements = x.num_elements()
     var remaining_elements = num_elements
     var first_remaining_element = 0
 
     @parameter
     if not force_sequential:
-        let num_worker = num_physical_cores()
-        let num_work_items = num_worker
-        let num_simds_per_work_item = (num_elements // simd_width) // num_work_items
+        var num_worker = num_physical_cores()
+        var num_work_items = num_worker
+        var num_simds_per_work_item = (num_elements // simd_width) // num_work_items
 
         # TODO: This threshold is a heuristic. We should use Mojo's autotuning.
-        let parallel_threshold: Int
+        var parallel_threshold: Int
         if dtype == DType.float32:
             parallel_threshold = 16_384 // num_worker
         else:  # dtype == DType.float64
@@ -72,18 +72,18 @@ fn _elementwise_impl[
             and num_simds_per_work_item >= 1
             and num_worker >= 2
         ):
-            let num_elements_per_work_item = num_simds_per_work_item * simd_width
+            var num_elements_per_work_item = num_simds_per_work_item * simd_width
             remaining_elements = math.fma(
                 -num_elements_per_work_item, num_work_items, remaining_elements
             )
 
             @parameter
             fn execute_work_item(work_item_id: Int):
-                let first_element = work_item_id * num_elements_per_work_item
+                var first_element = work_item_id * num_elements_per_work_item
 
                 @parameter
                 fn subtask_func[simd_width: Int](index: Int):
-                    let index_shifted = first_element + index
+                    var index_shifted = first_element + index
 
                     result.simd_store[simd_width](
                         index_shifted,
@@ -103,7 +103,7 @@ fn _elementwise_impl[
 
         @parameter
         fn body_func[simd_width: Int](index: Int):
-            let index_shifted = first_remaining_element + index
+            var index_shifted = first_remaining_element + index
 
             result.simd_store[simd_width](
                 index_shifted,
@@ -120,18 +120,18 @@ fn _elementwise_impl[
     force_sequential: Bool,
 ](x: Tensor[dtype], scalar: Scalar[dtype], inout result: Tensor[dtype]) -> None:
     """Implements the elementwise operation on a tensor and a scalar."""
-    let num_elements = x.num_elements()
+    var num_elements = x.num_elements()
     var remaining_elements = num_elements
     var first_remaining_element = 0
 
     @parameter
     if not force_sequential:
-        let num_worker = num_physical_cores()
-        let num_work_items = num_worker
-        let num_simds_per_work_item = (num_elements // simd_width) // num_work_items
+        var num_worker = num_physical_cores()
+        var num_work_items = num_worker
+        var num_simds_per_work_item = (num_elements // simd_width) // num_work_items
 
         # TODO: This threshold is a heuristic. We should use Mojo's autotuning.
-        let parallel_threshold: Int
+        var parallel_threshold: Int
         if dtype == DType.float32:
             parallel_threshold = 262_144 // num_worker
         else:  # dtype == DType.float64
@@ -142,18 +142,18 @@ fn _elementwise_impl[
             and num_simds_per_work_item >= 1
             and num_worker >= 2
         ):
-            let num_elements_per_work_item = num_simds_per_work_item * simd_width
+            var num_elements_per_work_item = num_simds_per_work_item * simd_width
             remaining_elements = math.fma(
                 -num_elements_per_work_item, num_work_items, remaining_elements
             )
 
             @parameter
             fn execute_work_item(work_item_id: Int):
-                let first_element = work_item_id * num_elements_per_work_item
+                var first_element = work_item_id * num_elements_per_work_item
 
                 @parameter
                 fn subtask_func[simd_width: Int](index: Int):
-                    let index_shifted = first_element + index
+                    var index_shifted = first_element + index
 
                     result.simd_store[simd_width](
                         index_shifted,
@@ -176,7 +176,7 @@ fn _elementwise_impl[
 
         @parameter
         fn body_func[simd_width: Int](index: Int):
-            let index_shifted = first_remaining_element + index
+            var index_shifted = first_remaining_element + index
 
             result.simd_store[simd_width](
                 index_shifted,
@@ -196,18 +196,18 @@ fn _elementwise_impl[
     force_sequential: Bool,
 ](x: Tensor[dtype], y: Tensor[dtype], inout result: Tensor[dtype]) -> None:
     """Implements the elementwise operation on two tensors."""
-    let num_elements = x.num_elements()
+    var num_elements = x.num_elements()
     var remaining_elements = num_elements
     var first_remaining_element = 0
 
     @parameter
     if not force_sequential:
-        let num_worker = num_physical_cores()
-        let num_work_items = num_worker
-        let num_simds_per_work_item = (num_elements // simd_width) // num_work_items
+        var num_worker = num_physical_cores()
+        var num_work_items = num_worker
+        var num_simds_per_work_item = (num_elements // simd_width) // num_work_items
 
         # TODO: This threshold is a heuristic. We should use Mojo's autotuning.
-        let parallel_threshold: Int
+        var parallel_threshold: Int
         if dtype == DType.float32:
             parallel_threshold = 131_072 // num_worker
         else:  # dtype == DType.float64
@@ -218,18 +218,18 @@ fn _elementwise_impl[
             and num_simds_per_work_item >= 1
             and num_worker >= 2
         ):
-            let num_elements_per_work_item = num_simds_per_work_item * simd_width
+            var num_elements_per_work_item = num_simds_per_work_item * simd_width
             remaining_elements = math.fma(
                 -num_elements_per_work_item, num_work_items, remaining_elements
             )
 
             @parameter
             fn execute_work_item(work_item_id: Int):
-                let first_element = work_item_id * num_elements_per_work_item
+                var first_element = work_item_id * num_elements_per_work_item
 
                 @parameter
                 fn subtask_func[simd_width: Int](index: Int):
-                    let index_shifted = first_element + index
+                    var index_shifted = first_element + index
 
                     result.simd_store[simd_width](
                         index_shifted,
@@ -252,7 +252,7 @@ fn _elementwise_impl[
 
         @parameter
         fn body_func[simd_width: Int](index: Int):
-            let index_shifted = first_remaining_element + index
+            var index_shifted = first_remaining_element + index
 
             result.simd_store[simd_width](
                 index_shifted,
@@ -575,9 +575,9 @@ fn random_uniform[
     if min_value >= max_value:
         raise Error("`min_value` must be less than `max_value`.")
 
-    let raw = random.rand[dtype](shape)
-    let scaled = elementwise[math.mul, dtype, simd_width](raw, max_value - min_value)
-    let shifted = elementwise[math.add, dtype, simd_width](scaled, min_value)
+    var raw = random.rand[dtype](shape)
+    var scaled = elementwise[math.mul, dtype, simd_width](raw, max_value - min_value)
+    var shifted = elementwise[math.add, dtype, simd_width](scaled, min_value)
 
     return shifted
 
@@ -601,15 +601,15 @@ fn tensor_to_numpy_array[dtype: DType](x: Tensor[dtype]) raises -> PythonObject:
         Will raise an exception if it is not possible to convert the tensor to a NumPy
         array with the same shape, data type, and elements.
     """
-    let builtins = Python.import_module("builtins")
-    let np = Python.import_module("numpy")
+    var builtins = Python.import_module("builtins")
+    var np = Python.import_module("numpy")
 
-    let shape = builtins.tuple(
+    var shape = builtins.tuple(
         builtins.map(builtins.int, builtins.str(x.shape().__str__()).split("x"))
     )
-    let num_elements = x.num_elements()
+    var num_elements = x.num_elements()
 
-    let numpy_array = np.zeros(num_elements, dtype.__str__())
+    var numpy_array = np.zeros(num_elements, dtype.__str__())
 
     for i in range(num_elements):
         _ = np.put(numpy_array, i, x[i])

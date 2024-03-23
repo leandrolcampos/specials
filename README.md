@@ -55,8 +55,8 @@ The following code snippet shows how to compute `exp(x) - 1` in a numerically st
 
 ```python
 >>> import specials
->>> let x = SIMD[DType.float64, 4](0.0, 1e-18, 0.2, 1.0)
->>> let result = specials.expm1(x)
+>>> var x = SIMD[DType.float64, 4](0.0, 1e-18, 0.2, 1.0)
+>>> var result = specials.expm1(x)
 >>> print(result)
 [0.0, 1.0000000000000001e-18, 0.22140275816016985, 1.7182818284590453]
 ```

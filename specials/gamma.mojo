@@ -67,26 +67,26 @@ fn lbeta[
 
     # Ensure that `a` is the smaller of the two arguments and `b` is the larger one.
     # Although the Beta function is mathematically symmetric, this procedure is not.
-    let a = math.min(x, y)
-    let b = math.max(x, y)
+    var a = math.min(x, y)
+    var b = math.max(x, y)
 
     # The `math.lgamma`` operation is one of the most computationally expensive
     # operations in this procedure. To avoid calling it when possible, we mask out
     # large values of `a` and `b`.
-    let a_small = math.select(a < 8.0, a, nan)
-    let b_small = math.select(b < 8.0, b, nan)
+    var a_small = math.select(a < 8.0, a, nan)
+    var b_small = math.select(b < 8.0, b, nan)
 
-    let lgamma_a_small = math.lgamma(a_small)
-    let apb = a + b
-    let a_over_apb = a / apb
-    let log1p_neg_a_over_apb = math.log1p(-a_over_apb)
+    var lgamma_a_small = math.lgamma(a_small)
+    var apb = a + b
+    var a_over_apb = a / apb
+    var log1p_neg_a_over_apb = math.log1p(-a_over_apb)
 
     # `a` and `b` are small: `a <= b < 8.0`.
     var result = lgamma_a_small + math.lgamma(b_small) - math.lgamma(a_small + b_small)
 
     # `a` is small, but `b` is large: `a < 8.0 <= b`.
     var correction = lgamma_correction(b) - lgamma_correction(apb)
-    let result_for_large_b = (
+    var result_for_large_b = (
         lgamma_a_small
         + correction
         + a
@@ -97,7 +97,7 @@ fn lbeta[
 
     # `a` and `b` are large: `8.0 <= a <= b`.
     correction += lgamma_correction(a)
-    let result_for_large_a = (
+    var result_for_large_a = (
         -0.5 * log(b)
         + log_sqrt_2pi
         + correction
@@ -232,9 +232,9 @@ fn lgamma1p[
     var result: SIMD[dtype, simd_width] = nan
 
     # Regions of computation.
-    let is_in_region1 = (x >= -0.2) & (x < 0.6)
-    let is_in_region2 = (x >= 0.6) & (x <= 1.25)
-    let is_in_region3 = ~math.isnan(x) & ~is_in_region1 & ~is_in_region2
+    var is_in_region1 = (x >= -0.2) & (x < 0.6)
+    var is_in_region2 = (x >= 0.6) & (x <= 1.25)
+    var is_in_region3 = ~math.isnan(x) & ~is_in_region1 & ~is_in_region2
 
     # Polynomials for region 1. The coefficients for the Padé approximation were
     # obtained using the Python library `mpmath`.
@@ -290,11 +290,11 @@ fn lgamma1p[
         result = is_in_region1.select(-x * (p(x) / q(x)), result)
 
     if is_in_region2.reduce_or():
-        let y = (x - 0.5) - 0.5
+        var y = (x - 0.5) - 0.5
         result = is_in_region2.select(y * (r(y) / s(y)), result)
 
     if is_in_region3.reduce_or():
-        let z = is_in_region3.select(1.0 + x, nan)
+        var z = is_in_region3.select(1.0 + x, nan)
         result = is_in_region3.select(math.lgamma(z), result)
 
     return result
@@ -329,12 +329,12 @@ fn rgamma1pm1[
     var result: SIMD[dtype, simd_width] = nan
 
     # Regions of computation.
-    let is_in_region1 = (x == 0.0) | (x == 1.0)
-    let is_in_region2 = (x >= -0.5) & (x < 0.0)
-    let is_in_region3 = (x > 0.0) & (x <= 0.5)
-    let is_in_region4 = (x > 0.5) & (x < 1.0)
-    let is_in_region5 = (x > 1.0) & (x <= 1.5)
-    let is_in_region6 = (x < -0.5) | (x > 1.5)
+    var is_in_region1 = (x == 0.0) | (x == 1.0)
+    var is_in_region2 = (x >= -0.5) & (x < 0.0)
+    var is_in_region3 = (x > 0.0) & (x <= 0.5)
+    var is_in_region4 = (x > 0.5) & (x < 1.0)
+    var is_in_region5 = (x > 1.0) & (x <= 1.5)
+    var is_in_region6 = (x < -0.5) | (x > 1.5)
 
     # Polynomials for regions 2 and 4. The coefficients for the Padé approximation
     # were obtained using the Python library `mpmath`.
@@ -381,10 +381,10 @@ fn rgamma1pm1[
 
     result = is_in_region1.select(0.0, result)
 
-    let t = math.select(is_in_region2 | is_in_region3, x, x - 1.0)
+    var t = math.select(is_in_region2 | is_in_region3, x, x - 1.0)
 
     if (is_in_region2 | is_in_region4).reduce_or():
-        let y = p(t) / q(t)
+        var y = p(t) / q(t)
         result = math.select(
             is_in_region2,
             x * (y + 1.0),
@@ -392,7 +392,7 @@ fn rgamma1pm1[
         )
 
     if (is_in_region3 | is_in_region5).reduce_or():
-        let z = r(t) / s(t)
+        var z = r(t) / s(t)
         result = math.select(
             is_in_region3,
             x * z,

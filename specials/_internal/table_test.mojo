@@ -21,52 +21,52 @@ from specials._internal.testing import UnitTest
 
 
 fn test_sized() raises:
-    let unit_test = UnitTest("test_sized")
+    var unit_test = UnitTest("test_sized")
 
-    let table = FloatTable[4, DType.float32].from_values[1.0, 2.0, 3.0, 4.0]()
-    let expected = 4
-    let actual = len(table)
+    var table = FloatTable[4, DType.float32].from_values[1.0, 2.0, 3.0, 4.0]()
+    var expected = 4
+    var actual = len(table)
 
     unit_test.assert_equal(actual, expected)
 
 
 fn test_unsafe_lookup[dtype: DType]() raises:
-    let unit_test = UnitTest("test_unsafe_lookup_" + str(dtype))
+    var unit_test = UnitTest("test_unsafe_lookup_" + str(dtype))
 
-    let table = FloatTable[4, dtype].from_values[1.0, 2.0, 3.0, 4.0]()
-    let index = SIMD[DType.int32, 4](3, 0, 2, 1)
-    let expected = SIMD[dtype, 4](4.0, 1.0, 3.0, 2.0)
-    let actual = table.unsafe_lookup(index)
+    var table = FloatTable[4, dtype].from_values[1.0, 2.0, 3.0, 4.0]()
+    var index = SIMD[DType.int32, 4](3, 0, 2, 1)
+    var expected = SIMD[dtype, 4](4.0, 1.0, 3.0, 2.0)
+    var actual = table.unsafe_lookup(index)
 
     unit_test.assert_equal(actual, expected)
 
 
 fn test_lookup[dtype: DType]() raises:
-    let unit_test = UnitTest("test_lookup_" + str(dtype))
+    var unit_test = UnitTest("test_lookup_" + str(dtype))
 
-    let table = FloatTable[4, dtype].from_values[1.0, 2.0, 3.0, 4.0]()
-    let index = SIMD[DType.int32, 4](3, 0, 2, 1)
-    let expected = SIMD[dtype, 4](4.0, 1.0, 3.0, 2.0)
-    let actual = table.lookup(index)
+    var table = FloatTable[4, dtype].from_values[1.0, 2.0, 3.0, 4.0]()
+    var index = SIMD[DType.int32, 4](3, 0, 2, 1)
+    var expected = SIMD[dtype, 4](4.0, 1.0, 3.0, 2.0)
+    var actual = table.lookup(index)
 
     unit_test.assert_equal(actual, expected)
 
 
 fn test_out_of_bound[dtype: DType]() raises:
-    let unit_test = UnitTest("test_lookup_out_of_bound_" + str(dtype))
+    var unit_test = UnitTest("test_lookup_out_of_bound_" + str(dtype))
 
-    let table = FloatTable[4, dtype].from_values[1.0, 2.0, 3.0, 4.0]()
-    let index = SIMD[DType.int32, 4](4, 0, 2, 1)
-    let expected = SIMD[dtype, 4](math.nan[dtype](), 1.0, 3.0, 2.0)
-    let actual = table.lookup(index)
+    var table = FloatTable[4, dtype].from_values[1.0, 2.0, 3.0, 4.0]()
+    var index = SIMD[DType.int32, 4](4, 0, 2, 1)
+    var expected = SIMD[dtype, 4](math.nan[dtype](), 1.0, 3.0, 2.0)
+    var actual = table.lookup(index)
 
     unit_test.assert_equal(actual, expected)
 
 
 fn test_hexadecimal_values[dtype: DType]() raises:
-    let unit_test = UnitTest("test_hexadecimal_values_" + str(dtype))
+    var unit_test = UnitTest("test_hexadecimal_values_" + str(dtype))
 
-    let table: FloatTable[2, dtype]
+    var table: FloatTable[2, dtype]
 
     @parameter
     if dtype == DType.float32:
@@ -80,9 +80,9 @@ fn test_hexadecimal_values[dtype: DType]() raises:
             0x3FE00000_00000000,
         ]()
 
-    let index = SIMD[DType.int32, 2](0, 1)
-    let expected = SIMD[dtype, 2](1.0, 0.5)
-    let actual = table.lookup(index)
+    var index = SIMD[DType.int32, 2](0, 1)
+    var expected = SIMD[dtype, 2](1.0, 0.5)
+    var actual = table.lookup(index)
 
     unit_test.assert_equal(actual, expected)
 
