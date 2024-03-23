@@ -24,8 +24,8 @@ from specials._internal.testing import UnitTest
 
 fn test_fori_loop_increasing_by_1() raises:
     var unit_test = UnitTest("test_fori_loop_increasing_by_1")
-    var actual = DynamicVector[Int](5)
-    var expected = DynamicVector[Int](5)
+    var actual = DynamicVector[Int](capacity=5)
+    var expected = DynamicVector[Int](capacity=5)
 
     @parameter
     fn body_func[i: Int]():
@@ -45,8 +45,8 @@ fn test_fori_loop_increasing_by_1() raises:
 
 fn test_fori_loop_decreasing_by_2() raises:
     var unit_test = UnitTest("test_fori_loop_decreasing_by_2")
-    var actual = DynamicVector[Int](5)
-    var expected = DynamicVector[Int](5)
+    var actual = DynamicVector[Int](capacity=5)
+    var expected = DynamicVector[Int](capacity=5)
 
     @parameter
     fn body_func[i: Int]():
@@ -66,8 +66,8 @@ fn test_fori_loop_decreasing_by_2() raises:
 
 fn test_fori_loop_with_conditional() raises:
     var unit_test = UnitTest("test_fori_loop_with_conditional")
-    var actual = DynamicVector[Int](5)
-    var expected = DynamicVector[Int](5)
+    var actual = DynamicVector[Int](capacity=5)
+    var expected = DynamicVector[Int](capacity=5)
 
     @parameter
     fn body_func[i: Int]() -> Bool:
