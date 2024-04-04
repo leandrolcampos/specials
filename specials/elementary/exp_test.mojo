@@ -35,7 +35,7 @@ fn _mp_exp[dtype: DType](x: Scalar[dtype]) raises -> Scalar[dtype]:
 fn test_exp[dtype: DType]() raises:
     var unit_test = UnitTest("test_exp_" + str(dtype))
 
-    var xs = StaticTuple[9, Scalar[dtype]](
+    var xs = StaticTuple[Scalar[dtype], 9](
         -10.0, -1.0, -0.1, -0.01, 0.0, 0.01, 0.1, 1.0, 10.0
     )
 
@@ -65,7 +65,7 @@ fn test_exp_special_cases[dtype: DType]() raises:
     var nan = math.nan[dtype]()
     var inf = math.limit.inf[dtype]()
 
-    var xs = StaticTuple[13, Scalar[dtype]](
+    var xs = StaticTuple[Scalar[dtype], 13](
         nan,
         -inf,
         xmin - 1.0,

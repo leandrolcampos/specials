@@ -35,7 +35,7 @@ fn _mp_log[dtype: DType](x: Scalar[dtype]) raises -> Scalar[dtype]:
 fn test_log[dtype: DType]() raises:
     var unit_test = UnitTest("test_log_" + str(dtype))
 
-    var xs = StaticTuple[8, Scalar[dtype]](
+    var xs = StaticTuple[Scalar[dtype], 8](
         1e-16,
         1e-4,
         0.1,
@@ -70,7 +70,7 @@ fn test_log_special_cases[dtype: DType]() raises:
     var nan = math.nan[dtype]()
     var inf = math.limit.inf[dtype]()
 
-    var xs = StaticTuple[13, Scalar[dtype]](
+    var xs = StaticTuple[Scalar[dtype], 13](
         nan,
         -inf,
         -1.0,

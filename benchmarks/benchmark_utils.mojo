@@ -69,8 +69,8 @@ fn run_experiment[
 ](
     experiment_name: StringLiteral,
     num_samples: Int,
-    min_values: StaticTuple[num_domains, FloatLiteral],
-    max_values: StaticTuple[num_domains, FloatLiteral],
+    min_values: StaticTuple[FloatLiteral, num_domains],
+    max_values: StaticTuple[FloatLiteral, num_domains],
     truth_func: PythonObject,
     python_func: PythonObject,
     python_func_name: StringLiteral = "Python",

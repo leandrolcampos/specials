@@ -39,7 +39,7 @@ fn test_expm1[dtype: DType]() raises:
     var unit_test = UnitTest("test_expm1_" + str(dtype))
 
     var xeps = FloatLimits[dtype].eps
-    var xs = StaticTuple[5, Scalar[dtype]](0.1 * xeps, 0.01, 0.1, 1.0, 10.0)
+    var xs = StaticTuple[Scalar[dtype], 5](0.1 * xeps, 0.01, 0.1, 1.0, 10.0)
 
     var rtol: Scalar[dtype]
 
@@ -82,7 +82,7 @@ fn test_expm1_special_cases[dtype: DType]() raises:
         xmin = bitcast[dtype, DType.uint64](0xC042B708_872320E1)
         xmax = log(FloatLimits[dtype].max)
 
-    var xs = StaticTuple[12, Scalar[dtype]](
+    var xs = StaticTuple[Scalar[dtype], 12](
         nan,
         -inf,
         xmin - 1.0,

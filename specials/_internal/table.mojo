@@ -56,7 +56,7 @@ struct FloatTable[size: Int, dtype: DType](Sized):
         The size must be positive. The parameter `dtype` must be `float32` or `float64`.
     """
 
-    var _data: StaticTuple[size, Scalar[dtype]]
+    var _data: StaticTuple[Scalar[dtype], size]
 
     @staticmethod
     fn from_values[*values: Scalar[dtype]]() -> Self:
@@ -78,7 +78,7 @@ struct FloatTable[size: Int, dtype: DType](Sized):
             "The number of values must be equal to the parameter `size`.",
         ]()
 
-        return Self {_data: StaticTuple[size, Scalar[dtype]](values)}
+        return Self {_data: StaticTuple[Scalar[dtype], size](values)}
 
     @staticmethod
     fn from_hexadecimal_values[
@@ -106,7 +106,7 @@ struct FloatTable[size: Int, dtype: DType](Sized):
             "The number of hexadecimal values must be equal to the parameter `size`.",
         ]()
 
-        var data = StaticTuple[size, Scalar[dtype]]()
+        var data = StaticTuple[Scalar[dtype], size]()
 
         for i in range(size):
             data[i] = bitcast[dtype](values[i])

@@ -201,7 +201,7 @@ fn test_rgamma1pm1[dtype: DType]() raises:
     var epsneg = FloatLimits[dtype].epsneg
     var eps = FloatLimits[dtype].eps
 
-    var xs = StaticTuple[10, Scalar[dtype]](
+    var xs = StaticTuple[Scalar[dtype], 10](
         -1.0 + epsneg, -0.5, -tiny, 0.0, tiny, 0.5, 1.0 - epsneg, 1.0, 1.5 - eps, 7.0
     )
 
