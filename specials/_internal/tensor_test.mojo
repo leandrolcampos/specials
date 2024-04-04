@@ -19,6 +19,8 @@
 import math
 import random
 
+from tensor.random import rand
+
 from specials._internal.tensor import elementwise
 from specials._internal.testing import UnitTest
 
@@ -28,7 +30,7 @@ fn test_elemwise_tensor[
 ](*shape: Int) raises:
     random.seed(42)
 
-    var x = random.rand[dtype](shape)
+    var x = rand[dtype](shape)
     var res = elementwise[math.cos, force_sequential=force_sequential](x)
 
     var unit_test = UnitTest(
@@ -52,7 +54,7 @@ fn test_elemwise_tensor_scalar[
 ](*shape: Int) raises:
     random.seed(42)
 
-    var x = random.rand[dtype](shape)
+    var x = rand[dtype](shape)
     var y = Scalar[dtype](1.5)
     var res = elementwise[math.add, force_sequential=force_sequential](x, y)
 
@@ -77,8 +79,8 @@ fn test_elemwise_tensor_tensor[
 ](*shape: Int) raises:
     random.seed(42)
 
-    var x = random.rand[dtype](shape)
-    var y = random.rand[dtype](x.shape())
+    var x = rand[dtype](shape)
+    var y = rand[dtype](x.shape())
     var res = elementwise[math.add, force_sequential=force_sequential](x, y)
 
     var unit_test = UnitTest(
