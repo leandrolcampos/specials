@@ -85,9 +85,9 @@ fn _elementwise_impl[
                 fn subtask_func[simd_width: Int](index: Int):
                     var index_shifted = first_element + index
 
-                    result.simd_store[simd_width](
+                    result.store[simd_width](
                         index_shifted,
-                        func[dtype, simd_width](x.simd_load[simd_width](index_shifted)),
+                        func[dtype, simd_width](x.load[simd_width](index_shifted)),
                     )
 
                 vectorize[subtask_func, simd_width](num_elements_per_work_item)
@@ -105,9 +105,9 @@ fn _elementwise_impl[
         fn body_func[simd_width: Int](index: Int):
             var index_shifted = first_remaining_element + index
 
-            result.simd_store[simd_width](
+            result.store[simd_width](
                 index_shifted,
-                func[dtype, simd_width](x.simd_load[simd_width](index_shifted)),
+                func[dtype, simd_width](x.load[simd_width](index_shifted)),
             )
 
         vectorize[body_func, simd_width](remaining_elements)
@@ -155,10 +155,10 @@ fn _elementwise_impl[
                 fn subtask_func[simd_width: Int](index: Int):
                     var index_shifted = first_element + index
 
-                    result.simd_store[simd_width](
+                    result.store[simd_width](
                         index_shifted,
                         func[dtype, simd_width](
-                            x.simd_load[simd_width](index_shifted),
+                            x.load[simd_width](index_shifted),
                             SIMD[dtype, simd_width](scalar),
                         ),
                     )
@@ -178,10 +178,10 @@ fn _elementwise_impl[
         fn body_func[simd_width: Int](index: Int):
             var index_shifted = first_remaining_element + index
 
-            result.simd_store[simd_width](
+            result.store[simd_width](
                 index_shifted,
                 func[dtype, simd_width](
-                    x.simd_load[simd_width](index_shifted),
+                    x.load[simd_width](index_shifted),
                     SIMD[dtype, simd_width](scalar),
                 ),
             )
@@ -231,11 +231,11 @@ fn _elementwise_impl[
                 fn subtask_func[simd_width: Int](index: Int):
                     var index_shifted = first_element + index
 
-                    result.simd_store[simd_width](
+                    result.store[simd_width](
                         index_shifted,
                         func[dtype, simd_width](
-                            x.simd_load[simd_width](index_shifted),
-                            y.simd_load[simd_width](index_shifted),
+                            x.load[simd_width](index_shifted),
+                            y.load[simd_width](index_shifted),
                         ),
                     )
 
@@ -254,11 +254,11 @@ fn _elementwise_impl[
         fn body_func[simd_width: Int](index: Int):
             var index_shifted = first_remaining_element + index
 
-            result.simd_store[simd_width](
+            result.store[simd_width](
                 index_shifted,
                 func[dtype, simd_width](
-                    x.simd_load[simd_width](index_shifted),
-                    y.simd_load[simd_width](index_shifted),
+                    x.load[simd_width](index_shifted),
+                    y.load[simd_width](index_shifted),
                 ),
             )
 
