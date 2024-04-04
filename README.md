@@ -72,6 +72,9 @@ These benchmarks aim to highlight the correctness and efficiency of Specials imp
 
 ### Elementary Functions
 
+> [!NOTE]
+> Although the Mojo standard library implements all or most of the elementary functions found in Specials, we have decided to implement them in the package as a matter of priority. For us, **Accuracy `>` Performance**: when forced to choose between FLOPS and numerical accuracy, we prefer numerical accuracy.
+
 | Function | Description |
 |----------|-------------|
 | `exp(x)` | The exponential function |
