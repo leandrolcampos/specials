@@ -1,4 +1,5 @@
-_⚠️ Specials is under development. We are working to expand it and improve its performance and reliability, prioritizing quality over time to market._
+> [!WARNING]
+> Specials is under development and the API is subject to change.
 
 # Welcome to Specials
 
@@ -73,9 +74,11 @@ These benchmarks aim to highlight the correctness and efficiency of Specials imp
 
 | Function | Description |
 |----------|-------------|
-| `exp(x)` | The natural exponential function |
+| `exp(x)` | The exponential function |
 | `exp2(x)` | The base-2 exponential function |
 | `expm1(x)` | The expression `exp(x) - 1` evaluated in a numerically stable way when `x` is near zero |
+| `log(x)` | The logarithm function |
+| `log1p(x)` | The expression `log(1 + x)` evaluated in a numerically stable way when `x` is near zero |
 
 ## Contributing
 
