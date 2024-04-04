@@ -16,6 +16,8 @@
 
 """Provides utilities for table-based numerical methods."""
 
+import math
+
 from memory.unsafe import bitcast
 from utils.static_tuple import StaticTuple
 
