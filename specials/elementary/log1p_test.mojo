@@ -14,7 +14,7 @@
 # limitations under the License.
 # ===----------------------------------------------------------------------=== #
 
-"""Tests for the logarithm function."""
+"""Tests for the `log1p` function."""
 
 import math
 
@@ -23,27 +23,34 @@ from utils.static_tuple import StaticTuple
 
 from specials._internal.limits import FloatLimits
 from specials._internal.testing import UnitTest
-from specials.elementary.log import log
+from specials.elementary.log1p import log1p
 
 
-fn _mp_log[dtype: DType](x: Scalar[dtype]) raises -> Scalar[dtype]:
+fn _mp_log1p[dtype: DType](x: Scalar[dtype]) raises -> Scalar[dtype]:
     var mp = Python.import_module("mpmath")
-    var result = mp.log(mp.mpf(x))
+    var result = mp.log1p(mp.mpf(x))
     return result.to_float64().cast[dtype]()
 
 
-fn test_log[dtype: DType]() raises:
-    var unit_test = UnitTest("test_log_" + str(dtype))
+fn test_log1p[dtype: DType]() raises:
+    var unit_test = UnitTest("test_log1p_" + str(dtype))
 
-    var xs = StaticTuple[8, Scalar[dtype]](
+    var xs = StaticTuple[15, Scalar[dtype]](
+        -0.9,
+        -0.5,
+        -0.1,
+        -1e-4,
+        -1e-8,
+        -1e-16,
+        0.0,
         1e-16,
+        1e-8,
         1e-4,
         0.1,
-        0.99,
-        5.0,
+        0.5,
+        0.9,
+        1.0,
         10.0,
-        1e4,
-        1e16,
     )
 
     var rtol: Scalar[dtype]
@@ -56,32 +63,34 @@ fn test_log[dtype: DType]() raises:
 
     for i in range(len(xs)):
         var x = xs[i]
-        var expected = _mp_log[dtype](x)
-        var actual = log(x)
+        var expected = _mp_log1p[dtype](x)
+        var actual = log1p(x)
 
         unit_test.assert_all_close(actual, expected, 0.0, rtol)
 
 
-fn test_log_special_cases[dtype: DType]() raises:
-    var unit_test = UnitTest("test_log_special_cases_" + str(dtype))
+fn test_log1p_special_cases[dtype: DType]() raises:
+    var unit_test = UnitTest("test_log1p_special_cases_" + str(dtype))
 
     var xmin = FloatLimits[dtype].min
+    var xeps = FloatLimits[dtype].epsneg
+    var xlrg = math.ldexp(Scalar[dtype](1), FloatLimits[dtype].nmant + 3)
     var xmax = FloatLimits[dtype].max
     var nan = math.nan[dtype]()
     var inf = math.limit.inf[dtype]()
 
     var xs = StaticTuple[13, Scalar[dtype]](
         nan,
-        -inf,
+        -2.0,
         -1.0,
-        0.0,
+        -1.0 + xeps,
+        -xmin,
+        -0.5 * xmin,
         0.5 * xmin,
         xmin,
-        2.0 * xmin,
-        1.0 - FloatLimits[dtype].epsneg,
-        1.0,
-        1.0 + FloatLimits[dtype].eps,
-        xmax - 1.0,
+        1.0 - xeps,
+        xlrg - 1.0,
+        xlrg + 1.0,
         xmax,
         inf,
     )
@@ -96,17 +105,17 @@ fn test_log_special_cases[dtype: DType]() raises:
 
     for i in range(len(xs)):
         var x = xs[i]
-        var actual = log(x)
+        var actual = log1p(x)
         var expected: Scalar[dtype]
 
-        if math.isnan(x) | (x < 0.0):
+        if math.isnan(x) | (x < -1.0):
             expected = nan
-        elif x == 0.0:
+        elif x == -1.0:
             expected = -inf
         elif x > xmax:
             expected = inf
         else:
-            expected = _mp_log[dtype](x)
+            expected = _mp_log1p[dtype](x)
 
         unit_test.assert_all_close(actual, expected, 0.0, rtol)
 
@@ -116,8 +125,8 @@ fn main() raises:
     var mp = Python.import_module("mpmath")
     mp.mp.dps = 100
 
-    test_log[DType.float64]()
-    test_log[DType.float32]()
+    test_log1p[DType.float64]()
+    test_log1p[DType.float32]()
 
-    test_log_special_cases[DType.float64]()
-    test_log_special_cases[DType.float32]()
+    test_log1p_special_cases[DType.float64]()
+    test_log1p_special_cases[DType.float32]()
