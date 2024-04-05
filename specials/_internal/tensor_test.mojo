@@ -19,8 +19,14 @@
 import math
 import random
 
+from tensor import Tensor
+from tensor.random import rand
+
 from specials._internal.tensor import elementwise
 from specials._internal.testing import UnitTest
+
+
+# TODO: Analyze tests when operators are non-trivial
 
 
 fn test_elemwise_tensor[
@@ -28,8 +34,8 @@ fn test_elemwise_tensor[
 ](*shape: Int) raises:
     random.seed(42)
 
-    var x = random.rand[dtype](shape)
-    var res = elementwise[math.cos, force_sequential=force_sequential](x)
+    var x = rand[dtype](shape)
+    var res = elementwise[math.floor, force_sequential=force_sequential](x)
 
     var unit_test = UnitTest(
         "test_elemwise_tensor_" + str(x.spec()) + "_" + str(force_sequential)
@@ -44,7 +50,7 @@ fn test_elemwise_tensor[
 
     # The for loop is simple, direct, and so, good for testing.
     for i in range(x.num_elements()):
-        unit_test.assert_all_close(res[i], math.cos(x[i]), 0.0, rtol)
+        unit_test.assert_all_close(res[i], math.floor(x[i]), 0.0, rtol)
 
 
 fn test_elemwise_tensor_scalar[
@@ -52,9 +58,9 @@ fn test_elemwise_tensor_scalar[
 ](*shape: Int) raises:
     random.seed(42)
 
-    var x = random.rand[dtype](shape)
-    var y = Scalar[dtype](1.5)
-    var res = elementwise[math.add, force_sequential=force_sequential](x, y)
+    var x = rand[dtype](shape)
+    var y = Scalar[dtype](0.0)
+    var res = elementwise[math.mul, force_sequential=force_sequential](x, y)
 
     var unit_test = UnitTest(
         "test_elemwise_tensor_scalar_" + str(x.spec()) + "_" + str(force_sequential)
@@ -69,7 +75,7 @@ fn test_elemwise_tensor_scalar[
 
     # The for loop is simple, direct, and so, good for testing.
     for i in range(x.num_elements()):
-        unit_test.assert_all_close(res[i], x[i] + y, 0.0, rtol)
+        unit_test.assert_all_close(res[i], 0.0, 0.0, rtol)
 
 
 fn test_elemwise_tensor_tensor[
@@ -77,9 +83,9 @@ fn test_elemwise_tensor_tensor[
 ](*shape: Int) raises:
     random.seed(42)
 
-    var x = random.rand[dtype](shape)
-    var y = random.rand[dtype](x.shape())
-    var res = elementwise[math.add, force_sequential=force_sequential](x, y)
+    var x = rand[dtype](shape)
+    var y = Tensor[dtype](x.shape())
+    var res = elementwise[math.mul, force_sequential=force_sequential](x, y)
 
     var unit_test = UnitTest(
         "test_elemwise_tensor_tensor_" + str(x.spec()) + "_" + str(force_sequential)
@@ -94,7 +100,7 @@ fn test_elemwise_tensor_tensor[
 
     # The for loop is simple, direct, and so, good for testing.
     for i in range(x.num_elements()):
-        unit_test.assert_all_close(res[i], x[i] + y[i], 0.0, rtol)
+        unit_test.assert_all_close(res[i], 0.0, 0.0, rtol)
 
 
 fn main() raises:

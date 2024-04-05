@@ -16,6 +16,8 @@
 
 """Tests for table utilities."""
 
+import math
+
 from specials._internal.table import FloatTable
 from specials._internal.testing import UnitTest
 

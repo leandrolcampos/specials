@@ -19,6 +19,7 @@ import random
 from python import Python
 from python.object import PythonObject
 from sys.info import simdwidthof
+from tensor import Tensor
 from utils.static_tuple import StaticTuple
 
 from specials._internal.tensor import (
@@ -69,8 +70,8 @@ fn run_experiment[
 ](
     experiment_name: StringLiteral,
     num_samples: Int,
-    min_values: StaticTuple[num_domains, FloatLiteral],
-    max_values: StaticTuple[num_domains, FloatLiteral],
+    min_values: StaticTuple[Scalar[dtype], num_domains],
+    max_values: StaticTuple[Scalar[dtype], num_domains],
     truth_func: PythonObject,
     python_func: PythonObject,
     python_func_name: StringLiteral = "Python",

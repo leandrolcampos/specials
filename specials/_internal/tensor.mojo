@@ -18,13 +18,13 @@
 
 import benchmark
 import math
-import random
 
 from algorithm.functional import parallelize, vectorize
 from python import Python
 from python.object import PythonObject
 from sys.info import num_physical_cores, simdwidthof
 from tensor import Tensor
+from tensor.random import rand
 
 from specials._internal.asserting import assert_float_dtype
 
@@ -85,9 +85,9 @@ fn _elementwise_impl[
                 fn subtask_func[simd_width: Int](index: Int):
                     var index_shifted = first_element + index
 
-                    result.simd_store[simd_width](
+                    result.store[simd_width](
                         index_shifted,
-                        func[dtype, simd_width](x.simd_load[simd_width](index_shifted)),
+                        func[dtype, simd_width](x.load[simd_width](index_shifted)),
                     )
 
                 vectorize[subtask_func, simd_width](num_elements_per_work_item)
@@ -105,9 +105,9 @@ fn _elementwise_impl[
         fn body_func[simd_width: Int](index: Int):
             var index_shifted = first_remaining_element + index
 
-            result.simd_store[simd_width](
+            result.store[simd_width](
                 index_shifted,
-                func[dtype, simd_width](x.simd_load[simd_width](index_shifted)),
+                func[dtype, simd_width](x.load[simd_width](index_shifted)),
             )
 
         vectorize[body_func, simd_width](remaining_elements)
@@ -155,10 +155,10 @@ fn _elementwise_impl[
                 fn subtask_func[simd_width: Int](index: Int):
                     var index_shifted = first_element + index
 
-                    result.simd_store[simd_width](
+                    result.store[simd_width](
                         index_shifted,
                         func[dtype, simd_width](
-                            x.simd_load[simd_width](index_shifted),
+                            x.load[simd_width](index_shifted),
                             SIMD[dtype, simd_width](scalar),
                         ),
                     )
@@ -178,10 +178,10 @@ fn _elementwise_impl[
         fn body_func[simd_width: Int](index: Int):
             var index_shifted = first_remaining_element + index
 
-            result.simd_store[simd_width](
+            result.store[simd_width](
                 index_shifted,
                 func[dtype, simd_width](
-                    x.simd_load[simd_width](index_shifted),
+                    x.load[simd_width](index_shifted),
                     SIMD[dtype, simd_width](scalar),
                 ),
             )
@@ -231,11 +231,11 @@ fn _elementwise_impl[
                 fn subtask_func[simd_width: Int](index: Int):
                     var index_shifted = first_element + index
 
-                    result.simd_store[simd_width](
+                    result.store[simd_width](
                         index_shifted,
                         func[dtype, simd_width](
-                            x.simd_load[simd_width](index_shifted),
-                            y.simd_load[simd_width](index_shifted),
+                            x.load[simd_width](index_shifted),
+                            y.load[simd_width](index_shifted),
                         ),
                     )
 
@@ -254,11 +254,11 @@ fn _elementwise_impl[
         fn body_func[simd_width: Int](index: Int):
             var index_shifted = first_remaining_element + index
 
-            result.simd_store[simd_width](
+            result.store[simd_width](
                 index_shifted,
                 func[dtype, simd_width](
-                    x.simd_load[simd_width](index_shifted),
-                    y.simd_load[simd_width](index_shifted),
+                    x.load[simd_width](index_shifted),
+                    y.load[simd_width](index_shifted),
                 ),
             )
 
@@ -575,7 +575,7 @@ fn random_uniform[
     if min_value >= max_value:
         raise Error("`min_value` must be less than `max_value`.")
 
-    var raw = random.rand[dtype](shape)
+    var raw = rand[dtype](shape)
     var scaled = elementwise[math.mul, dtype, simd_width](raw, max_value - min_value)
     var shifted = elementwise[math.add, dtype, simd_width](scaled, min_value)
 

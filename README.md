@@ -1,4 +1,5 @@
-_⚠️ Specials is under development. We are working to expand it and improve its performance and reliability, prioritizing quality over time to market._
+> [!WARNING]
+> Specials is under development and the API is subject to change.
 
 # Welcome to Specials
 
@@ -47,7 +48,7 @@ Beyond the practical importance of special functions in scientific and industria
 
 ## Mojo Version Requirement
 
-Specials requires Mojo `v24.1.1`. Make sure you have the correct Mojo version installed before using it.
+Specials requires Mojo `v24.2.0`. Make sure you have the correct Mojo version installed before using it.
 
 ## Example Usage
 
@@ -71,11 +72,16 @@ These benchmarks aim to highlight the correctness and efficiency of Specials imp
 
 ### Elementary Functions
 
+> [!NOTE]
+> Although the Mojo standard library implements all or most of the elementary functions found in Specials, we have decided to implement them in the package as a matter of priority. For us, **Accuracy `>` Performance**: when forced to choose between FLOPS and numerical accuracy, we prefer numerical accuracy.
+
 | Function | Description |
 |----------|-------------|
-| `exp(x)` | The natural exponential function |
+| `exp(x)` | The exponential function |
 | `exp2(x)` | The base-2 exponential function |
 | `expm1(x)` | The expression `exp(x) - 1` evaluated in a numerically stable way when `x` is near zero |
+| `log(x)` | The logarithm function |
+| `log1p(x)` | The expression `log(1 + x)` evaluated in a numerically stable way when `x` is near zero |
 
 ## Contributing
 

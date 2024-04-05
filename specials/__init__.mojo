@@ -20,4 +20,5 @@ from specials.elementary.exp import exp
 from specials.elementary.exp2 import exp2
 from specials.elementary.expm1 import expm1
 from specials.elementary.log import log
+from specials.elementary.log1p import log1p
 from specials.gamma import lbeta, lgamma_correction, lgamma1p, rgamma1pm1

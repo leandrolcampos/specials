@@ -76,7 +76,7 @@ struct Chebyshev[
         or `float64`.
     """
 
-    var _coefficients: StaticTuple[num_terms, SIMD[dtype, simd_width]]
+    var _coefficients: StaticTuple[SIMD[dtype, simd_width], num_terms]
 
     @staticmethod
     fn from_coefficients[*coefficients: Scalar[dtype]]() -> Self:
@@ -94,15 +94,17 @@ struct Chebyshev[
         """
         _check_polynomial_like_constraints[num_terms, dtype, simd_width]()
 
+        alias coefficients_list = VariadicList(coefficients)
+
         constrained[
-            num_terms == len(VariadicList(coefficients)),
+            num_terms == len(coefficients_list),
             "The number of coefficients must be equal to the parameter `num_terms`.",
         ]()
 
-        var splatted_coefficients = StaticTuple[num_terms, SIMD[dtype, simd_width]]()
+        var splatted_coefficients = StaticTuple[SIMD[dtype, simd_width], num_terms]()
 
         for i in range(num_terms):
-            splatted_coefficients[i] = coefficients[i]
+            splatted_coefficients[i] = coefficients_list[i]
 
         return Self {_coefficients: splatted_coefficients}
 
@@ -129,18 +131,20 @@ struct Chebyshev[
         """
         _check_polynomial_like_constraints[num_terms, dtype, simd_width]()
 
+        alias coefficients_list = VariadicList(coefficients)
+
         constrained[
-            num_terms == len(VariadicList(coefficients)),
+            num_terms == len(coefficients_list),
             (
                 "The number of hexadecimal coefficients must be equal to the parameter"
                 " `num_terms`."
             ),
         ]()
 
-        var splatted_coefficients = StaticTuple[num_terms, SIMD[dtype, simd_width]]()
+        var splatted_coefficients = StaticTuple[SIMD[dtype, simd_width], num_terms]()
 
         for i in range(num_terms):
-            splatted_coefficients[i] = bitcast[dtype](coefficients[i])
+            splatted_coefficients[i] = bitcast[dtype](coefficients_list[i])
 
         return Self {_coefficients: splatted_coefficients}
 
@@ -191,7 +195,7 @@ struct Chebyshev[
             or equal to the number of terms in the original series.
         """
         asserting.assert_in_range["num_terms", num_terms, 1, self.num_terms + 1]()
-        var coefficients = StaticTuple[num_terms, SIMD[dtype, simd_width]]()
+        var coefficients = StaticTuple[SIMD[dtype, simd_width], num_terms]()
 
         @parameter
         fn body_func[i: Int]() -> None:
@@ -322,7 +326,7 @@ struct Polynomial[
         or `float64`.
     """
 
-    var _coefficients: StaticTuple[num_terms, SIMD[dtype, simd_width]]
+    var _coefficients: StaticTuple[SIMD[dtype, simd_width], num_terms]
 
     @staticmethod
     fn from_coefficients[*coefficients: Scalar[dtype]]() -> Self:
@@ -340,15 +344,17 @@ struct Polynomial[
         """
         _check_polynomial_like_constraints[num_terms, dtype, simd_width]()
 
+        alias coefficients_list = VariadicList(coefficients)
+
         constrained[
-            num_terms == len(VariadicList(coefficients)),
+            num_terms == len(coefficients_list),
             "The number of coefficients must be equal to the parameter `num_terms`.",
         ]()
 
-        var splatted_coefficients = StaticTuple[num_terms, SIMD[dtype, simd_width]]()
+        var splatted_coefficients = StaticTuple[SIMD[dtype, simd_width], num_terms]()
 
         for i in range(num_terms):
-            splatted_coefficients[i] = coefficients[i]
+            splatted_coefficients[i] = coefficients_list[i]
 
         return Self {_coefficients: splatted_coefficients}
 
@@ -375,18 +381,20 @@ struct Polynomial[
         """
         _check_polynomial_like_constraints[num_terms, dtype, simd_width]()
 
+        alias coefficients_list = VariadicList(coefficients)
+
         constrained[
-            num_terms == len(VariadicList(coefficients)),
+            num_terms == len(coefficients_list),
             (
                 "The number of hexadecimal coefficients must be equal to the parameter"
                 " `num_terms`."
             ),
         ]()
 
-        var splatted_coefficients = StaticTuple[num_terms, SIMD[dtype, simd_width]]()
+        var splatted_coefficients = StaticTuple[SIMD[dtype, simd_width], num_terms]()
 
         for i in range(num_terms):
-            splatted_coefficients[i] = bitcast[dtype](coefficients[i])
+            splatted_coefficients[i] = bitcast[dtype](coefficients_list[i])
 
         return Self {_coefficients: splatted_coefficients}
 
@@ -437,7 +445,7 @@ struct Polynomial[
             or equal to the number of terms in the original series.
         """
         asserting.assert_in_range["num_terms", num_terms, 1, self.num_terms + 1]()
-        var coefficients = StaticTuple[num_terms, SIMD[dtype, simd_width]]()
+        var coefficients = StaticTuple[SIMD[dtype, simd_width], num_terms]()
 
         @parameter
         fn body_func[i: Int]() -> None:
