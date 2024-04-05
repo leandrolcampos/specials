@@ -103,15 +103,17 @@ struct FloatTable[size: Int, dtype: DType](Sized):
         """
         _check_float_table_constraints[size, dtype]()
 
+        alias values_list = VariadicList(values)
+
         constrained[
-            size == len(VariadicList(values)),
+            size == len(values_list),
             "The number of hexadecimal values must be equal to the parameter `size`.",
         ]()
 
         var data = StaticTuple[Scalar[dtype], size]()
 
         for i in range(size):
-            data[i] = bitcast[dtype](values[i])
+            data[i] = bitcast[dtype](values_list[i])
 
         return Self {_data: data}
 

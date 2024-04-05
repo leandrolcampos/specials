@@ -94,15 +94,17 @@ struct Chebyshev[
         """
         _check_polynomial_like_constraints[num_terms, dtype, simd_width]()
 
+        alias coefficients_list = VariadicList(coefficients)
+
         constrained[
-            num_terms == len(VariadicList(coefficients)),
+            num_terms == len(coefficients_list),
             "The number of coefficients must be equal to the parameter `num_terms`.",
         ]()
 
         var splatted_coefficients = StaticTuple[SIMD[dtype, simd_width], num_terms]()
 
         for i in range(num_terms):
-            splatted_coefficients[i] = coefficients[i]
+            splatted_coefficients[i] = coefficients_list[i]
 
         return Self {_coefficients: splatted_coefficients}
 
@@ -129,8 +131,10 @@ struct Chebyshev[
         """
         _check_polynomial_like_constraints[num_terms, dtype, simd_width]()
 
+        alias coefficients_list = VariadicList(coefficients)
+
         constrained[
-            num_terms == len(VariadicList(coefficients)),
+            num_terms == len(coefficients_list),
             (
                 "The number of hexadecimal coefficients must be equal to the parameter"
                 " `num_terms`."
@@ -140,7 +144,7 @@ struct Chebyshev[
         var splatted_coefficients = StaticTuple[SIMD[dtype, simd_width], num_terms]()
 
         for i in range(num_terms):
-            splatted_coefficients[i] = bitcast[dtype](coefficients[i])
+            splatted_coefficients[i] = bitcast[dtype](coefficients_list[i])
 
         return Self {_coefficients: splatted_coefficients}
 
@@ -340,15 +344,17 @@ struct Polynomial[
         """
         _check_polynomial_like_constraints[num_terms, dtype, simd_width]()
 
+        alias coefficients_list = VariadicList(coefficients)
+
         constrained[
-            num_terms == len(VariadicList(coefficients)),
+            num_terms == len(coefficients_list),
             "The number of coefficients must be equal to the parameter `num_terms`.",
         ]()
 
         var splatted_coefficients = StaticTuple[SIMD[dtype, simd_width], num_terms]()
 
         for i in range(num_terms):
-            splatted_coefficients[i] = coefficients[i]
+            splatted_coefficients[i] = coefficients_list[i]
 
         return Self {_coefficients: splatted_coefficients}
 
@@ -375,8 +381,10 @@ struct Polynomial[
         """
         _check_polynomial_like_constraints[num_terms, dtype, simd_width]()
 
+        alias coefficients_list = VariadicList(coefficients)
+
         constrained[
-            num_terms == len(VariadicList(coefficients)),
+            num_terms == len(coefficients_list),
             (
                 "The number of hexadecimal coefficients must be equal to the parameter"
                 " `num_terms`."
@@ -386,7 +394,7 @@ struct Polynomial[
         var splatted_coefficients = StaticTuple[SIMD[dtype, simd_width], num_terms]()
 
         for i in range(num_terms):
-            splatted_coefficients[i] = bitcast[dtype](coefficients[i])
+            splatted_coefficients[i] = bitcast[dtype](coefficients_list[i])
 
         return Self {_coefficients: splatted_coefficients}
 
