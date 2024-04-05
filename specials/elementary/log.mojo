@@ -34,6 +34,9 @@ from specials._internal.polynomial import Polynomial
 from specials.elementary.common_constants import LogConstants
 
 
+# TODO: Try to further improve the performance of the `log` function.
+
+
 @always_inline
 fn _log_procedure_1[
     dtype: DType, simd_width: Int
@@ -240,22 +243,23 @@ fn log[
     if is_in_region4.reduce_or():
         result = is_in_region4.select(_log_procedure_2(x, is_in_region4), result)
 
-    var is_in_region5_or_6 = (is_in_region5 | is_in_region6)
-
-    if is_in_region5_or_6.reduce_or():
+    if is_in_region5.reduce_or():
         # For handling subnormal numbers, we use the following identity:
         #   log(x) = -scale * log(2) + log(x * 2**scale)
 
         var scale = is_in_region5.select(nmant, 0.0)
-        result = is_in_region5_or_6.select(
+        result = is_in_region5.select(
             math.fma(
                 -scale,
                 log2,
                 _log_procedure_1(
-                    math.ldexp(x, scale.cast[DType.int32]()), is_in_region5_or_6
+                    math.ldexp(x, scale.cast[DType.int32]()), is_in_region5
                 ),
             ),
             result,
         )
+
+    if is_in_region6.reduce_or():
+        result = is_in_region6.select(_log_procedure_1(x, is_in_region6), result)
 
     return result
