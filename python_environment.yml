@@ -1,0 +1,14 @@
+name: specials
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - mpmath
+  - numpy
+  - pip
+  - pytest
+  - python=3.11
+  - scipy
+  - pip:
+      - lit
+      - tabulate

@@ -13,6 +13,7 @@ Special functions are particular mathematical functions that play a fundamental 
 - [Why Mojo 🔥 for Specials?](#why-mojo--for-specials)
 - [Why the Focus on Special Functions?](#why-the-focus-on-special-functions)
 - [Mojo Version Requirement](#mojo-version-requirement)
+- [Getting Started](#getting-started)
 - [Example Usage](#example-usage)
 - [Benchmarks](#benchmarks)
 - [Some Implementations Available](#some-implementations-available)
@@ -48,7 +49,65 @@ Beyond the practical importance of special functions in scientific and industria
 
 ## Mojo Version Requirement
 
-Specials requires Mojo `v24.2.0`. Make sure you have the correct Mojo version installed before using it.
+Specials requires Mojo `24.2.*`. Make sure you have the correct Mojo version installed before using this package.
+
+## Getting Started
+
+To get started, access a Mojo programming environment directly via the setup instructions on the Mojo [installation page](https://docs.modular.com/mojo/manual/get-started/).
+
+Git clone the Specials repository to your machine using the following command:
+
+```bash
+git clone https://github.com/leandrolcampos/specials.git
+```
+
+Considering that Mojo SDK as well as our benchmarks and tests depend on an existing installed version of Python, follow the instructions below to create, activate, and configure a Python virtual environment with Conda:
+
+1. Install Conda by following the 
+   [Quick command-line install instructions](https://docs.conda.io/projects/miniconda/en/latest/#quick-command-line-install).
+
+   Make sure to initialize Conda for the shell or shells you use, for example:
+
+   ```bash
+   ~/miniconda3/bin/conda init zsh
+   ```
+
+   Or:
+
+   ```bash
+   ~/miniconda3/bin/conda init bash
+   ```
+
+2. Restart your shell.
+
+3. Go to the cloned Specials repository and run the following commands to create and activate a Conda environment named `specials`:
+
+   ```bash
+   conda env create -f python_environment.yml
+   conda activate specials
+   ```
+
+4. Run these five commands to configure Mojo to use the Python shared library from `specials` environment when it is active:
+
+   ```bash
+   mkdir -p $CONDA_PREFIX/etc/conda/activate.d
+   export MOJO_PYTHON_LIBRARY="$(find $CONDA_PREFIX/lib -iname 'libpython*.[s,d]*' | sort -r | head -n 1)"
+   echo "export MOJO_PYTHON_LIBRARY=\"$MOJO_PYTHON_LIBRARY\"" > \
+       $CONDA_PREFIX/etc/conda/activate.d/export-mojo.sh
+   mkdir -p $CONDA_PREFIX/etc/conda/deactivate.d
+   echo "unset MOJO_PYTHON_LIBRARY" > $CONDA_PREFIX/etc/conda/deactivate.d/unset-mojo.sh   
+   ```
+
+**Optional:** If you are planning to play with Specials code using Visual Studio Code, consider adding the following lines to the project's [workspace settings](https://code.visualstudio.com/docs/getstarted/settings#_workspace-settings):
+
+```json
+"mojo.lsp.includeDirs": [
+    "/path/to/repo/src",
+    "/path/to/repo/test"
+]
+```
+
+Replace `/path/to/repo` with the absolute path of the cloned Specials repository.
 
 ## Example Usage
 
