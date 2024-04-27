@@ -31,14 +31,16 @@
 import math
 
 from specials._internal import asserting
-from specials._internal.limits import FloatLimits
+from specials._internal.numerics import FloatLimits
 from specials._internal.polynomial import Chebyshev, Polynomial
 from specials.elementary.log import log
 
 
 fn lbeta[
     dtype: DType, simd_width: Int
-](x: SIMD[dtype, simd_width], y: SIMD[dtype, simd_width]) -> SIMD[dtype, simd_width]:
+](x: SIMD[dtype, simd_width], y: SIMD[dtype, simd_width]) -> SIMD[
+    dtype, simd_width
+]:
     """Computes the natural logarithm of the beta function.
 
     This function is semantically equivalent to `lgamma(x) + lgamma(y) - lgamma(x + y)`,
@@ -63,7 +65,9 @@ fn lbeta[
 
     alias inf: SIMD[dtype, simd_width] = math.limit.inf[dtype]()
     alias nan: SIMD[dtype, simd_width] = math.nan[dtype]()
-    alias log_sqrt_2pi: SIMD[dtype, simd_width] = 0.91893853320467274178032973640562
+    alias log_sqrt_2pi: SIMD[
+        dtype, simd_width
+    ] = 0.91893853320467274178032973640562
 
     # Ensure that `a` is the smaller of the two arguments and `b` is the larger one.
     # Although the Beta function is mathematically symmetric, this procedure is not.
@@ -82,7 +86,9 @@ fn lbeta[
     var log1p_neg_a_over_apb = math.log1p(-a_over_apb)
 
     # `a` and `b` are small: `a <= b < 8.0`.
-    var result = lgamma_a_small + math.lgamma(b_small) - math.lgamma(a_small + b_small)
+    var result = lgamma_a_small + math.lgamma(b_small) - math.lgamma(
+        a_small + b_small
+    )
 
     # `a` is small, but `b` is large: `a < 8.0 <= b`.
     var correction = lgamma_correction(b) - lgamma_correction(apb)
@@ -159,7 +165,9 @@ fn lgamma_correction[
     alias xbig: SIMD[dtype, simd_width] = math.reciprocal(
         math.exp2[dtype, 1](0.5 * FloatLimits[dtype].negep)
     )
-    alias xmax: SIMD[dtype, simd_width] = math.reciprocal(12.0 * FloatLimits[dtype].min)
+    alias xmax: SIMD[dtype, simd_width] = math.reciprocal(
+        12.0 * FloatLimits[dtype].min
+    )
 
     # The coefficients for the Chebyshev approximation of this correction were obtained
     # using the Python library `mpmath`.

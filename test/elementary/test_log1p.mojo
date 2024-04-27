@@ -22,7 +22,7 @@ import math
 from python import Python
 from utils.static_tuple import StaticTuple
 
-from specials._internal.limits import FloatLimits
+from specials._internal.numerics import FloatLimits
 from specials.elementary.log1p import log1p
 from test_utils import UnitTest
 

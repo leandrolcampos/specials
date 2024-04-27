@@ -14,7 +14,7 @@
 # limitations under the License.
 # ===----------------------------------------------------------------------=== #
 
-"""Machine limits for IEEE 754-2008 binary floating-point types."""
+"""Defines utilities to work with numeric types."""
 
 from specials._internal.math import ldexp
 
@@ -22,10 +22,12 @@ from specials._internal.math import ldexp
 fn _nmant_impl[dtype: DType]() -> Int:
     """Returns the floating-point arithmetic parameter `nmant`."""
     constrained[
-        dtype == DType.float16 or dtype == DType.float32 or dtype == DType.float64,
+        dtype == DType.float16
+        or dtype == DType.float32
+        or dtype == DType.float64,
         (
-            "The parameter `dtype` must be one of `DType.float16`, `DType.float32`, or"
-            " `DType.float64`."
+            "The parameter `dtype` must be one of `DType.float16`,"
+            " `DType.float32`, or `DType.float64`."
         ),
     ]()
 

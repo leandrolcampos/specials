@@ -24,7 +24,7 @@ from memory.unsafe import bitcast
 from python import Python
 from utils.static_tuple import StaticTuple
 
-from specials._internal.limits import FloatLimits
+from specials._internal.numerics import FloatLimits
 from specials.elementary.expm1 import expm1
 from specials.elementary.log import log
 from test_utils import UnitTest

@@ -18,7 +18,7 @@
 
 import math
 
-from specials._internal.limits import FloatLimits
+from specials._internal.numerics import FloatLimits
 
 
 fn ldexp[
@@ -45,8 +45,12 @@ fn ldexp[
     Returns:
         Vector containing elementwise result of `ldexp` on `x` and `exp`.
     """
-    alias min_exponent: SIMD[DType.int32, simd_width] = FloatLimits[dtype].minexp
-    alias max_exponent: SIMD[DType.int32, simd_width] = FloatLimits[dtype].maxexp - 1
+    alias min_exponent: SIMD[DType.int32, simd_width] = FloatLimits[
+        dtype
+    ].minexp
+    alias max_exponent: SIMD[DType.int32, simd_width] = FloatLimits[
+        dtype
+    ].maxexp - 1
 
     var result: SIMD[dtype, simd_width]
 

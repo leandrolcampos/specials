@@ -15,11 +15,11 @@
 # ===----------------------------------------------------------------------=== #
 # RUN: %mojo %build_dir %assertion_flag %debug_level %sanitize_checks %s
 
-"""Tests for machine limits of IEEE 754-2008 binary floating-point types."""
+"""Tests for utilities to work with numeric types."""
 
 from python import Python
 
-from specials._internal.limits import FloatLimits
+from specials._internal.numerics import FloatLimits
 from test_utils import UnitTest
 
 

@@ -24,7 +24,7 @@ from utils.static_tuple import StaticTuple
 
 import specials
 
-from specials._internal.limits import FloatLimits
+from specials._internal.numerics import FloatLimits
 from test_utils import UnitTest
 
 # TODO: Add tests with `DType.float32` type for `lbeta`.

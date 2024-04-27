@@ -21,8 +21,8 @@ import math
 
 from python import Python
 
-from specials._internal.limits import FloatLimits
 from specials._internal.math import ldexp
+from specials._internal.numerics import FloatLimits
 from test_utils import UnitTest
 
 
