@@ -21,7 +21,7 @@
 # ACM Transactions on Mathematical Software (TOMS), 15(2), 144-157.
 # https://doi.org/10.1145/63522.214389
 
-"""Exponential function."""
+"""Implements the exponential function."""
 
 import math
 

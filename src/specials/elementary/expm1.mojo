@@ -21,7 +21,7 @@
 # ACM Transactions on Mathematical Software (TOMS), 18(2), 211-222.
 # https://doi.org/10.1145/146847.146928
 
-"""Expm1 function."""
+"""Implements the `expm1` function."""
 
 import math
 

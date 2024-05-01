@@ -26,7 +26,7 @@
 # Proceedings 10th IEEE Symposium on Computer Arithmetic, pp. 232-236.
 # https://doi.org/10.1109/ARITH.1991.145565
 
-"""Base-2 exponential function."""
+"""Implements the base-2 exponential function."""
 
 import math
 

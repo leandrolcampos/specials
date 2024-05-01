@@ -14,7 +14,7 @@
 # limitations under the License.
 # ===----------------------------------------------------------------------=== #
 
-"""Provides utilities for table-based numerical methods."""
+"""Implements utilities for table-based numerical methods."""
 
 import math
 

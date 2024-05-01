@@ -26,7 +26,7 @@
 # ACM Transactions on Mathematical Software (TOMS), 18(3), 360-373.
 # https://dl.acm.org/doi/abs/10.1145/131766.131776
 
-"""Gamma-related functions."""
+"""Implements gamma-related functions."""
 
 import math
 

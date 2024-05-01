@@ -14,4 +14,4 @@
 # limitations under the License.
 # ===----------------------------------------------------------------------=== #
 
-"""Elementary functions."""
+"""Provides elementary functions."""

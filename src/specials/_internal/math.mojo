@@ -14,7 +14,7 @@
 # limitations under the License.
 # ===----------------------------------------------------------------------=== #
 
-"""Mathematical utilities for internal use."""
+"""Implements mathematical utilities for internal use."""
 
 import math
 

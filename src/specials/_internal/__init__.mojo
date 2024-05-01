@@ -14,4 +14,4 @@
 # limitations under the License.
 # ===----------------------------------------------------------------------=== #
 
-"""Internal utilities and helpers for use within the package."""
+"""Provides internal utilities and helpers for use within the package."""

@@ -23,7 +23,7 @@
 # slatec/fnlib (https://www.netlib.org/slatec/fnlib):
 # Public-domain software. No copyright restrictions.
 
-"""Provides utilities for efficiently working with polynomials."""
+"""Implements utilities for efficiently working with polynomials."""
 
 import math
 

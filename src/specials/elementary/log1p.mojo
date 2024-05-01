@@ -21,7 +21,7 @@
 # ACM Transactions on Mathematical Software (TOMS), 16(4), 378-400.
 # https://doi.org/10.1145/98267.98294
 
-"""Log1p function."""
+"""Implements the `log1p` function."""
 
 import math
 
