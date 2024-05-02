@@ -29,9 +29,9 @@ from memory.unsafe import bitcast
 
 from specials._internal.asserting import assert_float_dtype
 from specials._internal.math import ldexp
-from specials._internal.numerics import FloatLimits
 from specials._internal.polynomial import Polynomial
 from specials.elementary.common_constants import LogConstants
+from specials.utils.numerics import FloatLimits
 
 
 # TODO: Try to further improve the performance of the `log` function.
@@ -45,8 +45,8 @@ fn _log_procedure_1[
 ]:
     """Implements the procedure 1 of `log` as specified in the reference paper.
     """
-    alias max_exponent = FloatLimits[dtype].maxexp - 1
-    alias significant_bits = FloatLimits[dtype].nmant + 1
+    alias max_exponent = FloatLimits[dtype].max_exponent - 1
+    alias significant_bits = FloatLimits[dtype].digits
     # There is no risk in using `math.ldexp` directly here.
     alias threshold = math.ldexp[dtype, simd_width](1.0, significant_bits + 2)
 
@@ -208,8 +208,8 @@ fn log[
 
     alias inf: SIMD[dtype, simd_width] = math.limit.inf[dtype]()
     alias log2: SIMD[dtype, simd_width] = 0.6931471805599453
-    alias nmant: SIMD[dtype, simd_width] = FloatLimits[dtype].nmant
-    alias xmin: SIMD[dtype, simd_width] = FloatLimits[dtype].min
+    alias digits: SIMD[dtype, simd_width] = FloatLimits[dtype].digits
+    alias xmin: SIMD[dtype, simd_width] = FloatLimits[dtype].min()
 
     var result: SIMD[dtype, simd_width] = math.nan[dtype]()
     var x_abs = math.abs(x)
@@ -267,7 +267,7 @@ fn log[
         # For handling subnormal numbers, we use the following identity:
         #   log(x) = -scale * log(2) + log(x * 2**scale)
 
-        var scale = is_in_region5.select(nmant, 0.0)
+        var scale = is_in_region5.select(digits - 1, 0.0)
         result = is_in_region5.select(
             math.fma(
                 -scale,

@@ -22,8 +22,8 @@ import math
 from python import Python
 from utils.static_tuple import StaticTuple
 
-from specials._internal.numerics import FloatLimits
 from specials.elementary.exp2 import exp2
+from specials.utils.numerics import FloatLimits
 from test_utils import UnitTest
 
 
@@ -59,9 +59,9 @@ fn test_exp2[type: DType]() raises:
 fn test_exp2_special_cases[type: DType]() raises:
     var unit_test = UnitTest("test_exp2_special_cases_" + str(type))
 
-    var xmin = Scalar[type](FloatLimits[type].minexp)
-    var xeps = 0.5 * FloatLimits[type].epsneg
-    var xmax = math.nextafter(Scalar[type](FloatLimits[type].maxexp), 0.0)
+    var xmin = Scalar[type](FloatLimits[type].min_exponent - 1)
+    var xeps = 0.5 * FloatLimits[type].epsilon_neg()
+    var xmax = math.nextafter(Scalar[type](FloatLimits[type].max_exponent), 0.0)
     var nan = math.nan[type]()
     var inf = math.limit.inf[type]()
 

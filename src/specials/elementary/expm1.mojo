@@ -39,7 +39,8 @@ fn _expm1_procedure_1[
 ](x: SIMD[dtype, simd_width], cond: SIMD[DType.bool, simd_width]) -> SIMD[
     dtype, simd_width
 ]:
-    """Implements the procedure 1 of `expm1` as specified in the reference paper."""
+    """Implements the procedure 1 of `expm1` as specified in the reference paper.
+    """
     var safe_x = cond.select(x, 1.0)
 
     var index: SIMD[DType.int32, simd_width]
@@ -49,13 +50,19 @@ fn _expm1_procedure_1[
 
     @parameter
     if dtype == DType.float32:
-        alias inv_ln2_over_32: SIMD[dtype, simd_width] = bitcast[dtype, DType.uint32](
+        alias inv_ln2_over_32: SIMD[dtype, simd_width] = bitcast[
+            dtype, DType.uint32
+        ](
             0x4238_AA3B,
         )
-        alias ln2_over_32_lead: SIMD[dtype, simd_width] = bitcast[dtype, DType.uint32](
+        alias ln2_over_32_lead: SIMD[dtype, simd_width] = bitcast[
+            dtype, DType.uint32
+        ](
             0x3CB1_7200,
         )
-        alias ln2_over_32_trail: SIMD[dtype, simd_width] = bitcast[dtype, DType.uint32](
+        alias ln2_over_32_trail: SIMD[dtype, simd_width] = bitcast[
+            dtype, DType.uint32
+        ](
             0x333F_BE8E,
         )
         alias polynomial = Polynomial[
@@ -84,18 +91,26 @@ fn _expm1_procedure_1[
         var x_reduced = x_reduced_lead + x_reduced_trail
 
         expm1_r = x_reduced_lead + (
-            math.fma(x_reduced * x_reduced, polynomial(x_reduced), x_reduced_trail)
+            math.fma(
+                x_reduced * x_reduced, polynomial(x_reduced), x_reduced_trail
+            )
         )
         precision_minus_1 = 23  # 24 - 1
 
     else:  # dtype == DType.float64
-        alias inv_ln2_over_32: SIMD[dtype, simd_width] = bitcast[dtype, DType.uint64](
+        alias inv_ln2_over_32: SIMD[dtype, simd_width] = bitcast[
+            dtype, DType.uint64
+        ](
             0x40471547_652B82FE,
         )
-        alias ln2_over_32_lead: SIMD[dtype, simd_width] = bitcast[dtype, DType.uint64](
+        alias ln2_over_32_lead: SIMD[dtype, simd_width] = bitcast[
+            dtype, DType.uint64
+        ](
             0x3F962E42_FEF00000,
         )
-        alias ln2_over_32_trail: SIMD[dtype, simd_width] = bitcast[dtype, DType.uint64](
+        alias ln2_over_32_trail: SIMD[dtype, simd_width] = bitcast[
+            dtype, DType.uint64
+        ](
             0x3D8473DE_6AF278ED,
         )
         alias polynomial = Polynomial[
@@ -127,7 +142,9 @@ fn _expm1_procedure_1[
         var x_reduced = x_reduced_lead + x_reduced_trail
 
         expm1_r = x_reduced_lead + (
-            math.fma(x_reduced * x_reduced, polynomial(x_reduced), x_reduced_trail)
+            math.fma(
+                x_reduced * x_reduced, polynomial(x_reduced), x_reduced_trail
+            )
         )
         precision_minus_1 = 52  # 53 - 1
 
@@ -147,7 +164,9 @@ fn _expm1_procedure_1[
 
     var exponent_is_too_negative = (exponent <= -8.0)
     mantissa = math.select(
-        exponent_is_too_negative, s_lead + math.fma(s, expm1_r, s_trail), mantissa
+        exponent_is_too_negative,
+        s_lead + math.fma(s, expm1_r, s_trail),
+        mantissa,
     )
 
     var result = math_lib.ldexp(mantissa, exponent)
@@ -162,7 +181,8 @@ fn _expm1_procedure_2[
 ](x: SIMD[dtype, simd_width], cond: SIMD[DType.bool, simd_width]) -> SIMD[
     dtype, simd_width
 ]:
-    """Implements the procedure 2 of `expm1` as specified in the reference paper."""
+    """Implements the procedure 2 of `expm1` as specified in the reference paper.
+    """
     var safe_x = cond.select(x, 0.1)
     var x_exp2: SIMD[dtype, simd_width]
     var x3_gval: SIMD[dtype, simd_width]
@@ -172,7 +192,9 @@ fn _expm1_procedure_2[
         alias exp2 = math.ldexp(Scalar[dtype](1.0), 16)
         x_exp2 = safe_x * exp2
 
-        alias g = Polynomial[5, dtype, simd_width].from_hexadecimal_coefficients[
+        alias g = Polynomial[
+            5, dtype, simd_width
+        ].from_hexadecimal_coefficients[
             0x3E2A_AAAA,
             0x3D2A_AAA0,
             0x3C08_89FF,
@@ -185,7 +207,9 @@ fn _expm1_procedure_2[
         alias exp2 = math.ldexp(Scalar[dtype](1.0), 30)
         x_exp2 = safe_x * exp2
 
-        alias g = Polynomial[9, dtype, simd_width].from_hexadecimal_coefficients[
+        alias g = Polynomial[
+            9, dtype, simd_width
+        ].from_hexadecimal_coefficients[
             0x3FC55555_55555549,
             0x3FA55555_555554B6,
             0x3F811111_1111A9F3,
@@ -248,7 +272,9 @@ fn expm1[
     var is_in_region2: SIMD[DType.bool, simd_width]  # Em1_Pos | Em1_+Inf
     var is_in_region3: SIMD[DType.bool, simd_width]  # Em1_Neg | Em1_-Inf
     var is_in_region4: SIMD[DType.bool, simd_width]  # T_1 < x < T_2
-    var is_in_region5: SIMD[DType.bool, simd_width]  # T- <= x <= T_1 | T_2 <= x <= T+
+    var is_in_region5: SIMD[
+        DType.bool, simd_width
+    ]  # T- <= x <= T_1 | T_2 <= x <= T+
 
     @parameter
     if dtype == DType.float32:
@@ -265,7 +291,7 @@ fn expm1[
             0xC18A_A122,
         )
         # `xmax` is different from what is specified in the reference paper:
-        # `alias xmax = math.nextafter(log(FloatLimits[dtype].max), 0.0)`
+        # `alias xmax = math.nextafter(log(FloatLimits[dtype].max()), 0.0)`
         alias xmax: SIMD[dtype, simd_width] = bitcast[dtype, DType.uint32](
             0x42B1_7217,
         )
@@ -292,7 +318,7 @@ fn expm1[
             0xC042B708_872320E1,
         )
         # `xmax` is different from what is specified in the reference paper:
-        # `alias xmax = log(FloatLimits[dtype].max)`
+        # `alias xmax = log(FloatLimits[dtype].max())`
         alias xmax: SIMD[dtype, simd_width] = bitcast[dtype, DType.uint64](
             0x40862E42_FEFA39EF,
         )
@@ -310,9 +336,13 @@ fn expm1[
     result = is_in_region3.select(-1.0, result)
 
     if is_in_region4.reduce_or():
-        result = is_in_region4.select(_expm1_procedure_2(x, is_in_region4), result)
+        result = is_in_region4.select(
+            _expm1_procedure_2(x, is_in_region4), result
+        )
 
     if is_in_region5.reduce_or():
-        result = is_in_region5.select(_expm1_procedure_1(x, is_in_region5), result)
+        result = is_in_region5.select(
+            _expm1_procedure_1(x, is_in_region5), result
+        )
 
     return result

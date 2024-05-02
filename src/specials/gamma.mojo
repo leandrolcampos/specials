@@ -29,11 +29,12 @@
 """Implements gamma-related functions."""
 
 import math
+import testing
 
 from specials._internal import asserting
-from specials._internal.numerics import FloatLimits
 from specials._internal.polynomial import Chebyshev, Polynomial
 from specials.elementary.log import log
+from specials.utils.numerics import FloatLimits
 
 
 fn lbeta[
@@ -163,10 +164,10 @@ fn lgamma_correction[
 
     alias xmin: SIMD[dtype, simd_width] = 8.0
     alias xbig: SIMD[dtype, simd_width] = math.reciprocal(
-        math.exp2[dtype, 1](0.5 * FloatLimits[dtype].negep)
+        math.exp2[dtype, 1](0.5 * -FloatLimits[dtype].digits)
     )
     alias xmax: SIMD[dtype, simd_width] = math.reciprocal(
-        12.0 * FloatLimits[dtype].min
+        12.0 * FloatLimits[dtype].min()
     )
 
     # The coefficients for the Chebyshev approximation of this correction were obtained
@@ -193,7 +194,7 @@ fn lgamma_correction[
         7.218203478875394218977123232114e-34,
         -5.89320165797572035218853002751e-35,
     ]()
-    alias error_tolerance = 0.1 * FloatLimits[dtype].epsneg
+    alias error_tolerance = 0.1 * FloatLimits[dtype].epsilon_neg()
     alias num_terms = p.economize[error_tolerance]()
     alias p_truncated = p.truncate[num_terms]()
 

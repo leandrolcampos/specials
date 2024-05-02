@@ -29,9 +29,9 @@ from memory.unsafe import bitcast
 
 from specials._internal.asserting import assert_float_dtype
 from specials._internal.math import ldexp
-from specials._internal.numerics import FloatLimits
 from specials._internal.polynomial import Polynomial
 from specials.elementary.common_constants import LogConstants
+from specials.utils.numerics import FloatLimits
 
 
 @always_inline
@@ -42,8 +42,8 @@ fn _log1p_procedure_1[
 ]:
     """Implements the procedure 1 of `log1p` as specified in the reference paper.
     """
-    alias max_exponent = FloatLimits[dtype].maxexp - 1
-    alias significant_bits = FloatLimits[dtype].nmant + 1
+    alias max_exponent = FloatLimits[dtype].max_exponent - 1
+    alias significant_bits = FloatLimits[dtype].digits
     # There is no risk in using `math.ldexp` directly here.
     alias threshold = math.ldexp[dtype, simd_width](1.0, significant_bits + 2)
 
@@ -205,8 +205,8 @@ fn _log1p_procedure_3[
     dtype, simd_width
 ]:
     """Implements the procedure of `log1p` for when `x` is tiny."""
-    alias smallest_subnormal = FloatLimits[dtype].smallest_subnormal
-    var safe_x = cond.select(x, 0.5 * FloatLimits[dtype].epsneg)
+    alias smallest_subnormal = FloatLimits[dtype].denorm_min()
+    var safe_x = cond.select(x, 0.5 * FloatLimits[dtype].epsilon_neg())
 
     return 0.125 * math.fma[dtype, simd_width](8.0, safe_x, -smallest_subnormal)
 
@@ -235,7 +235,7 @@ fn log1p[
     """
     assert_float_dtype["dtype", dtype]()
 
-    alias epsneg = FloatLimits[dtype].epsneg
+    alias epsneg = FloatLimits[dtype].epsilon_neg()
     alias inf: SIMD[dtype, simd_width] = math.limit.inf[dtype]()
 
     var result: SIMD[dtype, simd_width] = math.nan[dtype]()

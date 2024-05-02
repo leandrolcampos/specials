@@ -22,8 +22,8 @@ import math
 from python import Python
 from utils.static_tuple import StaticTuple
 
-from specials._internal.numerics import FloatLimits
 from specials.elementary.log1p import log1p
+from specials.utils.numerics import FloatLimits
 from test_utils import UnitTest
 
 
@@ -73,10 +73,10 @@ fn test_log1p[type: DType]() raises:
 fn test_log1p_special_cases[type: DType]() raises:
     var unit_test = UnitTest("test_log1p_special_cases_" + str(type))
 
-    var xmin = FloatLimits[type].min
-    var xeps = FloatLimits[type].epsneg
-    var xlrg = math.ldexp(Scalar[type](1), FloatLimits[type].nmant + 3)
-    var xmax = FloatLimits[type].max
+    var xmin = FloatLimits[type].min()
+    var xeps = FloatLimits[type].epsilon_neg()
+    var xlrg = math.ldexp(Scalar[type](1), FloatLimits[type].digits + 2)
+    var xmax = FloatLimits[type].max()
     var nan = math.nan[type]()
     var inf = math.limit.inf[type]()
 

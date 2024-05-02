@@ -39,7 +39,8 @@ fn _exp_impl[
 ](x: SIMD[dtype, simd_width], cond: SIMD[DType.bool, simd_width]) -> SIMD[
     dtype, simd_width
 ]:
-    """Implements the exponential function as specified in the reference paper."""
+    """Implements the exponential function as specified in the reference paper.
+    """
     var safe_x = cond.select(x, 1.0)
 
     var index: SIMD[DType.int32, simd_width]
@@ -48,13 +49,19 @@ fn _exp_impl[
 
     @parameter
     if dtype == DType.float32:
-        alias inv_ln2_over_32: SIMD[dtype, simd_width] = bitcast[dtype, DType.uint32](
+        alias inv_ln2_over_32: SIMD[dtype, simd_width] = bitcast[
+            dtype, DType.uint32
+        ](
             0x4238_AA3B,
         )
-        alias ln2_over_32_lead: SIMD[dtype, simd_width] = bitcast[dtype, DType.uint32](
+        alias ln2_over_32_lead: SIMD[dtype, simd_width] = bitcast[
+            dtype, DType.uint32
+        ](
             0x3CB1_7200,
         )
-        alias ln2_over_32_trail: SIMD[dtype, simd_width] = bitcast[dtype, DType.uint32](
+        alias ln2_over_32_trail: SIMD[dtype, simd_width] = bitcast[
+            dtype, DType.uint32
+        ](
             0x333F_BE8E,
         )
         alias polynomial = Polynomial[
@@ -83,17 +90,25 @@ fn _exp_impl[
         var x_reduced = x_reduced_lead + x_reduced_trail
 
         expm1_r = x_reduced_lead + (
-            math.fma(x_reduced * x_reduced, polynomial(x_reduced), x_reduced_trail)
+            math.fma(
+                x_reduced * x_reduced, polynomial(x_reduced), x_reduced_trail
+            )
         )
 
     else:  # dtype == DType.float64
-        alias inv_ln2_over_32: SIMD[dtype, simd_width] = bitcast[dtype, DType.uint64](
+        alias inv_ln2_over_32: SIMD[dtype, simd_width] = bitcast[
+            dtype, DType.uint64
+        ](
             0x40471547_652B82FE,
         )
-        alias ln2_over_32_lead: SIMD[dtype, simd_width] = bitcast[dtype, DType.uint64](
+        alias ln2_over_32_lead: SIMD[dtype, simd_width] = bitcast[
+            dtype, DType.uint64
+        ](
             0x3F962E42_FEF00000,
         )
-        alias ln2_over_32_trail: SIMD[dtype, simd_width] = bitcast[dtype, DType.uint64](
+        alias ln2_over_32_trail: SIMD[dtype, simd_width] = bitcast[
+            dtype, DType.uint64
+        ](
             0x3D8473DE_6AF278ED,
         )
         alias polynomial = Polynomial[
@@ -125,7 +140,9 @@ fn _exp_impl[
         var x_reduced = x_reduced_lead + x_reduced_trail
 
         expm1_r = x_reduced_lead + (
-            math.fma(x_reduced * x_reduced, polynomial(x_reduced), x_reduced_trail)
+            math.fma(
+                x_reduced * x_reduced, polynomial(x_reduced), x_reduced_trail
+            )
         )
 
     var s_lead = ExpTable[dtype].lead.unsafe_lookup(index)
@@ -177,7 +194,7 @@ fn exp[
             0x3300_0000,
         )
         # `xmax` is different from what is specified in the reference paper:
-        # `alias xmax = math.nextafter(log(FloatLimits[dtype].max), 0.0)`
+        # `alias xmax = math.nextafter(log(FloatLimits[dtype].max()), 0.0)`
         alias xmax: SIMD[dtype, simd_width] = bitcast[dtype, DType.uint32](
             0x42B1_7217,
         )
@@ -195,7 +212,7 @@ fn exp[
             0x3C900000_00000000,
         )
         # `xmax` is different from what is specified in the reference paper:
-        # `alias xmax = log(FloatLimits[dtype].max)`
+        # `alias xmax = log(FloatLimits[dtype].max())`
         alias xmax: SIMD[dtype, simd_width] = bitcast[dtype, DType.uint64](
             0x40862E42_FEFA39EF,
         )

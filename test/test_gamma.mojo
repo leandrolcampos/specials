@@ -24,7 +24,7 @@ from utils.static_tuple import StaticTuple
 
 import specials
 
-from specials._internal.numerics import FloatLimits
+from specials.utils.numerics import FloatLimits
 from test_utils import UnitTest
 
 # TODO: Add tests with `DType.float32` type for `lbeta`.
@@ -75,7 +75,7 @@ fn test_lgamma_correction_special_cases[type: DType]() raises:
 fn test_lgamma1p_region1[type: DType]() raises:
     var unit_test = UnitTest("test_lgamma1p_region1_" + str(type))
 
-    alias eps_f32 = FloatLimits[DType.float32].eps.cast[type]()
+    alias eps_f32 = FloatLimits[DType.float32].epsilon().cast[type]()
     var x = SIMD[type, 4](-0.2, 0.0 - eps_f32, 0.0 + eps_f32, 0.60 - eps_f32)
 
     # The expected values were computed using `mpmath`.
@@ -102,7 +102,7 @@ fn test_lgamma1p_region1[type: DType]() raises:
 fn test_lgamma1p_region2[type: DType]() raises:
     var unit_test = UnitTest("test_lgamma1p_region2_" + str(type))
 
-    alias eps_f32 = FloatLimits[DType.float32].eps.cast[type]()
+    alias eps_f32 = FloatLimits[DType.float32].epsilon().cast[type]()
     var x = SIMD[type, 4](0.6, 1.0 - eps_f32, 1.0 + eps_f32, 1.25)
 
     # The expected values were computed using `mpmath`.
@@ -189,9 +189,9 @@ fn _mp_rgamma1pm1[type: DType](x: Scalar[type]) raises -> Scalar[type]:
 fn test_rgamma1pm1[type: DType]() raises:
     var unit_test = UnitTest("test_rgamma1pm1_" + str(type))
 
-    var tiny = FloatLimits[type].min
-    var epsneg = FloatLimits[type].epsneg
-    var eps = FloatLimits[type].eps
+    var tiny = FloatLimits[type].min()
+    var epsneg = FloatLimits[type].epsilon_neg()
+    var eps = FloatLimits[type].epsilon()
 
     var xs = StaticTuple[Scalar[type], 10](
         -1.0 + epsneg,

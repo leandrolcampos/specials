@@ -67,7 +67,9 @@ fn _exp2_impl[
 
     @parameter
     if dtype == DType.float32:
-        alias one_over_32: SIMD[dtype, simd_width] = bitcast[dtype, DType.uint32](
+        alias one_over_32: SIMD[dtype, simd_width] = bitcast[
+            dtype, DType.uint32
+        ](
             0x3D00_0000,
         )
         alias polynomial = Polynomial[
@@ -93,7 +95,9 @@ fn _exp2_impl[
         exp2m1_r = y_reduced * polynomial(y_reduced)
 
     else:  # dtype == DType.float64
-        alias one_over_32: SIMD[dtype, simd_width] = bitcast[dtype, DType.uint64](
+        alias one_over_32: SIMD[dtype, simd_width] = bitcast[
+            dtype, DType.uint64
+        ](
             0x3FA00000_00000000,
         )
         alias polynomial = Polynomial[
@@ -170,7 +174,7 @@ fn exp2[
             0x3300_0000,
         )
         # `xmax` is different from what is specified in the reference paper:
-        # `alias xmax = math.nextafter(Float32(FloatLimits[dtype].maxexp), 0.0)`
+        # `alias xmax = math.nextafter(Float32(FloatLimits[dtype].max_exponent), 0.0)`
         alias xmax: SIMD[dtype, simd_width] = bitcast[dtype, DType.uint32](
             0x42FF_FFFF,
         )
@@ -188,7 +192,7 @@ fn exp2[
             0x3C900000_00000000,
         )
         # `xmax` is different from what is specified in the reference paper:
-        # `alias xmax = math.nextafter(Float64(FloatLimits[dtype].maxexp), 0.0)`
+        # `alias xmax = math.nextafter(Float64(FloatLimits[dtype].max_exponent), 0.0)`
         alias xmax: SIMD[dtype, simd_width] = bitcast[dtype, DType.uint64](
             0x408FFFFF_FFFFFFFF,
         )

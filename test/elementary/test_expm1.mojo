@@ -24,9 +24,9 @@ from memory.unsafe import bitcast
 from python import Python
 from utils.static_tuple import StaticTuple
 
-from specials._internal.numerics import FloatLimits
 from specials.elementary.expm1 import expm1
 from specials.elementary.log import log
+from specials.utils.numerics import FloatLimits
 from test_utils import UnitTest
 
 
@@ -39,7 +39,7 @@ fn _mp_expm1[type: DType](x: Scalar[type]) raises -> Scalar[type]:
 fn test_expm1[type: DType]() raises:
     var unit_test = UnitTest("test_expm1_" + str(type))
 
-    var xeps = FloatLimits[type].eps
+    var xeps = FloatLimits[type].epsilon()
     var xs = StaticTuple[Scalar[type], 5](0.1 * xeps, 0.01, 0.1, 1.0, 10.0)
 
     var rtol: Scalar[type]
@@ -75,13 +75,13 @@ fn test_expm1_special_cases[type: DType]() raises:
         xsml_inf = bitcast[type, DType.uint32](0xBE93_4B11)
         xsml_sup = bitcast[type, DType.uint32](0x3E64_7FBF)
         xmin = bitcast[type, DType.uint32](0xC18A_A122)
-        xmax = math.nextafter(log(FloatLimits[type].max), 0.0)
+        xmax = math.nextafter(log(FloatLimits[type].max()), 0.0)
     else:  # type == DType.float64
         xeps = bitcast[type, DType.uint64](0x3C900000_00000000)
         xsml_inf = bitcast[type, DType.uint64](0xBFD26962_1134DB93)
         xsml_sup = bitcast[type, DType.uint64](0x3FCC8FF7_C79A9A22)
         xmin = bitcast[type, DType.uint64](0xC042B708_872320E1)
-        xmax = log(FloatLimits[type].max)
+        xmax = log(FloatLimits[type].max())
 
     var xs = StaticTuple[Scalar[type], 12](
         nan,
