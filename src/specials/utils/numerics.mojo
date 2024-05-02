@@ -34,8 +34,8 @@ fn _float_limits_construction_checks[type: DType]():
 @always_inline
 fn _digits[type: DType]() -> Int:
     """
-    Returns the number of radix digits that the given type can represent without
-    loss of precision.
+    Returns the number of `radix` digits that the given type can represent
+    without loss of precision.
     """
     _float_limits_construction_checks[type]()
 
@@ -97,7 +97,7 @@ struct FloatLimits[type: DType]:
 
     alias digits: Int = _digits[type]()
     """
-    The number of radix digits that the given type can represent without loss
+    The number of `radix` digits that the given type can represent without loss
     of precision.
     """
 
