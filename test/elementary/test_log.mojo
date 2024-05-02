@@ -22,8 +22,8 @@ import math
 from python import Python
 from utils.static_tuple import StaticTuple
 
-from specials._internal.limits import FloatLimits
 from specials.elementary.log import log
+from specials.utils.numerics import FloatLimits
 from test_utils import UnitTest
 
 
@@ -66,8 +66,8 @@ fn test_log[type: DType]() raises:
 fn test_log_special_cases[type: DType]() raises:
     var unit_test = UnitTest("test_log_special_cases_" + str(type))
 
-    var xmin = FloatLimits[type].min
-    var xmax = FloatLimits[type].max
+    var xmin = FloatLimits[type].min()
+    var xmax = FloatLimits[type].max()
     var nan = math.nan[type]()
     var inf = math.limit.inf[type]()
 
@@ -79,9 +79,9 @@ fn test_log_special_cases[type: DType]() raises:
         0.5 * xmin,
         xmin,
         2.0 * xmin,
-        1.0 - FloatLimits[type].epsneg,
+        1.0 - FloatLimits[type].epsilon_neg(),
         1.0,
-        1.0 + FloatLimits[type].eps,
+        1.0 + FloatLimits[type].epsilon(),
         xmax - 1.0,
         xmax,
         inf,

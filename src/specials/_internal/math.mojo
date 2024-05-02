@@ -14,11 +14,11 @@
 # limitations under the License.
 # ===----------------------------------------------------------------------=== #
 
-"""Mathematical utilities for internal use."""
+"""Implements mathematical utilities for internal use."""
 
 import math
 
-from specials._internal.limits import FloatLimits
+from specials.utils.numerics import FloatLimits
 
 
 fn ldexp[
@@ -45,8 +45,12 @@ fn ldexp[
     Returns:
         Vector containing elementwise result of `ldexp` on `x` and `exp`.
     """
-    alias min_exponent: SIMD[DType.int32, simd_width] = FloatLimits[dtype].minexp
-    alias max_exponent: SIMD[DType.int32, simd_width] = FloatLimits[dtype].maxexp - 1
+    alias min_exponent: SIMD[DType.int32, simd_width] = FloatLimits[
+        dtype
+    ].min_exponent - 1
+    alias max_exponent: SIMD[DType.int32, simd_width] = FloatLimits[
+        dtype
+    ].max_exponent - 1
 
     var result: SIMD[dtype, simd_width]
 

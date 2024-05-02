@@ -21,8 +21,8 @@ import math
 
 from python import Python
 
-from specials._internal.limits import FloatLimits
 from specials._internal.math import ldexp
+from specials.utils.numerics import FloatLimits
 from test_utils import UnitTest
 
 
@@ -37,8 +37,8 @@ fn _np_ldexp[
 fn test_ldexp_float_max[type: DType]() raises:
     var unit_test = UnitTest("test_ldexp_float_max_" + str(type))
 
-    var x: Scalar[type] = 1.0 - FloatLimits[type].epsneg
-    var exp: Scalar[DType.int32] = FloatLimits[type].maxexp
+    var x: Scalar[type] = 1.0 - FloatLimits[type].epsilon_neg()
+    var exp: Scalar[DType.int32] = FloatLimits[type].max_exponent
 
     var expected = _np_ldexp[type](x, exp)
     var actual = ldexp[type](x, exp)
@@ -53,7 +53,7 @@ fn test_ldexp_float_smallest_normal[type: DType]() raises:
     var unit_test = UnitTest("test_ldexp_float_smallest_normal_" + str(type))
 
     var x: Scalar[type] = 1.0
-    var exp: Scalar[DType.int32] = FloatLimits[type].minexp
+    var exp: Scalar[DType.int32] = FloatLimits[type].min_exponent - 1
 
     var expected = _np_ldexp[type](x, exp)
     var actual = ldexp[type](x, exp)
@@ -68,9 +68,9 @@ fn test_ldexp_float_smallest_subnormal[type: DType]() raises:
     var unit_test = UnitTest("test_ldexp_float_smallest_subnormal_" + str(type))
 
     var x: Scalar[type] = 1.0
-    var exp: Scalar[DType.int32] = FloatLimits[type].minexp + FloatLimits[
+    var exp: Scalar[DType.int32] = FloatLimits[type].min_exponent - FloatLimits[
         type
-    ].machep
+    ].digits
 
     var expected = _np_ldexp[type](x, exp)
     var actual = ldexp[type](x, exp)

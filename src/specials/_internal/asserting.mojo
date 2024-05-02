@@ -14,7 +14,9 @@
 # limitations under the License.
 # ===----------------------------------------------------------------------=== #
 
-"""Utilities for performing compile-time assertions within the package."""
+"""
+Implements utilities for performing compile-time assertions within the package.
+"""
 
 import math
 
@@ -31,7 +33,9 @@ fn assert_integral_dtype[
 
 
 @always_inline("nodebug")
-fn assert_float_dtype[parameter_name: StringLiteral, parameter_value: DType]() -> None:
+fn assert_float_dtype[
+    parameter_name: StringLiteral, parameter_value: DType
+]() -> None:
     """Asserts that the given parameter is a floating-point data type.
 
     This package supports only floating-point data types of single (`float32`) or double
@@ -41,7 +45,8 @@ fn assert_float_dtype[parameter_name: StringLiteral, parameter_value: DType]() -
         parameter_value == DType.float32 or parameter_value == DType.float64,
         "The parameter `"
         + parameter_name
-        + "` must be a floating-point of single (`float32`) or double (`float64`)"
+        + "` must be a floating-point of single (`float32`) or double"
+        " (`float64`)"
         " precision.",
     ]()
 
@@ -56,12 +61,16 @@ fn assert_in_range[
     """Asserts that the given parameter is within the specified range."""
     constrained[
         parameter_value >= lower and parameter_value < upper,
-        "The parameter `" + parameter_name + "` must be within the specified range.",
+        "The parameter `"
+        + parameter_name
+        + "` must be within the specified range.",
     ]()
 
 
 @always_inline("nodebug")
-fn assert_non_zero[parameter_name: StringLiteral, parameter_value: Int]() -> None:
+fn assert_non_zero[
+    parameter_name: StringLiteral, parameter_value: Int
+]() -> None:
     """Asserts the condition `parameter_value != 0` holds."""
     constrained[
         parameter_value != 0,
@@ -70,7 +79,9 @@ fn assert_non_zero[parameter_name: StringLiteral, parameter_value: Int]() -> Non
 
 
 @always_inline("nodebug")
-fn assert_positive[parameter_name: StringLiteral, parameter_value: Int]() -> None:
+fn assert_positive[
+    parameter_name: StringLiteral, parameter_value: Int
+]() -> None:
     """Asserts the condition `parameter_value > 0` holds."""
     constrained[
         parameter_value > 0,
@@ -90,9 +101,13 @@ fn assert_positive[
 
 
 @always_inline("nodebug")
-fn assert_simd_width[parameter_name: StringLiteral, parameter_value: Int]() -> None:
+fn assert_simd_width[
+    parameter_name: StringLiteral, parameter_value: Int
+]() -> None:
     """Asserts that the given parameter is a valid SIMD width."""
     constrained[
         parameter_value > 0 and math.is_power_of_2(parameter_value),
-        "The parameter `" + parameter_name + "` must be positive and a power of two.",
+        "The parameter `"
+        + parameter_name
+        + "` must be positive and a power of two.",
     ]()

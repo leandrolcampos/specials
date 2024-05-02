@@ -21,17 +21,17 @@
 # ACM Transactions on Mathematical Software (TOMS), 16(4), 378-400.
 # https://doi.org/10.1145/98267.98294
 
-"""Log1p function."""
+"""Implements the `log1p` function."""
 
 import math
 
 from memory.unsafe import bitcast
 
 from specials._internal.asserting import assert_float_dtype
-from specials._internal.limits import FloatLimits
 from specials._internal.math import ldexp
 from specials._internal.polynomial import Polynomial
 from specials.elementary.common_constants import LogConstants
+from specials.utils.numerics import FloatLimits
 
 
 @always_inline
@@ -40,9 +40,10 @@ fn _log1p_procedure_1[
 ](x: SIMD[dtype, simd_width], cond: SIMD[DType.bool, simd_width]) -> SIMD[
     dtype, simd_width
 ]:
-    """Implements the procedure 1 of `log1p` as specified in the reference paper."""
-    alias max_exponent = FloatLimits[dtype].maxexp - 1
-    alias significant_bits = FloatLimits[dtype].nmant + 1
+    """Implements the procedure 1 of `log1p` as specified in the reference paper.
+    """
+    alias max_exponent = FloatLimits[dtype].max_exponent - 1
+    alias significant_bits = FloatLimits[dtype].digits
     # There is no risk in using `math.ldexp` directly here.
     alias threshold = math.ldexp[dtype, simd_width](1.0, significant_bits + 2)
 
@@ -56,7 +57,9 @@ fn _log1p_procedure_1[
     var fraction1 = ldexp(math.round(ldexp(fraction, 7)), -7)
     var index = math.round(ldexp(fraction1 - 1.0, 7)).cast[DType.int32]()
 
-    var power_of_two = ldexp[dtype, simd_width](1.0, -exponent.cast[DType.int32]())
+    var power_of_two = ldexp[dtype, simd_width](
+        1.0, -exponent.cast[DType.int32]()
+    )
     var x_times_power_of_two = safe_x * power_of_two
     var fraction2 = math.select(
         (exponent <= -2) | (exponent >= max_exponent),
@@ -72,7 +75,9 @@ fn _log1p_procedure_1[
     var log2_trail = LogConstants[dtype].log_fraction1_trail.get[128]()
 
     var result1 = math.fma[dtype, simd_width](
-        exponent, log2_lead, LogConstants[dtype].log_fraction1_lead.unsafe_lookup(index)
+        exponent,
+        log2_lead,
+        LogConstants[dtype].log_fraction1_lead.unsafe_lookup(index),
     )
     var result2 = math.fma[dtype, simd_width](
         exponent,
@@ -96,14 +101,18 @@ fn _log1p_procedure_1[
 
     @parameter
     if dtype == DType.float32:
-        alias p = Polynomial[2, dtype, simd_width].from_hexadecimal_coefficients[
+        alias p = Polynomial[
+            2, dtype, simd_width
+        ].from_hexadecimal_coefficients[
             0xBF00_0020,
             0x3EAA_AAE6,
         ]()
         u_squared_times_pval = u * u * p(u)
 
     else:  # dtype == DType.float64
-        alias p = Polynomial[5, dtype, simd_width].from_hexadecimal_coefficients[
+        alias p = Polynomial[
+            5, dtype, simd_width
+        ].from_hexadecimal_coefficients[
             0xBFE00000_00000000,
             0x3FD55555_555279E5,
             0xBFCFFFFF_FFFA0C2B,
@@ -123,7 +132,8 @@ fn _log1p_procedure_2[
 ](x: SIMD[dtype, simd_width], cond: SIMD[DType.bool, simd_width]) -> SIMD[
     dtype, simd_width
 ]:
-    """Implements the procedure 2 of `log1p` as specified in the reference paper."""
+    """Implements the procedure 2 of `log1p` as specified in the reference paper.
+    """
     var safe_x = cond.select(x, 0.0)
     var inv_x_plus_two = math.reciprocal(safe_x + 2.0)
     var u = 2.0 * safe_x * inv_x_plus_two
@@ -145,7 +155,9 @@ fn _log1p_procedure_2[
 
     @parameter
     if dtype == DType.float32:
-        alias p = Polynomial[2, dtype, simd_width].from_hexadecimal_coefficients[
+        alias p = Polynomial[
+            2, dtype, simd_width
+        ].from_hexadecimal_coefficients[
             0x3DAA_AAAA,
             0x3C4C_F264,
         ]()
@@ -155,7 +167,9 @@ fn _log1p_procedure_2[
         precision_shift = 13
 
     else:  # dtype == DType.float64
-        alias p = Polynomial[4, dtype, simd_width].from_hexadecimal_coefficients[
+        alias p = Polynomial[
+            4, dtype, simd_width
+        ].from_hexadecimal_coefficients[
             0x3FB55555_5555554A,
             0x3F899999_99A528F3,
             0x3F624923_AA1832F2,
@@ -175,7 +189,9 @@ fn _log1p_procedure_2[
     var x_term2 = safe_x - x_term1
     var u_term2 = inv_x_plus_two * (
         math.fma(
-            -u_term1, x_term2, math.fma(-u_term1, x_term1, 2.0 * (safe_x - u_term1))
+            -u_term1,
+            x_term2,
+            math.fma(-u_term1, x_term1, 2.0 * (safe_x - u_term1)),
         )
     )
 
@@ -189,8 +205,8 @@ fn _log1p_procedure_3[
     dtype, simd_width
 ]:
     """Implements the procedure of `log1p` for when `x` is tiny."""
-    alias smallest_subnormal = FloatLimits[dtype].smallest_subnormal
-    var safe_x = cond.select(x, 0.5 * FloatLimits[dtype].epsneg)
+    alias smallest_subnormal = FloatLimits[dtype].denorm_min()
+    var safe_x = cond.select(x, 0.5 * FloatLimits[dtype].epsilon_neg())
 
     return 0.125 * math.fma[dtype, simd_width](8.0, safe_x, -smallest_subnormal)
 
@@ -219,7 +235,7 @@ fn log1p[
     """
     assert_float_dtype["dtype", dtype]()
 
-    alias epsneg = FloatLimits[dtype].epsneg
+    alias epsneg = FloatLimits[dtype].epsilon_neg()
     alias inf: SIMD[dtype, simd_width] = math.limit.inf[dtype]()
 
     var result: SIMD[dtype, simd_width] = math.nan[dtype]()
@@ -247,7 +263,9 @@ fn log1p[
         )
 
         is_in_region5 = (x_abs >= epsneg) & (x > xsml_inf) & (x < xsml_sup)
-        is_in_region6 = ((x > -1.0) & (x <= xsml_inf)) | ((x >= xsml_sup) & (x < inf))
+        is_in_region6 = ((x > -1.0) & (x <= xsml_inf)) | (
+            (x >= xsml_sup) & (x < inf)
+        )
 
     else:  # dtype == DType.float64
         alias xsml_inf: SIMD[dtype, simd_width] = bitcast[dtype, DType.uint64](
@@ -258,19 +276,27 @@ fn log1p[
         )
 
         is_in_region5 = (x_abs >= epsneg) & (x > xsml_inf) & (x < xsml_sup)
-        is_in_region6 = ((x > -1.0) & (x <= xsml_inf)) | ((x >= xsml_sup) & (x < inf))
+        is_in_region6 = ((x > -1.0) & (x <= xsml_inf)) | (
+            (x >= xsml_sup) & (x < inf)
+        )
 
     result = (is_in_region1 | is_in_region2).select(x, result)
     result = is_in_region3.select(-inf, result)
 
     # TODO: Should we avoid creating runtime branches to be accelerator friendly?
     if is_in_region4.reduce_or():
-        result = is_in_region4.select(_log1p_procedure_3(x, is_in_region4), result)
+        result = is_in_region4.select(
+            _log1p_procedure_3(x, is_in_region4), result
+        )
 
     if is_in_region5.reduce_or():
-        result = is_in_region5.select(_log1p_procedure_2(x, is_in_region5), result)
+        result = is_in_region5.select(
+            _log1p_procedure_2(x, is_in_region5), result
+        )
 
     if is_in_region6.reduce_or():
-        result = is_in_region6.select(_log1p_procedure_1(x, is_in_region6), result)
+        result = is_in_region6.select(
+            _log1p_procedure_1(x, is_in_region6), result
+        )
 
     return result

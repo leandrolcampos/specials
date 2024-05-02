@@ -14,7 +14,7 @@
 # limitations under the License.
 # ===----------------------------------------------------------------------=== #
 
-"""Common constants for elementary function implementations."""
+"""Defines common constants for elementary function implementations."""
 
 from specials._internal.asserting import assert_float_dtype
 from specials._internal.table import FloatTable
