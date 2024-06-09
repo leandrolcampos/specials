@@ -32,7 +32,7 @@ fn _float_limits_construction_checks[type: DType]():
 
 
 @always_inline
-fn _digits[type: DType]() -> Int:
+fn _digits[type: DType]() -> IntLiteral:
     """
     Returns the number of `radix` digits that the given type can represent
     without loss of precision.
@@ -50,7 +50,7 @@ fn _digits[type: DType]() -> Int:
 
 
 @always_inline
-fn _max_exponent[type: DType]() -> Int:
+fn _max_exponent[type: DType]() -> IntLiteral:
     """
     Returns the maximum positive integer such that `radix` raised to
     `(max_exponent-1)` generates a representable finite floating-point number.
@@ -67,7 +67,7 @@ fn _max_exponent[type: DType]() -> Int:
 
 
 @always_inline
-fn _min_exponent[type: DType]() -> Int:
+fn _min_exponent[type: DType]() -> IntLiteral:
     """
     Returns the minimum negative integer such that `radix` raised to
     `(min_exponent-1)` generates a normalized floating-point number.
@@ -95,25 +95,25 @@ struct FloatLimits[type: DType]:
         type: The floating-point for which `FloatLimits` returns information.
     """
 
-    alias digits: Int = _digits[type]()
+    alias digits: IntLiteral = _digits[type]()
     """
     The number of `radix` digits that the given type can represent without loss
     of precision.
     """
 
-    alias max_exponent: Int = _max_exponent[type]()
+    alias max_exponent: IntLiteral = _max_exponent[type]()
     """
     Maximum positive integer such that `radix` raised to `(max_exponent-1)`
     generates a representable finite floating-point number.
     """
 
-    alias min_exponent: Int = _min_exponent[type]()
+    alias min_exponent: IntLiteral = _min_exponent[type]()
     """
     Minimum negative integer such that `radix` raised to `(min_exponent-1)`
     generates a normalized floating-point number.
     """
 
-    alias radix: Int = 2
+    alias radix: IntLiteral = 2
     """The integral base used for the representation of the given type."""
 
     @staticmethod
