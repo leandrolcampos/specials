@@ -56,6 +56,7 @@ echo "Packaging up the test_utils"
 TEST_UTILS_PATH="${REPO_ROOT}/test/test_utils"
 FULL_TEST_UTILS_PACKAGE_PATH="${BUILD_DIR}/test_utils.mojopkg"
 mojo package "${TEST_UTILS_PATH}" \
+             -I "${BUILD_DIR}" \
              -o "${FULL_TEST_UTILS_PACKAGE_PATH}" \
              $ASSERTION_FLAG
 
