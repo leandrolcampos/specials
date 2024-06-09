@@ -18,134 +18,81 @@
 """Tests for tensor utilities."""
 
 import math
-import random
 
-from tensor import Tensor
-from tensor.random import rand
+from tensor import Tensor, TensorShape
 
 from test_utils import UnitTest
-from test_utils.tensor import elementwise
+from test_utils.tensor import elementwise, random_uniform
 
 
-# TODO: Investigate why using non-trivial operators leads to test failures.
 # TODO: Investigate why defining `MOJO_ENABLE_ASSERTIONS` leads to test failures.
 
 
-fn test_elemwise_tensor[
-    type: DType, force_sequential: Bool = False
-](*shape: Int) raises:
-    random.seed(42)
-
-    var x = rand[type](shape)
-    var res = elementwise[math.floor, force_sequential=force_sequential](x)
-
-    var unit_test = UnitTest(
-        "test_elemwise_tensor_" + str(x.spec()) + "_" + str(force_sequential)
-    )
-    var rtol: Scalar[type]
-
+fn test_unary_elementwise() raises:
     @parameter
-    if type == DType.float32:
-        rtol = 1e-6
-    else:  # type == DType.float64
-        rtol = 1e-12
+    fn test_fn[type: DType, force_sequential: Bool](*shape: Int) raises:
+        var unit_test = UnitTest("test_unary_elementwise")
 
-    # The for loop is simple, direct, and so, good for testing.
-    for i in range(x.num_elements()):
-        unit_test.assert_all_close(
-            res[i], math.floor(x[i]), atol=0.0, rtol=rtol
+        var x = random_uniform[type](1.0, 2.0, TensorShape(shape))
+
+        var actual = elementwise[math.reciprocal](x)
+        var expected = 1.0 / x
+
+        unit_test.assert_true(
+            actual == expected, msg=str(x.spec()) + "_" + str(force_sequential)
         )
 
+    test_fn[DType.float32, force_sequential=False](64, 64)
+    test_fn[DType.float32, force_sequential=True](64, 64)
 
-fn test_elemwise_tensor_scalar[
-    type: DType, force_sequential: Bool = False
-](*shape: Int) raises:
-    random.seed(42)
+    test_fn[DType.float64, force_sequential=False](64, 64)
+    test_fn[DType.float64, force_sequential=True](64, 64)
 
-    var x = rand[type](shape)
-    var y = Scalar[type](0.0)
-    var res = elementwise[math.mul, force_sequential=force_sequential](x, y)
 
-    var unit_test = UnitTest(
-        "test_elemwise_tensor_scalar_"
-        + str(x.spec())
-        + "_"
-        + str(force_sequential)
-    )
-    var rtol: Scalar[type]
-
+fn test_binary_scalar_elementwise() raises:
     @parameter
-    if type == DType.float32:
-        rtol = 1e-6
-    else:  # type == DType.float64
-        rtol = 1e-12
+    fn test_fn[type: DType, force_sequential: Bool](*shape: Int) raises:
+        var unit_test = UnitTest("test_binary_scalar_elementwise")
 
-    # The for loop is simple, direct, and so, good for testing.
-    for i in range(x.num_elements()):
-        unit_test.assert_all_close(res[i], 0.0, atol=0.0, rtol=rtol)
+        var x = random_uniform[type](1.0, 2.0, TensorShape(shape))
+
+        var actual = elementwise[math.div](x, 2.0)
+        var expected = x / 2.0
+
+        unit_test.assert_true(
+            actual == expected, msg=str(x.spec()) + "_" + str(force_sequential)
+        )
+
+    test_fn[DType.float32, force_sequential=False](64, 64)
+    test_fn[DType.float32, force_sequential=True](64, 64)
+
+    test_fn[DType.float64, force_sequential=False](64, 64)
+    test_fn[DType.float64, force_sequential=True](64, 64)
 
 
-fn test_elemwise_tensor_tensor[
-    type: DType, force_sequential: Bool = False
-](*shape: Int) raises:
-    random.seed(42)
-
-    var x = rand[type](shape)
-    var y = Tensor[type](x.shape())
-    var res = elementwise[math.mul, force_sequential=force_sequential](x, y)
-
-    var unit_test = UnitTest(
-        "test_elemwise_tensor_tensor_"
-        + str(x.spec())
-        + "_"
-        + str(force_sequential)
-    )
-    var rtol: Scalar[type]
-
+fn test_binary_elementwise() raises:
     @parameter
-    if type == DType.float32:
-        rtol = 1e-6
-    else:  # type == DType.float64
-        rtol = 1e-12
+    fn test_fn[type: DType, force_sequential: Bool](*shape: Int) raises:
+        var unit_test = UnitTest("test_binary_elementwise")
 
-    # The for loop is simple, direct, and so, good for testing.
-    for i in range(x.num_elements()):
-        unit_test.assert_all_close(res[i], 0.0, atol=0.0, rtol=rtol)
+        var x = random_uniform[type](1.0, 2.0, TensorShape(shape))
+        var y = random_uniform[type](1.0, 2.0, x.shape())
+
+        var actual = elementwise[math.div](x, y)
+        var expected = x / y
+
+        unit_test.assert_true(
+            actual == expected, msg=str(x.spec()) + "_" + str(force_sequential)
+        )
+
+    test_fn[DType.float32, force_sequential=False](64, 64)
+    test_fn[DType.float32, force_sequential=True](64, 64)
+
+    test_fn[DType.float64, force_sequential=False](64, 64)
+    test_fn[DType.float64, force_sequential=True](64, 64)
 
 
 fn main() raises:
-    # The elementwise function for a binary operator: tensor.
-    test_elemwise_tensor[DType.float32]()
-    test_elemwise_tensor[DType.float32](16, 16)
-    test_elemwise_tensor[DType.float32](16_384)
-
-    test_elemwise_tensor[DType.float32, force_sequential=True]()
-    test_elemwise_tensor[DType.float32, force_sequential=True](16, 16)
-
-    test_elemwise_tensor[DType.float64]()
-    test_elemwise_tensor[DType.float64](16, 16)
-    test_elemwise_tensor[DType.float64](8_192)
-
-    # The elementwise function for a binary operator: tensor-scalar.
-    test_elemwise_tensor_scalar[DType.float32]()
-    test_elemwise_tensor_scalar[DType.float32](16, 16)
-    test_elemwise_tensor_scalar[DType.float32](262_144)
-
-    test_elemwise_tensor_scalar[DType.float32, force_sequential=True]()
-    test_elemwise_tensor_scalar[DType.float32, force_sequential=True](16, 16)
-
-    test_elemwise_tensor_scalar[DType.float64]()
-    test_elemwise_tensor_scalar[DType.float64](16, 16)
-    test_elemwise_tensor_scalar[DType.float64](131_072)
-
-    # The elementwise function for a binary operator: tensor-tensor.
-    test_elemwise_tensor_tensor[DType.float32]()
-    test_elemwise_tensor_tensor[DType.float32](16, 16)
-    test_elemwise_tensor_tensor[DType.float32](131_072)
-
-    test_elemwise_tensor_tensor[DType.float32, force_sequential=True]()
-    test_elemwise_tensor_tensor[DType.float32, force_sequential=True](16, 16)
-
-    test_elemwise_tensor_tensor[DType.float64]()
-    test_elemwise_tensor_tensor[DType.float64](16, 17)
-    test_elemwise_tensor_tensor[DType.float64](65_536)
+    test_unary_elementwise()
+    test_binary_elementwise()
+    test_binary_scalar_elementwise()

@@ -31,21 +31,25 @@ from test_utils.tensor import (
 )
 
 
-fn solution_report[
+fn _solution_report[
     solution_name: StringLiteral,
     func: UnaryOperator,
-    dtype: DType,
+    *,
+    type: DType,
     simd_width: Int,
     force_sequential: Bool = False,
-](x: Tensor[dtype], truth: PythonObject) raises -> PythonObject:
+](x: Tensor[type], truth: PythonObject) raises -> PythonObject:
     """Computes the evaluation metrics for a numerical solution in Mojo."""
     var builtins = Python.import_module("builtins")
     var np = Python.import_module("numpy")
     var py_utils = Python.import_module("test_utils")
 
-    var result = elementwise[func, dtype, simd_width](x)
+    var result = elementwise[func, type=type, simd_width=simd_width](x)
     var msecs = run_benchmark[
-        func, dtype, simd_width, force_sequential=force_sequential
+        func,
+        type=type,
+        simd_width=simd_width,
+        force_sequential=force_sequential,
     ](x).mean("ms")
     var err = py_utils.numerics_testing.error_in_ulps(
         tensor_to_numpy_array(result), truth
@@ -63,18 +67,20 @@ fn solution_report[
 
 
 fn run_experiment[
+    *,
     num_domains: Int,
     specials_func: UnaryOperator,
     mojo_func: UnaryOperator,
-    dtype: DType,
-    simd_width: Int = simdwidthof[dtype](),
+    type: DType,
+    simd_width: Int = simdwidthof[type](),
     force_sequential: Bool = False,
     mojo_func_name: StringLiteral = "Mojo Stdlib",
 ](
     experiment_name: StringLiteral,
+    *,
     num_samples: Int,
-    min_values: StaticTuple[Scalar[dtype], num_domains],
-    max_values: StaticTuple[Scalar[dtype], num_domains],
+    min_values: StaticTuple[Scalar[type], num_domains],
+    max_values: StaticTuple[Scalar[type], num_domains],
     truth_func: PythonObject,
     python_func: PythonObject,
     python_func_name: StringLiteral = "Python",
@@ -98,7 +104,7 @@ fn run_experiment[
             py_utils.benchmark.format_domain_name(min_value, max_value)
         )
 
-        var a = random_uniform[dtype, simd_width](
+        var a = random_uniform[type, simd_width=simd_width](
             min_value, max_value, num_samples
         )
         var a_arr = tensor_to_numpy_array(a)
@@ -107,21 +113,21 @@ fn run_experiment[
         var truth = truth_func(a_arr)
 
         # Specials function
-        var specials_report = solution_report[
+        var specials_report = _solution_report[
             "Specials",
             specials_func,
-            dtype,
-            simd_width,
+            type=type,
+            simd_width=simd_width,
             force_sequential=force_sequential,
         ](a, truth)
         _ = data.append(specials_report)
 
         # Mojo function
-        var mojo_report = solution_report[
+        var mojo_report = _solution_report[
             mojo_func_name,
             mojo_func,
-            dtype,
-            simd_width,
+            type=type,
+            simd_width=simd_width,
             force_sequential=force_sequential,
         ](a, truth)
         _ = data.append(mojo_report)
@@ -136,5 +142,5 @@ fn run_experiment[
         data,
         domain_names,
         num_solutions,
-        String(experiment_name) + " (" + str(dtype) + ")",
+        String(experiment_name) + " (" + str(type) + ")",
     )

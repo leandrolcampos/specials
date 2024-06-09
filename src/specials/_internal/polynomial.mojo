@@ -31,8 +31,8 @@ from memory.unsafe import bitcast
 from utils.static_tuple import StaticTuple
 
 from specials._internal import asserting
-from specials._internal.functional import fori_loop
 from specials._internal.table import get_hexadecimal_dtype
+from specials.utils.functional import fori_loop
 
 # TODO: Consider using a trait when it supports defining default method implementations.
 
@@ -98,10 +98,15 @@ struct Chebyshev[
 
         constrained[
             num_terms == len(coefficients_list),
-            "The number of coefficients must be equal to the parameter `num_terms`.",
+            (
+                "The number of coefficients must be equal to the parameter"
+                " `num_terms`."
+            ),
         ]()
 
-        var splatted_coefficients = StaticTuple[SIMD[dtype, simd_width], num_terms]()
+        var splatted_coefficients = StaticTuple[
+            SIMD[dtype, simd_width], num_terms
+        ]()
 
         for i in range(num_terms):
             splatted_coefficients[i] = coefficients_list[i]
@@ -136,12 +141,14 @@ struct Chebyshev[
         constrained[
             num_terms == len(coefficients_list),
             (
-                "The number of hexadecimal coefficients must be equal to the parameter"
-                " `num_terms`."
+                "The number of hexadecimal coefficients must be equal to the"
+                " parameter `num_terms`."
             ),
         ]()
 
-        var splatted_coefficients = StaticTuple[SIMD[dtype, simd_width], num_terms]()
+        var splatted_coefficients = StaticTuple[
+            SIMD[dtype, simd_width], num_terms
+        ]()
 
         for i in range(num_terms):
             splatted_coefficients[i] = bitcast[dtype](coefficients_list[i])
@@ -181,7 +188,9 @@ struct Chebyshev[
         asserting.assert_in_range["index", index, 0, num_terms]()
         return self._coefficients[index]
 
-    fn truncate[num_terms: Int](self: Self) -> Chebyshev[num_terms, dtype, simd_width]:
+    fn truncate[
+        num_terms: Int
+    ](self: Self) -> Chebyshev[num_terms, dtype, simd_width]:
         """Truncates the Chebyshev series by discarding high-degree terms.
 
         Parameters:
@@ -194,16 +203,21 @@ struct Chebyshev[
             The number of terms in the truncated series must be positive and less than
             or equal to the number of terms in the original series.
         """
-        asserting.assert_in_range["num_terms", num_terms, 1, self.num_terms + 1]()
+        asserting.assert_in_range[
+            "num_terms", num_terms, 1, self.num_terms + 1
+        ]()
         var coefficients = StaticTuple[SIMD[dtype, simd_width], num_terms]()
 
+        @always_inline
         @parameter
         fn body_func[i: Int]() -> None:
             coefficients[i] = self.get[i]()
 
-        fori_loop[0, num_terms, 1, body_func]()
+        fori_loop[body_func, 0, num_terms, 1]()
 
-        return Chebyshev[num_terms, dtype, simd_width] {_coefficients: coefficients}
+        return Chebyshev[num_terms, dtype, simd_width] {
+            _coefficients: coefficients
+        }
 
     fn economize[error_tolerance: Scalar[dtype]](self) -> Int:
         """Economizes the Chebyshev series by minimizing the number of terms.
@@ -233,6 +247,7 @@ struct Chebyshev[
         var num_terms_required = num_terms
         var error = Scalar[dtype](0.0)
 
+        @always_inline
         @parameter
         fn body_func[i: Int]() -> Bool:
             # For any coefficient `c` of the Chebyshev series `p`, the following condition
@@ -251,7 +266,7 @@ struct Chebyshev[
 
             return True
 
-        fori_loop[num_terms - 1, 0, -1, body_func]()
+        fori_loop[body_func, num_terms - 1, 0, -1]()
 
         return num_terms_required
 
@@ -285,13 +300,14 @@ struct Chebyshev[
             var c0 = self.get[num_terms - 2]()
             var c1 = self.get[num_terms - 1]()
 
+            @always_inline
             @parameter
             fn body_func[i: Int]() -> None:
                 tmp = c0
                 c0 = self.get[i]() - c1
                 c1 = math.fma(c1, two_x, tmp)
 
-            fori_loop[num_terms - 3, -1, -1, body_func]()
+            fori_loop[body_func, num_terms - 3, -1, -1]()
 
             result = math.fma(c1, x, c0)
 
@@ -348,10 +364,15 @@ struct Polynomial[
 
         constrained[
             num_terms == len(coefficients_list),
-            "The number of coefficients must be equal to the parameter `num_terms`.",
+            (
+                "The number of coefficients must be equal to the parameter"
+                " `num_terms`."
+            ),
         ]()
 
-        var splatted_coefficients = StaticTuple[SIMD[dtype, simd_width], num_terms]()
+        var splatted_coefficients = StaticTuple[
+            SIMD[dtype, simd_width], num_terms
+        ]()
 
         for i in range(num_terms):
             splatted_coefficients[i] = coefficients_list[i]
@@ -386,12 +407,14 @@ struct Polynomial[
         constrained[
             num_terms == len(coefficients_list),
             (
-                "The number of hexadecimal coefficients must be equal to the parameter"
-                " `num_terms`."
+                "The number of hexadecimal coefficients must be equal to the"
+                " parameter `num_terms`."
             ),
         ]()
 
-        var splatted_coefficients = StaticTuple[SIMD[dtype, simd_width], num_terms]()
+        var splatted_coefficients = StaticTuple[
+            SIMD[dtype, simd_width], num_terms
+        ]()
 
         for i in range(num_terms):
             splatted_coefficients[i] = bitcast[dtype](coefficients_list[i])
@@ -431,7 +454,9 @@ struct Polynomial[
         asserting.assert_in_range["index", index, 0, num_terms]()
         return self._coefficients[index]
 
-    fn truncate[num_terms: Int](self: Self) -> Polynomial[num_terms, dtype, simd_width]:
+    fn truncate[
+        num_terms: Int
+    ](self: Self) -> Polynomial[num_terms, dtype, simd_width]:
         """Truncates the Power series by discarding high-degree terms.
 
         Parameters:
@@ -444,16 +469,21 @@ struct Polynomial[
             The number of terms in the truncated series must be positive and less than
             or equal to the number of terms in the original series.
         """
-        asserting.assert_in_range["num_terms", num_terms, 1, self.num_terms + 1]()
+        asserting.assert_in_range[
+            "num_terms", num_terms, 1, self.num_terms + 1
+        ]()
         var coefficients = StaticTuple[SIMD[dtype, simd_width], num_terms]()
 
+        @always_inline
         @parameter
         fn body_func[i: Int]() -> None:
             coefficients[i] = self.get[i]()
 
-        fori_loop[0, num_terms, 1, body_func]()
+        fori_loop[body_func, 0, num_terms, 1]()
 
-        return Polynomial[num_terms, dtype, simd_width] {_coefficients: coefficients}
+        return Polynomial[num_terms, dtype, simd_width] {
+            _coefficients: coefficients
+        }
 
     fn __call__(self, x: SIMD[dtype, simd_width]) -> SIMD[dtype, simd_width]:
         """Evaluates the Power series at `x` using the Horner's scheme.
@@ -480,10 +510,11 @@ struct Polynomial[
         @parameter
         if num_terms > 1:
 
+            @always_inline
             @parameter
             fn body_func[i: Int]() -> None:
                 result = math.fma(result, x, self.get[i]())
 
-            fori_loop[num_terms - 2, -1, -1, body_func]()
+            fori_loop[body_func, num_terms - 2, -1, -1]()
 
         return result
