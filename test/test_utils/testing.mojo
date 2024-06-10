@@ -121,7 +121,7 @@ struct UnitTest:
             msg: The message to be printed if the assertion fails. Default is
                 an empty string.
 
-         Raises:
+        Raises:
             An `Error` with the provided message if assert fails and `None`
             otherwise.
         """
@@ -135,7 +135,7 @@ struct UnitTest:
         if actual.type.is_floating_point():
             result |= math.isnan(actual) & math.isnan(desired)
 
-        self._assert_true(result, msg=err_msg)
+        self._assert_true(all(result), msg=err_msg)
 
     fn assert_all_close[
         type: DType, width: Int
@@ -185,10 +185,9 @@ struct UnitTest:
 
         var result = (actual == desired)
 
-        result |= math.limit.isfinite(desired) & math.less_equal(
-            math.abs(diff),
-            atol + rtol * math.abs(desired),
+        result |= math.isfinite(desired) & (
+            abs(diff) <= (atol + rtol * abs(desired))
         )
         result |= math.isnan(actual) & math.isnan(desired)
 
-        self._assert_true(result, msg=err_msg)
+        self._assert_true(all(result), msg=err_msg)
