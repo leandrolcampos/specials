@@ -23,7 +23,6 @@ from algorithm.functional import vectorize
 from python import Python
 from python.object import PythonObject
 from tensor import Tensor, TensorShape
-from tensor.random import rand
 
 from specials.utils import functional
 
@@ -73,7 +72,7 @@ fn _elementwise_impl[
     else:
         functional.elementwise[inner_func, simd_width=simd_width](num_elements)
 
-    return result ^
+    return result^
 
 
 @always_inline
@@ -100,7 +99,7 @@ fn _elementwise_impl[
     else:
         functional.elementwise[inner_func, simd_width=simd_width](num_elements)
 
-    return result ^
+    return result^
 
 
 @always_inline
@@ -127,7 +126,7 @@ fn _elementwise_impl[
     else:
         functional.elementwise[inner_func, simd_width=simd_width](num_elements)
 
-    return result ^
+    return result^
 
 
 fn elementwise[
@@ -163,7 +162,7 @@ fn elementwise[
     ]()
 
     var result = _elementwise_impl[func, type, simd_width, force_sequential](x)
-    return result ^
+    return result^
 
 
 fn elementwise[
@@ -202,7 +201,7 @@ fn elementwise[
     var result = _elementwise_impl[func, type, simd_width, force_sequential](
         x, scalar
     )
-    return result ^
+    return result^
 
 
 fn elementwise[
@@ -245,7 +244,7 @@ fn elementwise[
     var result = _elementwise_impl[func, type, simd_width, force_sequential](
         x, y
     )
-    return result ^
+    return result^
 
 
 # ===----------------------------------------------------------------------=== #
@@ -426,15 +425,7 @@ fn random_uniform[
     if min_value >= max_value:
         raise Error("`min_value` must be less than `max_value`.")
 
-    var raw = rand[type](shape)
-    var scaled = elementwise[math.mul, simd_width=simd_width](
-        raw, max_value - min_value
-    )
-    var shifted = elementwise[math.add, simd_width=simd_width](
-        scaled, min_value
-    )
-
-    return shifted
+    return min_value + Tensor[type].rand(shape) * (max_value - min_value)
 
 
 fn random_uniform[
