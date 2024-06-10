@@ -26,7 +26,8 @@ from specials._internal import asserting
 
 @always_inline
 fn get_hexadecimal_dtype[decimal_dtype: DType]() -> DType:
-    """Returns the hexadecimal dtype corresponding to the provided decimal dtype."""
+    """Returns the hexadecimal dtype corresponding to the provided decimal dtype.
+    """
 
     @parameter
     if decimal_dtype == DType.float32:
@@ -107,7 +108,10 @@ struct FloatTable[size: Int, dtype: DType](Sized):
 
         constrained[
             size == len(values_list),
-            "The number of hexadecimal values must be equal to the parameter `size`.",
+            (
+                "The number of hexadecimal values must be equal to the"
+                " parameter `size`."
+            ),
         ]()
 
         var data = StaticTuple[Scalar[dtype], size]()
@@ -171,7 +175,7 @@ struct FloatTable[size: Int, dtype: DType](Sized):
         asserting.assert_integral_dtype["index.type", index.type]()
         var result = SIMD[dtype, index.size]()
 
-        @unroll
+        @parameter
         for i in range(index.size):
             result[i] = self._data[int(index[i])]
 
