@@ -64,7 +64,7 @@ fn lbeta[
     """
     asserting.assert_float_dtype["dtype", dtype]()
 
-    alias inf: SIMD[dtype, simd_width] = math.limit.inf[dtype]()
+    alias inf: SIMD[dtype, simd_width] = math.inf[dtype]()
     alias nan: SIMD[dtype, simd_width] = math.nan[dtype]()
     alias log_sqrt_2pi: SIMD[
         dtype, simd_width
@@ -72,14 +72,14 @@ fn lbeta[
 
     # Ensure that `a` is the smaller of the two arguments and `b` is the larger one.
     # Although the Beta function is mathematically symmetric, this procedure is not.
-    var a = math.min(x, y)
-    var b = math.max(x, y)
+    var a = min(x, y)
+    var b = max(x, y)
 
     # The `math.lgamma`` operation is one of the most computationally expensive
     # operations in this procedure. To avoid calling it when possible, we mask out
     # large values of `a` and `b`.
-    var a_small = math.select(a < 8.0, a, nan)
-    var b_small = math.select(b < 8.0, b, nan)
+    var a_small = (a < 8.0).select(a, nan)
+    var b_small = (b < 8.0).select(b, nan)
 
     var lgamma_a_small = math.lgamma(a_small)
     var apb = a + b
@@ -100,7 +100,7 @@ fn lbeta[
         - a * log(apb)
         + (b - 0.5) * log1p_neg_a_over_apb
     )
-    result = math.select(b >= 8.0, result_for_large_b, result)
+    result = (b >= 8.0).select(result_for_large_b, result)
 
     # `a` and `b` are large: `8.0 <= a <= b`.
     correction += lgamma_correction(a)
@@ -111,23 +111,13 @@ fn lbeta[
         + (a - 0.5) * log(a_over_apb)
         + b * log1p_neg_a_over_apb
     )
-    result = math.select(a >= 8.0, result_for_large_a, result)
+    result = (a >= 8.0).select(result_for_large_a, result)
 
     # We have already computed the value of the log-beta function for positive arguments.
     # For other cases, this procedure returns the same values as the corresponding one in
     # the R language.
-    return math.select(
-        (a < 0.0) | math.isnan(x) | math.isnan(y),
-        nan,
-        math.select(
-            a == 0.0,
-            inf,
-            math.select(
-                math.limit.isinf(b),
-                -inf,
-                result,
-            ),
-        ),
+    return ((a < 0.0) | math.isnan(x) | math.isnan(y)).select(
+        nan, (a == 0.0).select(inf, math.isinf(b).select(-inf, result))
     )
 
 
@@ -163,10 +153,10 @@ fn lgamma_correction[
     alias zero: SIMD[dtype, simd_width] = 0.0
 
     alias xmin: SIMD[dtype, simd_width] = 8.0
-    alias xbig: SIMD[dtype, simd_width] = math.reciprocal(
+    alias xbig: SIMD[dtype, simd_width] = 1.0 / (
         math.exp2[dtype, 1](0.5 * -FloatLimits[dtype].digits)
     )
-    alias xmax: SIMD[dtype, simd_width] = math.reciprocal(
+    alias xmax: SIMD[dtype, simd_width] = 1.0 / (
         12.0 * FloatLimits[dtype].min()
     )
 
@@ -198,17 +188,11 @@ fn lgamma_correction[
     alias num_terms = p.economize[error_tolerance]()
     alias p_truncated = p.truncate[num_terms]()
 
-    return math.select(
-        (x < xmin) | math.isnan(x),
+    return ((x < xmin) | math.isnan(x)).select(
         nan,
-        math.select(
-            x < xbig,
-            p_truncated(2.0 * math.pow(xmin / x, 2) - 1.0) / x,
-            math.select(
-                x < xmax,
-                math.reciprocal(12.0 * x),
-                zero,
-            ),
+        (x < xbig).select(
+            p_truncated(2.0 * pow(xmin / x, 2) - 1.0) / x,
+            (x < xmax).select(1.0 / (12.0 * x), zero),
         ),
     )
 
@@ -388,29 +372,23 @@ fn rgamma1pm1[
     ]()
     alias s = q
 
-    result = is_in_region1.select(0.0, result)
+    result = is_in_region1.select[dtype](0.0, result)
 
-    var t = math.select(is_in_region2 | is_in_region3, x, x - 1.0)
+    var t = (is_in_region2 | is_in_region3).select(x, x - 1.0)
 
     if (is_in_region2 | is_in_region4).reduce_or():
         var y = p(t) / q(t)
-        result = math.select(
-            is_in_region2,
-            x * (y + 1.0),
-            math.select(is_in_region4, (t / x) * y, result),
+        result = is_in_region2.select(
+            x * (y + 1.0), is_in_region4.select((t / x) * y, result)
         )
 
     if (is_in_region3 | is_in_region5).reduce_or():
         var z = r(t) / s(t)
-        result = math.select(
-            is_in_region3,
-            x * z,
-            math.select(is_in_region5, (t / x) * (z - 1.0), result),
+        result = is_in_region3.select(
+            x * z, is_in_region5.select((t / x) * (z - 1.0), result)
         )
 
     if is_in_region6.reduce_or():
-        result = is_in_region6.select(
-            math.reciprocal(math.tgamma(1.0 + x)) - 1.0, result
-        )
+        result = is_in_region6.select(1.0 / math.gamma(1.0 + x) - 1.0, result)
 
     return result

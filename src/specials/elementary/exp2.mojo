@@ -80,11 +80,11 @@ fn _exp2_impl[
             0x3D63_4D8A,
         ]()
 
-        var xn = math.round(safe_x)
+        var xn = round(safe_x)
         var xf = safe_x - xn
 
-        var yn = math.round(xf * 32.0)
-        var yn2 = math.mod(yn, 32.0)
+        var yn = round(xf * 32.0)
+        var yn2 = yn % 32.0
         var yn1 = yn - yn2
 
         var y_reduced = math.fma(-yn, one_over_32, xf)
@@ -111,11 +111,11 @@ fn _exp2_impl[
             0x3F24308B_04A657CB,
         ]()
 
-        var xn = math.round(safe_x)
+        var xn = round(safe_x)
         var xf = safe_x - xn
 
-        var yn = math.round(xf * 32.0)
-        var yn2 = math.mod(yn, 32.0)
+        var yn = round(xf * 32.0)
+        var yn2 = yn % 32.0
         var yn1 = yn - yn2
 
         var y_reduced = math.fma(-yn, one_over_32, xf)
@@ -155,10 +155,10 @@ fn exp2[
     """
     assert_float_dtype["dtype", dtype]()
 
-    alias inf: SIMD[dtype, simd_width] = math.limit.inf[dtype]()
+    alias inf: SIMD[dtype, simd_width] = math.inf[dtype]()
 
     var result: SIMD[dtype, simd_width] = math.nan[dtype]()
-    var x_abs = math.abs(x)
+    var x_abs = abs(x)
 
     # Regions of computation
     var is_in_region1: SIMD[DType.bool, simd_width]  # abs(x) < xeps
@@ -205,9 +205,9 @@ fn exp2[
         is_in_region3 = x < xmin
         is_in_region4 = (x_abs >= xeps) & (x >= xmin) & (x <= xmax)
 
-    result = is_in_region1.select(1.0, result)
+    result = is_in_region1.select[dtype](1.0, result)
     result = is_in_region2.select(inf, result)
-    result = is_in_region3.select(0.0, result)
+    result = is_in_region3.select[dtype](0.0, result)
 
     if is_in_region4.reduce_or():
         result = is_in_region4.select(_exp2_impl(x, is_in_region4), result)

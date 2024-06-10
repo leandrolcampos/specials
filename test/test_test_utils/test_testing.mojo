@@ -50,7 +50,7 @@ fn test_assert_equal_simd_success() raises:
     var unit_test = UnitTest("test_assert_equal_simd_success")
 
     var nan = math.nan[DType.float32]()
-    var inf = math.limit.inf[DType.float32]()
+    var inf = math.inf[DType.float32]()
     var actual = SIMD[DType.float32, 4](1.0, 2.0, inf, nan)
     var desired = SIMD[DType.float32, 4](1.0, 2.0, inf, nan)
 
@@ -63,7 +63,7 @@ fn test_assert_equal_simd_failure() raises:
     var unit_test = UnitTest("test_assert_equal_simd_failure")
 
     var nan = math.nan[DType.float32]()
-    var inf = math.limit.inf[DType.float32]()
+    var inf = math.inf[DType.float32]()
     var actual = SIMD[DType.float32, 4](0.0, 2.0, inf, nan)
     var desired = SIMD[DType.float32, 4](0.0, 2.0, inf, 4.0)
 
@@ -77,7 +77,7 @@ fn test_assert_all_close_success() raises:
     var unit_test = UnitTest("test_assert_all_close_success")
 
     var nan = math.nan[DType.float32]()
-    var inf = math.limit.inf[DType.float32]()
+    var inf = math.inf[DType.float32]()
     var actual = SIMD[DType.float32, 4](nan, inf, 1.1, 10.2)
     var desired = SIMD[DType.float32, 4](nan, inf, 1.0, 10.0)
 
@@ -94,7 +94,7 @@ fn test_assert_all_close_failure_nan() raises:
     var unit_test = UnitTest("test_assert_all_close_failure_nan")
 
     var nan = math.nan[DType.float32]()
-    var inf = math.limit.inf[DType.float32]()
+    var inf = math.inf[DType.float32]()
     var actual = SIMD[DType.float32, 4](nan, inf, 1.1, 10.2)
     var desired = SIMD[DType.float32, 4](0.0, inf, 1.0, 10.0)
 
@@ -112,7 +112,7 @@ fn test_assert_all_close_failure_inf() raises:
     var unit_test = UnitTest("test_assert_all_close_failure_inf")
 
     var nan = math.nan[DType.float32]()
-    var inf = math.limit.inf[DType.float32]()
+    var inf = math.inf[DType.float32]()
     var actual = SIMD[DType.float32, 4](nan, 0.0, 1.1, 10.2)
     var desired = SIMD[DType.float32, 4](nan, inf, 1.0, 10.0)
 
@@ -130,7 +130,7 @@ fn test_assert_all_close_failure_atol() raises:
     var unit_test = UnitTest("test_assert_all_close_failure_atol")
 
     var nan = math.nan[DType.float32]()
-    var inf = math.limit.inf[DType.float32]()
+    var inf = math.inf[DType.float32]()
     var actual = SIMD[DType.float32, 4](nan, inf, 1.11, 10.2)
     var desired = SIMD[DType.float32, 4](nan, inf, 1.0, 10.0)
 
@@ -148,7 +148,7 @@ fn test_assert_all_close_failure_rtol() raises:
     var unit_test = UnitTest("test_assert_all_close_failure_rtol")
 
     var nan = math.nan[DType.float32]()
-    var inf = math.limit.inf[DType.float32]()
+    var inf = math.inf[DType.float32]()
     var actual = SIMD[DType.float32, 4](nan, inf, 1.1, 10.21)
     var desired = SIMD[DType.float32, 4](nan, inf, 1.0, 10.0)
 

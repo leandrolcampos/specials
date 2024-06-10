@@ -72,11 +72,11 @@ fn _expm1_procedure_1[
             0x3E2A_AAEC,
         ]()
 
-        var xn = math.round(safe_x * inv_ln2_over_32)
-        var xn2 = math.mod(xn, 32.0)
+        var xn = round(safe_x * inv_ln2_over_32)
+        var xn2 = xn % 32.0
         var xn1 = xn - xn2
 
-        var xn_is_large = (math.abs(xn) >= 512)
+        var xn_is_large = (abs(xn) >= 512)
         var x_reduced_lead = math.fma(
             -xn_is_large.select(xn1, xn), ln2_over_32_lead, safe_x
         )
@@ -123,11 +123,11 @@ fn _expm1_procedure_1[
             0x3F56C172_8D739765,
         ]()
 
-        var xn = math.round(safe_x * inv_ln2_over_32)
-        var xn2 = math.mod(xn, 32.0)
+        var xn = round(safe_x * inv_ln2_over_32)
+        var xn2 = xn % 32.0
         var xn1 = xn - xn2
 
-        var xn_is_large = (math.abs(xn) >= 512)
+        var xn_is_large = (abs(xn) >= 512)
         var x_reduced_lead = math.fma(
             -xn_is_large.select(xn1, xn), ln2_over_32_lead, safe_x
         )
@@ -156,21 +156,19 @@ fn _expm1_procedure_1[
     var mantissa = (s_lead - inv_exp2) + math.fma(
         s_lead, expm1_r, s_trail * (1.0 + expm1_r)
     )
-    mantissa = math.select(
-        exponent > precision_minus_1,
+    mantissa = (exponent > precision_minus_1).select(
         s_lead + math.fma(s, expm1_r, s_trail - inv_exp2),
         mantissa,
     )
 
     var exponent_is_too_negative = (exponent <= -8.0)
-    mantissa = math.select(
-        exponent_is_too_negative,
+    mantissa = exponent_is_too_negative.select(
         s_lead + math.fma(s, expm1_r, s_trail),
         mantissa,
     )
 
     var result = math_lib.ldexp(mantissa, exponent)
-    result = math.select(exponent_is_too_negative, result - 1.0, result)
+    result = exponent_is_too_negative.select(result - 1.0, result)
 
     return result
 
@@ -231,8 +229,7 @@ fn _expm1_procedure_2[
     var x2_half_term1 = x_term1 * x_term1 * 0.5
     var x2_half_term2 = x_term2 * (safe_x + x_term1) * 0.5
 
-    return math.select(
-        x2_half_term1 < 0.0078125,
+    return (x2_half_term1 < 0.0078125).select(
         safe_x + (x2_half_term1 + (x3_gval + x2_half_term2)),
         (x_term1 + x2_half_term1) + (x3_gval + (x_term2 + x2_half_term2)),
     )
@@ -262,10 +259,10 @@ fn expm1[
     """
     assert_float_dtype["dtype", dtype]()
 
-    alias inf: SIMD[dtype, simd_width] = math.limit.inf[dtype]()
+    alias inf: SIMD[dtype, simd_width] = math.inf[dtype]()
 
     var result: SIMD[dtype, simd_width] = math.nan[dtype]()
-    var x_abs = math.abs(x)
+    var x_abs = abs(x)
 
     # Regions of computation
     var is_in_region1: SIMD[DType.bool, simd_width]  # Em1_Tiny | Em1_Zero
@@ -333,7 +330,7 @@ fn expm1[
 
     result = is_in_region1.select(x, result)
     result = is_in_region2.select(inf, result)
-    result = is_in_region3.select(-1.0, result)
+    result = is_in_region3.select[dtype](-1.0, result)
 
     if is_in_region4.reduce_or():
         result = is_in_region4.select(

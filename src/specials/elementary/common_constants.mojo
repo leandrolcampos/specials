@@ -32,7 +32,8 @@ from specials._internal.table import FloatTable
 
 @always_inline
 fn _get_exp_lead_table[dtype: DType]() -> FloatTable[32, dtype]:
-    """Returns the table entries of `exp_lead` for single or double precision."""
+    """Returns the table entries of `exp_lead` for single or double precision.
+    """
 
     @parameter
     if dtype == DType.float32:
@@ -109,7 +110,8 @@ fn _get_exp_lead_table[dtype: DType]() -> FloatTable[32, dtype]:
 
 @always_inline
 fn _get_exp_trail_table[dtype: DType]() -> FloatTable[32, dtype]:
-    """Returns the table entries of `exp_trail` for single or double precision."""
+    """Returns the table entries of `exp_trail` for single or double precision.
+    """
 
     @parameter
     if dtype == DType.float32:
@@ -186,7 +188,8 @@ fn _get_exp_trail_table[dtype: DType]() -> FloatTable[32, dtype]:
 
 @register_passable("trivial")
 struct ExpTable[dtype: DType]:
-    """Table entries of `exp_lead` and `exp_trail` for single or double precision."""
+    """Table entries of `exp_lead` and `exp_trail` for single or double precision.
+    """
 
     alias lead = _get_exp_lead_table[dtype]()
     alias trail = _get_exp_trail_table[dtype]()

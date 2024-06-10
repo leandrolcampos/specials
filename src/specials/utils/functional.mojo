@@ -84,7 +84,7 @@ fn elementwise[
     var num_cores = num_performance_cores()
     var num_workers = 1
 
-    if num_simds >= (num_cores * math.max(min_simds_per_core, 1)):
+    if num_simds >= (num_cores * max(min_simds_per_core, 1)):
         num_workers = num_cores
 
     var num_tasks = num_workers

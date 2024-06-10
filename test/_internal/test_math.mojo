@@ -45,7 +45,7 @@ fn test_ldexp_float_max[type: DType]() raises:
 
     unit_test.assert_equal(actual, expected)
     unit_test.assert_true(
-        math.limit.isfinite(actual).reduce_and(), msg="max should be finite"
+        math.isfinite(actual).reduce_and(), msg="max should be finite"
     )
 
 

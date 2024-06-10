@@ -69,7 +69,7 @@ fn test_log_special_cases[type: DType]() raises:
     var xmin = FloatLimits[type].min()
     var xmax = FloatLimits[type].max()
     var nan = math.nan[type]()
-    var inf = math.limit.inf[type]()
+    var inf = math.inf[type]()
 
     var xs = StaticTuple[Scalar[type], 13](
         nan,

@@ -71,11 +71,11 @@ fn _exp_impl[
             0x3E2A_AAEC,
         ]()
 
-        var xn = math.round(safe_x * inv_ln2_over_32)
-        var xn2 = math.mod(xn, 32.0)
+        var xn = round(safe_x * inv_ln2_over_32)
+        var xn2 = xn % 32.0
         var xn1 = xn - xn2
 
-        var xn_is_large = (math.abs(xn) >= 512)
+        var xn_is_large = (abs(xn) >= 512)
         var x_reduced_lead = math.fma(
             -xn_is_large.select(xn1, xn), ln2_over_32_lead, safe_x
         )
@@ -121,11 +121,11 @@ fn _exp_impl[
             0x3F56C172_8D739765,
         ]()
 
-        var xn = math.round(safe_x * inv_ln2_over_32)
-        var xn2 = math.mod(xn, 32.0)
+        var xn = round(safe_x * inv_ln2_over_32)
+        var xn2 = xn % 32.0
         var xn1 = xn - xn2
 
-        var xn_is_large = (math.abs(xn) >= 512)
+        var xn_is_large = (abs(xn) >= 512)
         var x_reduced_lead = math.fma(
             -xn_is_large.select(xn1, xn), ln2_over_32_lead, safe_x
         )
@@ -175,10 +175,10 @@ fn exp[
     """
     assert_float_dtype["dtype", dtype]()
 
-    alias inf: SIMD[dtype, simd_width] = math.limit.inf[dtype]()
+    alias inf: SIMD[dtype, simd_width] = math.inf[dtype]()
 
     var result: SIMD[dtype, simd_width] = math.nan[dtype]()
-    var x_abs = math.abs(x)
+    var x_abs = abs(x)
 
     # Regions of computation
     var is_in_region1: SIMD[DType.bool, simd_width]  # abs(x) < xeps
@@ -225,9 +225,9 @@ fn exp[
         is_in_region3 = x < xmin
         is_in_region4 = (x_abs >= xeps) & (x >= xmin) & (x <= xmax)
 
-    result = is_in_region1.select(1.0, result)
+    result = is_in_region1.select[dtype](1.0, result)
     result = is_in_region2.select(inf, result)
-    result = is_in_region3.select(0.0, result)
+    result = is_in_region3.select[dtype](0.0, result)
 
     if is_in_region4.reduce_or():
         result = is_in_region4.select(_exp_impl(x, is_in_region4), result)
