@@ -75,7 +75,7 @@ else:
     debug_level = "--debug-level none"
 
 config.substitutions.insert(0, ("%mojo", "mojo run"))
-config.substitutions.insert(1, ("%build_dir", f"-I {str(build_dir / build_mode)}"))
+config.substitutions.insert(1, ("%build_dir", f"-I {str(build_dir)}"))
 config.substitutions.insert(2, ("%assertion_flag", assertion_flag))
 config.substitutions.insert(3, ("%debug_level", "--debug-level full"))
 config.substitutions.insert(4, ("%sanitize_checks", ""))
