@@ -63,7 +63,7 @@ fn test_exp2_special_cases[type: DType]() raises:
     var xeps = 0.5 * FloatLimits[type].epsilon_neg()
     var xmax = math.nextafter(Scalar[type](FloatLimits[type].max_exponent), 0.0)
     var nan = math.nan[type]()
-    var inf = math.limit.inf[type]()
+    var inf = math.inf[type]()
 
     var xs = StaticTuple[Scalar[type], 13](
         nan,

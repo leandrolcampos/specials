@@ -28,6 +28,16 @@ from test_utils.tensor import elementwise, random_uniform
 # TODO: Investigate why defining `MOJO_ENABLE_ASSERTIONS` leads to test failures.
 
 
+@always_inline
+fn reciprocal(x: SIMD) -> __type_of(x):
+    return 1.0 / x
+
+
+@always_inline
+fn div(x: SIMD, y: __type_of(x)) -> __type_of(x):
+    return x / y
+
+
 fn test_unary_elementwise() raises:
     @parameter
     fn test_fn[type: DType, force_sequential: Bool](*shape: Int) raises:
@@ -35,7 +45,7 @@ fn test_unary_elementwise() raises:
 
         var x = random_uniform[type](1.0, 2.0, TensorShape(shape))
 
-        var actual = elementwise[math.reciprocal](x)
+        var actual = elementwise[reciprocal](x)
         var expected = 1.0 / x
 
         unit_test.assert_true(
@@ -56,7 +66,7 @@ fn test_binary_scalar_elementwise() raises:
 
         var x = random_uniform[type](1.0, 2.0, TensorShape(shape))
 
-        var actual = elementwise[math.div](x, 2.0)
+        var actual = elementwise[div](x, 2.0)
         var expected = x / 2.0
 
         unit_test.assert_true(
@@ -78,7 +88,7 @@ fn test_binary_elementwise() raises:
         var x = random_uniform[type](1.0, 2.0, TensorShape(shape))
         var y = random_uniform[type](1.0, 2.0, x.shape())
 
-        var actual = elementwise[math.div](x, y)
+        var actual = elementwise[div](x, y)
         var expected = x / y
 
         unit_test.assert_true(

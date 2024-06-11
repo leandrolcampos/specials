@@ -67,7 +67,7 @@ fn test_expm1_special_cases[type: DType]() raises:
     var xmin: Scalar[type]
     var xmax: Scalar[type]
     var nan = math.nan[type]()
-    var inf = math.limit.inf[type]()
+    var inf = math.inf[type]()
 
     @parameter
     if type == DType.float32:

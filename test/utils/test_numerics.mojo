@@ -59,10 +59,12 @@ fn test_float_limits_denorm_min() raises:
     var unit_test = UnitTest("test_float_limits_denorm_min")
 
     unit_test.assert_equal(
-        FloatLimits[DType.float16].denorm_min(), Float16(5.960464477539063e-08)
+        FloatLimits[DType.float16].denorm_min(),
+        Float64(5.960464477539063e-08),
     )
     unit_test.assert_equal(
-        FloatLimits[DType.float32].denorm_min(), Float32(1.401298464324817e-45)
+        FloatLimits[DType.float32].denorm_min(),
+        Float64(1.401298464324817e-45),
     )
     unit_test.assert_equal(
         FloatLimits[DType.float64].denorm_min(),

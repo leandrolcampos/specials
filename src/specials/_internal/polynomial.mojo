@@ -253,7 +253,7 @@ struct Chebyshev[
             # For any coefficient `c` of the Chebyshev series `p`, the following condition
             # holds: `c[0] == c[1] == ... == c[simd_width - 1]`.
             var value = self.get[i]()[0]
-            # TODO: Use `math.abs` when the problem evaluating it in compile-time is fixed.
+            # TODO: Use `abs` when the problem evaluating it in compile-time is fixed.
             # https://github.com/modularml/mojo/issues/1244
             if value < 0:
                 error -= value
@@ -311,7 +311,7 @@ struct Chebyshev[
 
             result = math.fma(c1, x, c0)
 
-        return math.select(math.abs(x) > 1.0, nan, result)
+        return (abs(x) > 1.0).select(nan, result)
 
 
 # ===---------------------------- Power Series ----------------------------=== #

@@ -44,28 +44,25 @@ fn _log1p_procedure_1[
     """
     alias max_exponent = FloatLimits[dtype].max_exponent - 1
     alias significant_bits = FloatLimits[dtype].digits
-    # There is no risk in using `math.ldexp` directly here.
-    alias threshold = math.ldexp[dtype, simd_width](1.0, significant_bits + 2)
+    alias threshold = 2 ** (significant_bits + 2)
 
     var safe_x = cond.select(x, 1.0)
-    var y = math.select(safe_x < threshold, 1.0 + safe_x, safe_x)
+    var y = (safe_x < threshold).select(1.0 + safe_x, safe_x)
 
     var fraction_and_exponent = math.frexp(y)
     var fraction = 2.0 * fraction_and_exponent[0]
     var exponent = fraction_and_exponent[1] - 1
 
-    var fraction1 = ldexp(math.round(ldexp(fraction, 7)), -7)
-    var index = math.round(ldexp(fraction1 - 1.0, 7)).cast[DType.int32]()
+    var fraction1 = ldexp(round(ldexp(fraction, 7)), -7)
+    var index = round(ldexp(fraction1 - 1.0, 7)).cast[DType.int32]()
 
     var power_of_two = ldexp[dtype, simd_width](
         1.0, -exponent.cast[DType.int32]()
     )
     var x_times_power_of_two = safe_x * power_of_two
-    var fraction2 = math.select(
-        (exponent <= -2) | (exponent >= max_exponent),
+    var fraction2 = ((exponent <= -2) | (exponent >= max_exponent)).select(
         fraction - fraction1,
-        math.select(
-            exponent >= significant_bits,
+        (exponent >= significant_bits).select(
             (x_times_power_of_two - fraction1) + power_of_two,
             (power_of_two - fraction1) + x_times_power_of_two,
         ),
@@ -135,7 +132,7 @@ fn _log1p_procedure_2[
     """Implements the procedure 2 of `log1p` as specified in the reference paper.
     """
     var safe_x = cond.select(x, 0.0)
-    var inv_x_plus_two = math.reciprocal(safe_x + 2.0)
+    var inv_x_plus_two = 1.0 / (safe_x + 2.0)
     var u = 2.0 * safe_x * inv_x_plus_two
     var u_squared = u * u
 
@@ -236,10 +233,10 @@ fn log1p[
     assert_float_dtype["dtype", dtype]()
 
     alias epsneg = FloatLimits[dtype].epsilon_neg()
-    alias inf: SIMD[dtype, simd_width] = math.limit.inf[dtype]()
+    alias inf: SIMD[dtype, simd_width] = math.inf[dtype]()
 
     var result: SIMD[dtype, simd_width] = math.nan[dtype]()
-    var x_abs = math.abs(x)
+    var x_abs = abs(x)
 
     # Regions of computation
     var is_in_region1 = (x == inf)

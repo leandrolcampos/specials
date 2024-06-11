@@ -78,7 +78,7 @@ fn test_log1p_special_cases[type: DType]() raises:
     var xlrg = math.ldexp(Scalar[type](1), FloatLimits[type].digits + 2)
     var xmax = FloatLimits[type].max()
     var nan = math.nan[type]()
-    var inf = math.limit.inf[type]()
+    var inf = math.inf[type]()
 
     var xs = StaticTuple[Scalar[type], 13](
         nan,

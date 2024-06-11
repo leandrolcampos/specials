@@ -66,7 +66,7 @@ fn test_exp_special_cases[type: DType]() raises:
         Scalar[type](FloatLimits[type].max_exponent) * log2, 0.0
     )
     var nan = math.nan[type]()
-    var inf = math.limit.inf[type]()
+    var inf = math.inf[type]()
 
     var xs = StaticTuple[Scalar[type], 13](
         nan,

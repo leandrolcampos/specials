@@ -18,6 +18,7 @@
 Implements utilities for performing compile-time assertions within the package.
 """
 
+import bit
 import math
 
 
@@ -106,7 +107,7 @@ fn assert_simd_width[
 ]() -> None:
     """Asserts that the given parameter is a valid SIMD width."""
     constrained[
-        parameter_value > 0 and math.is_power_of_2(parameter_value),
+        parameter_value > 0 and bit.is_power_of_two(parameter_value),
         "The parameter `"
         + parameter_name
         + "` must be positive and a power of two.",

@@ -45,20 +45,15 @@ fn _log_procedure_1[
 ]:
     """Implements the procedure 1 of `log` as specified in the reference paper.
     """
-    alias max_exponent = FloatLimits[dtype].max_exponent - 1
-    alias significant_bits = FloatLimits[dtype].digits
-    # There is no risk in using `math.ldexp` directly here.
-    alias threshold = math.ldexp[dtype, simd_width](1.0, significant_bits + 2)
-
     var safe_x = cond.select(x, 1.0)
 
     var fraction_and_exponent = math.frexp(safe_x)
     var fraction = 2.0 * fraction_and_exponent[0]
     var exponent = fraction_and_exponent[1] - 1
 
-    var fraction1 = ldexp(math.round(ldexp(fraction, 7)), -7)
+    var fraction1 = ldexp(round(ldexp(fraction, 7)), -7)
     var fraction2 = fraction - fraction1
-    var index = math.round(ldexp(fraction1 - 1.0, 7)).cast[DType.int32]()
+    var index = round(ldexp(fraction1 - 1.0, 7)).cast[DType.int32]()
 
     var log2_lead = LogConstants[dtype].log_fraction1_lead.get[128]()
     var log2_trail = LogConstants[dtype].log_fraction1_trail.get[128]()
@@ -124,7 +119,7 @@ fn _log_procedure_2[
     """Implements the procedure 2 of `log` as specified in the reference paper.
     """
     var y = cond.select(x - 1.0, 1.0)
-    var inv_y_plus_two = math.reciprocal(y + 2.0)
+    var inv_y_plus_two = 1.0 / (y + 2.0)
     var u = 2.0 * y * inv_y_plus_two
     var u_squared = u * u
 
@@ -206,13 +201,13 @@ fn log[
     """
     assert_float_dtype["dtype", dtype]()
 
-    alias inf: SIMD[dtype, simd_width] = math.limit.inf[dtype]()
+    alias inf: SIMD[dtype, simd_width] = math.inf[dtype]()
     alias log2: SIMD[dtype, simd_width] = 0.6931471805599453
     alias digits: SIMD[dtype, simd_width] = FloatLimits[dtype].digits
     alias xmin: SIMD[dtype, simd_width] = FloatLimits[dtype].min()
 
     var result: SIMD[dtype, simd_width] = math.nan[dtype]()
-    var x_abs = math.abs(x)
+    var x_abs = abs(x)
 
     # Regions of computation
     var is_in_region1 = (x == inf)
@@ -255,7 +250,7 @@ fn log[
 
     result = is_in_region1.select(x, result)
     result = is_in_region2.select(-inf, result)
-    result = is_in_region3.select(0.0, result)
+    result = is_in_region3.select[dtype](0.0, result)
 
     # TODO: Should we avoid creating runtime branches to be accelerator friendly?
     if is_in_region4.reduce_or():

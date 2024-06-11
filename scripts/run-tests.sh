@@ -31,21 +31,14 @@ export BUILD_MODE=$build_mode
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 REPO_ROOT=$(realpath "${SCRIPT_DIR}/..")
-BUILD_DIR="${REPO_ROOT}/build/${build_mode}"
+BUILD_DIR="${REPO_ROOT}/build"
 mkdir -p "${BUILD_DIR}"
-
-# Define MOJO_ENABLE_ASSERTIONS option based on the build mode
-ASSERTION_FLAG=""
-if [[ $build_mode == "debug" ]]; then
-    ASSERTION_FLAG="-D MOJO_ENABLE_ASSERTIONS"
-fi
 
 echo "Packaging up the Specials"
 SPECIALS_PATH="${REPO_ROOT}/src/specials"
 FULL_SPECIALS_PACKAGE_PATH="${BUILD_DIR}/specials.mojopkg"
 mojo package "${SPECIALS_PATH}" \
-             -o "${FULL_SPECIALS_PACKAGE_PATH}" \
-             $ASSERTION_FLAG
+             -o "${FULL_SPECIALS_PACKAGE_PATH}"
 
 echo Successfully created "${FULL_SPECIALS_PACKAGE_PATH}"
 
@@ -57,8 +50,7 @@ TEST_UTILS_PATH="${REPO_ROOT}/test/test_utils"
 FULL_TEST_UTILS_PACKAGE_PATH="${BUILD_DIR}/test_utils.mojopkg"
 mojo package "${TEST_UTILS_PATH}" \
              -I "${BUILD_DIR}" \
-             -o "${FULL_TEST_UTILS_PACKAGE_PATH}" \
-             $ASSERTION_FLAG
+             -o "${FULL_TEST_UTILS_PACKAGE_PATH}"
 
 echo Successfully created "${FULL_TEST_UTILS_PACKAGE_PATH}"
 

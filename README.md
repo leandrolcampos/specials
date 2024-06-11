@@ -49,7 +49,7 @@ Beyond the practical importance of special functions in scientific and industria
 
 ## Mojo Version Requirement
 
-Specials requires Mojo `24.2.*`. Make sure you have the correct Mojo version installed before using this package.
+Specials requires Mojo `24.4.0`. Make sure you have the correct Mojo version installed before using this package.
 
 ## Getting Started
 

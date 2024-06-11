@@ -55,7 +55,7 @@ fn ldexp[
     var result: SIMD[dtype, simd_width]
 
     if ((exp < min_exponent) | (exp > max_exponent)).reduce_or():
-        var exponent_clipped = math.clamp(exp, min_exponent, max_exponent)
+        var exponent_clipped = exp.clamp(min_exponent, max_exponent)
         var exponent_remainder = exp - exponent_clipped
 
         result = math.ldexp(math.ldexp(x, exponent_clipped), exponent_remainder)

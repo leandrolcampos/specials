@@ -19,7 +19,7 @@ set -euo pipefail
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 REPO_ROOT=$(realpath "${SCRIPT_DIR}/..")
-BUILD_DIR="${REPO_ROOT}/build/release"
+BUILD_DIR="${REPO_ROOT}/build"
 mkdir -p "${BUILD_DIR}"
 
 echo "Packaging up the Specials"

@@ -19,7 +19,7 @@
 
 from collections import List, Optional
 from sys.info import simdwidthof
-from tensor import rand, Tensor
+from tensor import Tensor
 
 from specials.utils.functional import elementwise, fori_loop
 from test_utils import UnitTest
@@ -58,12 +58,12 @@ fn _tensor_mul[
 
     if min_simds_per_core:
         elementwise[func, simd_width=simd_width](
-            num_elements, min_simds_per_core=min_simds_per_core.take()
+            num_elements, min_simds_per_core=min_simds_per_core.value()[]
         )
     else:
         elementwise[func, simd_width=simd_width](num_elements)
 
-    return ret ^
+    return ret^
 
 
 fn test_elementwise() raises:
@@ -71,8 +71,8 @@ fn test_elementwise() raises:
     fn test_fn[type: DType]() raises:
         var unit_test = UnitTest("test_elementwise")
 
-        var a = 1.0 + rand[type](4096)
-        var b = 1.0 + rand[type](a.shape())
+        var a = 1.0 + Tensor[type].rand(4096)
+        var b = 1.0 + Tensor[type].rand(a.shape())
 
         var actual = _tensor_mul(a, b)
         var expected = a * b
@@ -88,14 +88,14 @@ fn test_elementwise_parallel() raises:
     fn test_fn[type: DType](num_elements: Int) raises:
         var unit_test = UnitTest("test_elementwise_parallel")
 
-        var a = 1.0 + rand[type](num_elements)
-        var b = 1.0 + rand[type](a.shape())
+        var a = 1.0 + Tensor[type].rand(num_elements)
+        var b = 1.0 + Tensor[type].rand(a.shape())
 
         var actual = _tensor_mul(a, b, min_simds_per_core=1)
         var expected = a * b
 
         unit_test.assert_true(
-            actual == expected, msg=str(type) + "_" + num_elements
+            actual == expected, msg=str(type) + "_" + str(num_elements)
         )
 
     for num_elements in List(1, 5, 25, 125, 625):
@@ -108,14 +108,14 @@ fn test_elementwise_sequential() raises:
     fn test_fn[type: DType](num_elements: Int) raises:
         var unit_test = UnitTest("test_elementwise_sequential")
 
-        var a = 1.0 + rand[type](num_elements)
-        var b = 1.0 + rand[type](a.shape())
+        var a = 1.0 + Tensor[type].rand(num_elements)
+        var b = 1.0 + Tensor[type].rand(a.shape())
 
         var actual = _tensor_mul(a, b, min_simds_per_core=num_elements + 1)
         var expected = a * b
 
         unit_test.assert_true(
-            actual == expected, msg=str(type) + "_" + num_elements
+            actual == expected, msg=str(type) + "_" + str(num_elements)
         )
 
     for num_elements in List(1, 5, 25, 125, 625):
