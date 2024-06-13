@@ -59,7 +59,7 @@ Clone the Specials repository to your machine:
 git clone https://github.com/leandrolcampos/specials.git
 ```
 
-Considering that Mojo SDK as well as our benchmarks and tests depend on an existing installed version of Python, follow the instructions below to create, activate, and configure a Python virtual environment with Conda:
+Considering that Mojo SDK as well as our benchmarks and tests depend on an existing installed version of Python, follow the instructions below to create and activate a Python virtual environment with Conda:
 
 1. Install Conda by following the 
    [Quick command-line install instructions](https://docs.conda.io/projects/miniconda/en/latest/#quick-command-line-install). Ensure Conda is initialized for your shell:
@@ -79,25 +79,10 @@ Considering that Mojo SDK as well as our benchmarks and tests depend on an exist
    conda activate specials
    ```
 
-4. Configure Mojo to use the Python shared library from the specials environment::
+**Optional:** If using Visual Studio Code, consider adding the following items to `mojo.lsp.includeDirs` setting in the user or remote scope:
 
-   ```bash
-   mkdir -p $CONDA_PREFIX/etc/conda/activate.d
-   export MOJO_PYTHON_LIBRARY="$(find $CONDA_PREFIX/lib -iname 'libpython*.[s,d]*' | sort -r | head -n 1)"
-   echo "export MOJO_PYTHON_LIBRARY=\"$MOJO_PYTHON_LIBRARY\"" > \
-       $CONDA_PREFIX/etc/conda/activate.d/export-mojo.sh
-   mkdir -p $CONDA_PREFIX/etc/conda/deactivate.d
-   echo "unset MOJO_PYTHON_LIBRARY" > $CONDA_PREFIX/etc/conda/deactivate.d/unset-mojo.sh   
-   ```
-
-**Optional:** If using Visual Studio Code, consider adding the following lines to the project's [workspace settings](https://code.visualstudio.com/docs/getstarted/settings#_workspace-settings):
-
-```json
-"mojo.lsp.includeDirs": [
-    "/path/to/repo/src",
-    "/path/to/repo/test"
-]
-```
+- `/path/to/repo/src`
+- `/path/to/repo/test`
 
 Replace `/path/to/repo` with the absolute path of the cloned Specials repository.
 
