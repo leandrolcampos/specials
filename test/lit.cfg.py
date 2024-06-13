@@ -87,7 +87,6 @@ lit.llvm.initialize(lit_config, config)
 lit.llvm.llvm_config.with_system_environment(
     [
         "MODULAR_HOME",
-        "MOJO_PYTHON_LIBRARY",
         "PATH",
     ]
 )
