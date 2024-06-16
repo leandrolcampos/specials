@@ -23,14 +23,19 @@ For the next few months, adding implementations for new mathematical functions i
 ## Future Goals (Beyond 12 Months)
 
 - **Add Implementations for Special Functions**:
-  - `igamma`: Lower regularized incomplete Gamma function
-  - `igammac`: Upper regularized incomplete Gamma function
+  - `igamma`: Regularized incomplete Gamma function
+  - `igammac`: Complement of the regularized incomplete Gamma function
   - `igammainv`: Inverse of the `igamma` function
   - `igammacinv`: Inverse of the `igammac` function
-  - `ibeta`: Lower regularized incomplete Beta function
-  - `ibetac`: Upper regularized incomplete Beta function
+  - `ibeta`: Regularized incomplete Beta function
+  - `ibetac`: Complement of the regularized incomplete Beta function
   - `ibetainv`: Inverse of the `ibeta` function
   - `ibetacinv`: Inverse of the `ibetainv` function
+  - `erf`: Error function
+  - `erfc`: Complement of the error function
+  - `erfinv`: Inverse of the `erf` function
+  - `erfcinv`: Inverse of the `erfc` function
+  - `erfcx`: Scaled complementary error function
 
 - **Explore Partial Derivatives**: Investigate ways to implement partial derivatives of the special functions listed above.
 
