@@ -279,6 +279,48 @@ fn test_sub_with_overflow() raises:
     _assert_equal(uval24, SIMD[DEST_TYPE, 2](16_777_215, 16_777_214))
 
 
+fn test_comparison() raises:
+    @always_inline
+    fn _test_cmp[bits: Int, signed: Bool]() raises:
+        alias WIDTH = 4
+
+        var val1: BigInt[bits, width=WIDTH, signed=signed]
+        var val2: __type_of(val1)
+
+        @parameter
+        if signed:
+            val1 = SIMD[DEST_TYPE, WIDTH](-1, 0, 1, 2)
+            val2 = SIMD[DEST_TYPE, WIDTH](-2, 0, 2, -1)
+        else:
+            val1 = SIMD[DEST_TYPE, WIDTH](1, 0, 1, 2)
+            val2 = SIMD[DEST_TYPE, WIDTH](0, 0, 2, 1)
+
+        assert_equal(
+            val1 == val2, SIMD[DType.bool, WIDTH](False, True, False, False)
+        )
+        assert_equal(
+            val1 != val2, SIMD[DType.bool, WIDTH](True, False, True, True)
+        )
+        assert_equal(
+            val1 < val2, SIMD[DType.bool, WIDTH](False, False, True, False)
+        )
+        assert_equal(
+            val1 <= val2, SIMD[DType.bool, WIDTH](False, True, True, False)
+        )
+        assert_equal(
+            val1 > val2, SIMD[DType.bool, WIDTH](True, False, False, True)
+        )
+        assert_equal(
+            val1 >= val2, SIMD[DType.bool, WIDTH](True, True, False, True)
+        )
+
+    _test_cmp[8, signed=True]()
+    _test_cmp[8, signed=False]()
+
+    _test_cmp[24, signed=True]()
+    _test_cmp[24, signed=False]()
+
+
 fn test_invert() raises:
     _assert_equal(~BigInt[8, width=1](1), -2)
     _assert_equal(~BigInt[24, width=1](1), -2)
@@ -522,6 +564,8 @@ fn main() raises:
     test_sub()
     test_isub()
     test_sub_with_overflow()
+
+    test_comparison()
 
     test_invert()
 

@@ -295,6 +295,46 @@ fn _shift[
 
 
 # ===----------------------------------------------------------------------=== #
+# Operations for comparison
+# ===----------------------------------------------------------------------=== #
+
+
+@always_inline
+fn _compare(lhs: SIMD, rhs: __type_of(lhs)) -> SIMD[DType.int8, lhs.size]:
+    """Compares two SIMD vectors element-wise."""
+    alias ONE = SIMD[DType.int8, lhs.size](1)
+
+    return (lhs == rhs).select(0, (lhs < rhs).select(-1, ONE))
+
+
+@always_inline
+fn _compare(lhs: BigInt, rhs: __type_of(lhs)) -> SIMD[DType.int8, lhs.width]:
+    """Compares two `BigInt` values element-wise."""
+    alias ONE = SIMD[DType.int8, lhs.width](1)
+
+    var result = SIMD[DType.int8, lhs.width](0)
+
+    @parameter
+    if lhs.signed:
+        var lhs_is_negative = lhs.is_negative()
+        var rhs_is_negative = rhs.is_negative()
+        result = (lhs_is_negative != rhs_is_negative).select(
+            lhs_is_negative.select(-1, ONE), result
+        )
+
+    @parameter
+    for i in reversed(range(lhs.WORD_COUNT)):
+        result = (result == 0).select(
+            _compare(lhs._storage[i], rhs._storage[i]), result
+        )
+
+        if all(result != 0):
+            break
+
+    return result
+
+
+# ===----------------------------------------------------------------------=== #
 # BigInt
 # ===----------------------------------------------------------------------=== #
 
@@ -576,6 +616,110 @@ struct BigInt[
         _ = _inplace_binop[_uadd_with_carry](self._storage, rhs._storage)
 
     @always_inline
+    fn __sub__(self, rhs: Self) -> Self:
+        """Performs subtraction between two `BigInt` values, element-wise.
+
+        Args:
+            rhs: The right-hand side `BigInt` value.
+
+        Returns:
+            A new `BigInt` value containing the result of the subtraction.
+        """
+        var result = Self(self)
+
+        _ = _inplace_binop[_usub_with_carry](result._storage, rhs._storage)
+
+        return result
+
+    @always_inline
+    fn __isub__(inout self, rhs: Self):
+        """Performs in-place subtraction between two `BigInt` values,
+        element-wise.
+
+        Args:
+            rhs: The right-hand side `BigInt` value.
+        """
+        _ = _inplace_binop[_usub_with_carry](self._storage, rhs._storage)
+
+    @always_inline
+    fn __eq__(self, rhs: Self) -> SIMD[DType.bool, width]:
+        """Compares two `BigInt` values for equality, element-wise.
+
+        Args:
+            rhs: The right-hand side `BigInt` value.
+
+        Returns:
+            A SIMD vector of booleans indicating whether the corresponding
+            elements are equal.
+        """
+        return _compare(self, rhs) == 0
+
+    @always_inline
+    fn __ne__(self, rhs: Self) -> SIMD[DType.bool, width]:
+        """Compares two `BigInt` values for inequality, element-wise.
+
+        Args:
+            rhs: The right-hand side `BigInt` value.
+
+        Returns:
+            A SIMD vector of booleans indicating whether the corresponding
+            elements are not equal.
+        """
+        return _compare(self, rhs) != 0
+
+    @always_inline
+    fn __lt__(self, rhs: Self) -> SIMD[DType.bool, width]:
+        """Compares two `BigInt` values for less-than, element-wise.
+
+        Args:
+            rhs: The right-hand side `BigInt` value.
+
+        Returns:
+            A SIMD vector of booleans indicating whether the corresponding
+            elements are less than those of the right-hand side.
+        """
+        return _compare(self, rhs) == -1
+
+    @always_inline
+    fn __le__(self, rhs: Self) -> SIMD[DType.bool, width]:
+        """Compares two `BigInt` values for less-than-or-equal, element-wise.
+
+        Args:
+            rhs: The right-hand side `BigInt` value.
+
+        Returns:
+            A SIMD vector of booleans indicating whether the corresponding
+            elements are less than or equal to those of the right-hand side.
+        """
+        return _compare(self, rhs) != 1
+
+    @always_inline
+    fn __gt__(self, rhs: Self) -> SIMD[DType.bool, width]:
+        """Compares two `BigInt` values for greater-than, element-wise.
+
+        Args:
+            rhs: The right-hand side `BigInt` value.
+
+        Returns:
+            A SIMD vector of booleans indicating whether the corresponding
+            elements are greater than those of the right-hand side.
+        """
+        return _compare(self, rhs) == 1
+
+    @always_inline
+    fn __ge__(self, rhs: Self) -> SIMD[DType.bool, width]:
+        """Compares two `BigInt` values for greater-than-or-equal, element-wise.
+
+        Args:
+            rhs: The right-hand side `BigInt` value.
+
+        Returns:
+            A SIMD vector of booleans indicating whether the corresponding
+            elements are greater than or equal to those of the right-hand side.
+        """
+        return _compare(self, rhs) != -1
+
+    @always_inline
     fn __invert__(self) -> Self:
         """Performs bitwise inversion on a `BigInt` value.
 
@@ -663,32 +807,6 @@ struct BigInt[
             offset: The number of bits to shift the value by.
         """
         self = self >> offset
-
-    @always_inline
-    fn __sub__(self, rhs: Self) -> Self:
-        """Performs subtraction between two `BigInt` values, element-wise.
-
-        Args:
-            rhs: The right-hand side `BigInt` value.
-
-        Returns:
-            A new `BigInt` value containing the result of the subtraction.
-        """
-        var result = Self(self)
-
-        _ = _inplace_binop[_usub_with_carry](result._storage, rhs._storage)
-
-        return result
-
-    @always_inline
-    fn __isub__(inout self, rhs: Self):
-        """Performs in-place subtraction between two `BigInt` values,
-        element-wise.
-
-        Args:
-            rhs: The right-hand side `BigInt` value.
-        """
-        _ = _inplace_binop[_usub_with_carry](self._storage, rhs._storage)
 
     # ===------------------------------------------------------------------=== #
     # Methods
