@@ -808,6 +808,26 @@ struct BigInt[
         """
         self = self >> offset
 
+    @always_inline
+    fn __neg__(self) -> Self:
+        """Performs arithmetic negation on a `BigInt` vector.
+
+        Returns:
+            A new `BigInt` vector representing the result of the negation.
+        """
+        var result = ~self
+        result += 1
+        return result
+
+    @always_inline
+    fn __pos__(self) -> Self:
+        """Performs the unary plus operation on a `BigInt` vector.
+
+        Returns:
+            A new `BigInt` vector that is identical to the original.
+        """
+        return Self(self)
+
     # ===------------------------------------------------------------------=== #
     # Methods
     # ===------------------------------------------------------------------=== #
