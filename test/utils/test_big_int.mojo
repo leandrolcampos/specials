@@ -281,6 +281,7 @@ fn test_sub_with_overflow() raises:
 
 fn test_comparison() raises:
     @always_inline
+    @parameter
     fn _test_cmp[bits: Int, signed: Bool]() raises:
         alias WIDTH = 4
 
@@ -403,6 +404,45 @@ fn test_irshift() raises:
     var val = BigInt[24, width=1].min()
     val >>= 16
     _assert_equal(val, -128)
+
+
+fn test_negation() raises:
+    var val = SIMD[DEST_TYPE, 4](-2, -1, 0, 1)
+
+    @always_inline
+    @parameter
+    fn _test_neg[bits: Int, signed: Bool]() raises:
+        _assert_equal(
+            -BigInt[bits, signed=signed](val),
+            BigInt[bits, signed=signed](-val).cast[DEST_TYPE](),
+        )
+
+    _test_neg[8, signed=True]()
+    _test_neg[8, signed=False]()
+
+    _test_neg[24, signed=True]()
+    _test_neg[24, signed=False]()
+
+
+fn test_unary_plus() raises:
+    var val = SIMD[DEST_TYPE, 4](-2, -1, 0, 1)
+
+    @always_inline
+    @parameter
+    fn _test_plus[bits: Int, signed: Bool]() raises:
+        var original = BigInt[bits, signed=signed](val)
+        var updated = +original
+
+        _assert_equal(updated, original.cast[DEST_TYPE]())
+
+        updated += 1
+        _assert_equal(updated, (original + 1).cast[DEST_TYPE]())
+
+    _test_plus[8, signed=True]()
+    _test_plus[8, signed=False]()
+
+    _test_plus[24, signed=True]()
+    _test_plus[24, signed=False]()
 
 
 fn test_cast_to_signed_big_int() raises:
@@ -574,6 +614,9 @@ fn main() raises:
 
     test_rshift()
     test_irshift()
+
+    test_negation()
+    test_unary_plus()
 
     test_cast_to_signed_big_int()
     test_cast_to_unsigned_big_int()
