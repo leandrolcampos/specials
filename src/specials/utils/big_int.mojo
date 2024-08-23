@@ -156,7 +156,7 @@ fn _count_leading_zeros[
     """Counts the leading zeros in the internal representation of a `BigInt`."""
     constrained[type.is_integral(), "type must be an integral type"]()
 
-    alias TYPE_SIZE = type.bitwidth()
+    alias TYPE_BITWIDTH = type.bitwidth()
 
     var result = SIMD[type, size](0)
     var should_stop = SIMD[DType.bool, size](False)
@@ -165,7 +165,7 @@ fn _count_leading_zeros[
     for i in reversed(range(val.size)):
         var bit_count = countl_zero(val[i])
         result += should_stop.select(0, bit_count)
-        should_stop |= bit_count < TYPE_SIZE
+        should_stop |= bit_count < TYPE_BITWIDTH
 
         if all(should_stop):
             break
@@ -174,28 +174,26 @@ fn _count_leading_zeros[
 
 
 @always_inline
-fn _mask_leading_ones[word_type: DType, count: Int]() -> Scalar[word_type]:
+fn _mask_leading_ones[type: DType, count: Int]() -> Scalar[type]:
     """Creates a mask with the specified number of leading ones."""
-    return ~_mask_trailing_ones[word_type, word_type.bitwidth() - count]()
+    return ~_mask_trailing_ones[type, type.bitwidth() - count]()
 
 
 @always_inline
-fn _mask_trailing_ones[word_type: DType, count: Int]() -> Scalar[word_type]:
+fn _mask_trailing_ones[type: DType, count: Int]() -> Scalar[type]:
     """Creates a mask with the specified number of trailing ones."""
-    constrained[
-        word_type.is_unsigned(), "word type must be an unsigned, integral type"
-    ]()
+    constrained[type.is_unsigned(), "type must be an unsigned, integral type"]()
     constrained[count >= 0, "count must be non-negative"]()
     constrained[
-        count <= word_type.bitwidth(),
-        "count must be less than or equal to word size",
+        count <= type.bitwidth(),
+        "count must be less than or equal to the type's bitwidth",
     ]()
 
     @parameter
     if count == 0:
-        return Scalar[word_type](0)
+        return Scalar[type](0)
     else:
-        return ~Scalar[word_type](0) >> (word_type.bitwidth() - count)
+        return ~Scalar[type](0) >> (type.bitwidth() - count)
 
 
 @always_inline
@@ -245,7 +243,7 @@ fn _shift[
     """Performs a bitwise shift on the internal representation of a `BigInt`."""
     constrained[type.is_unsigned(), "type must be an unsigned, integral type"]()
 
-    alias TYPE_SIZE = type.bitwidth()
+    alias TYPE_BITWIDTH = type.bitwidth()
 
     var val_ptr = DTypePointer(val.unsafe_ptr().bitcast[Scalar[type]]())
 
@@ -275,8 +273,8 @@ fn _shift[
 
         return _gather(val_ptr, index, mask, default)
 
-    var index_offset = offset.cast[DType.index]() // TYPE_SIZE
-    var bit_offset = offset % TYPE_SIZE
+    var index_offset = offset.cast[DType.index]() // TYPE_BITWIDTH
+    var bit_offset = offset % TYPE_BITWIDTH
 
     @parameter
     for i in range(dst.size):
@@ -287,11 +285,13 @@ fn _shift[
         @parameter
         if is_left_shift:
             dst[int(at(index))] = (bit_offset == 0).select(
-                part1, part1 << bit_offset | part2 >> (TYPE_SIZE - bit_offset)
+                part1,
+                part1 << bit_offset | part2 >> (TYPE_BITWIDTH - bit_offset),
             )
         else:
             dst[int(at(index))] = (bit_offset == 0).select(
-                part1, part1 >> bit_offset | part2 << (TYPE_SIZE - bit_offset)
+                part1,
+                part1 >> bit_offset | part2 << (TYPE_BITWIDTH - bit_offset),
             )
 
 
@@ -380,7 +380,7 @@ fn _big_int_construction_checks[
     ]()
     constrained[
         bits % word_type.bitwidth() == 0,
-        "number of bits must be a multiple of word size",
+        "number of bits must be a multiple of the word type's bitwidth",
     ]()
 
 
@@ -403,30 +403,28 @@ struct BigInt[
     bits each and leverages SIMD operations for enhanced performance.
 
     Constraints:
-        The number of bits must be a multiple of the word size in bits, which
-        is determined by the word type.
+        The number of bits must be a multiple of the word type's bitwidth.
 
     Parameters:
-        bits: The number of bits each element of the `BigInt` vector can
-            represent. Constraints: Must be positive and a multiple of the word
-            size.
+        bits: The number of bits for each element of the `BigInt` vector.
+            Constraints: Must be positive.
         size: The size of the `BigInt` vector. Constraints: Must be positive
             and a power of two.
         signed: A boolean indicating whether the integers are signed (`True`)
             or unsigned (`False`). Defaults to `True`.
-        word_type: The type of the words used to represent the integers. For
-            performance reasons, defaults to the largest unsigned integer type
-            whose size in bits divides `bits` evenly.
+        word_type: The type of each word used in the internal representation
+            of the `BigInt` vector. For performance reasons, defaults to the
+            largest unsigned integer type whose bitwidth divides `bits` evenly.
     """
 
     # ===------------------------------------------------------------------=== #
     # Aliases
     # ===------------------------------------------------------------------=== #
 
-    alias WORD_SIZE = word_type.bitwidth()
-    """The size, in bits, of each word used to represent the integers."""
+    alias WORD_TYPE_BITWIDTH = word_type.bitwidth()
+    """The size, in bits, of the `word_type` parameter."""
 
-    alias WORD_COUNT = bits // Self.WORD_SIZE
+    alias WORD_COUNT = bits // Self.WORD_TYPE_BITWIDTH
     """The number of words used to represent the integers."""
 
     alias StorageType = InlineArray[SIMD[word_type, size], Self.WORD_COUNT]
@@ -496,7 +494,7 @@ struct BigInt[
         ]()
         _big_int_construction_checks[bits, word_type]()
 
-        alias TYPE_SIZE = value.type.bitwidth()
+        alias TYPE_BITWIDTH = value.type.bitwidth()
 
         var extension = ((value < 0) & signed).select(
             max_finite[word_type](), 0
@@ -512,8 +510,8 @@ struct BigInt[
             )
 
             @parameter
-            if TYPE_SIZE > Self.WORD_SIZE:
-                tmp >>= Self.WORD_SIZE
+            if TYPE_BITWIDTH > Self.WORD_TYPE_BITWIDTH:
+                tmp >>= Self.WORD_TYPE_BITWIDTH
             else:
                 tmp = 0
 
@@ -731,11 +729,11 @@ struct BigInt[
 
     @always_inline
     fn __invert__(self) -> Self:
-        """Performs bitwise inversion on a `BigInt` vector, element-wise.
+        """Performs a bitwise NOT operation on a `BigInt` vector, element-wise.
 
         Returns:
-            A new `BigInt` vector containing the result of the bitwise
-            inversion.
+            A new `BigInt` vector containing the result of the bitwise NOT
+            operation.
         """
         var result = Self(unsafe_uninitialized=True)
 
@@ -914,8 +912,7 @@ struct BigInt[
 
         Parameters:
             bits: The number of bits for the new `BigInt`. Constraints: Must be
-                positive and a multiple of the current `BigInt`'s word size in
-                bits.
+                a positive integer and a multiple of the bitwidth of word type.
             signed: A boolean indicating whether the new `BigInt` is signed
                 (`True`) or unsigned (`False`).
 
@@ -964,24 +961,28 @@ struct BigInt[
         """
         constrained[type.is_integral(), "type must be an integral type"]()
 
-        alias TYPE_SIZE = type.bitwidth()
+        alias TYPE_BITWIDTH = type.bitwidth()
         alias MAX_COUNT = _conditional[
-            TYPE_SIZE > bits, Self.WORD_COUNT, TYPE_SIZE // Self.WORD_SIZE
+            TYPE_BITWIDTH > bits,
+            Self.WORD_COUNT,
+            TYPE_BITWIDTH // Self.WORD_TYPE_BITWIDTH,
         ]()
 
         var result = self._storage[0].cast[type]()
 
         @parameter
-        if TYPE_SIZE <= Self.WORD_SIZE:
+        if TYPE_BITWIDTH <= Self.WORD_TYPE_BITWIDTH:
             return result
         else:
 
             @parameter
             for i in range(1, MAX_COUNT):
-                result += self._storage[i].cast[type]() << (Self.WORD_SIZE * i)
+                result += self._storage[i].cast[type]() << (
+                    Self.WORD_TYPE_BITWIDTH * i
+                )
 
             @parameter
-            if signed and TYPE_SIZE > bits:
+            if signed and TYPE_BITWIDTH > bits:
                 alias MASK = ~Scalar[type](0) << bits
                 return self.is_negative().select(result | MASK, result)
             else:
@@ -992,7 +993,7 @@ struct BigInt[
         """Clears the most significant bit of the `BigInt` vector, element-wise.
         """
         self._storage[Self.WORD_COUNT - 1] &= _mask_trailing_ones[
-            word_type, Self.WORD_SIZE - 1
+            word_type, Self.WORD_TYPE_BITWIDTH - 1
         ]()
 
     @always_inline
@@ -1003,7 +1004,9 @@ struct BigInt[
             A SIMD vector containing the most significant bit for each element
             in the `BigInt` vector.
         """
-        var msb = self._storage[Self.WORD_COUNT - 1] >> (Self.WORD_SIZE - 1)
+        var msb = self._storage[Self.WORD_COUNT - 1] >> (
+            Self.WORD_TYPE_BITWIDTH - 1
+        )
         return msb.cast[DType.bool]()
 
     @always_inline
