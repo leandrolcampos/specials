@@ -30,10 +30,10 @@ alias DEFAULT_WIDTH = 1
 
 @always_inline
 fn _assert_equal[
-    width: Int = DEFAULT_WIDTH
+    size: Int = DEFAULT_WIDTH
 ](
-    lhs: BigInt[_, width=width, signed=_, word_type=_],
-    rhs: SIMD[DEST_TYPE, width],
+    lhs: BigInt[_, size=size, signed=_, word_type=_],
+    rhs: SIMD[DEST_TYPE, size],
 ) raises:
     var casted_lhs = lhs.cast[DEST_TYPE]()
 
@@ -44,31 +44,31 @@ fn _assert_equal[
 
 
 fn test_init() raises:
-    _assert_equal(BigInt[8, width=1](), 0)
-    _assert_equal(BigInt[24, width=1](), 0)
-    _assert_equal(BigInt[8, width=4](), 0)
-    _assert_equal(BigInt[24, width=4](), 0)
+    _assert_equal(BigInt[8, size=1](), 0)
+    _assert_equal(BigInt[24, size=1](), 0)
+    _assert_equal(BigInt[8, size=4](), 0)
+    _assert_equal(BigInt[24, size=4](), 0)
 
-    _assert_equal(BigUInt[8, width=1](), 0)
-    _assert_equal(BigUInt[24, width=1](), 0)
-    _assert_equal(BigUInt[8, width=4](), 0)
-    _assert_equal(BigUInt[24, width=4](), 0)
+    _assert_equal(BigUInt[8, size=1](), 0)
+    _assert_equal(BigUInt[24, size=1](), 0)
+    _assert_equal(BigUInt[8, size=4](), 0)
+    _assert_equal(BigUInt[24, size=4](), 0)
 
 
 fn test_init_unsafe() raises:
-    _ = BigInt[8, width=1](unsafe_uninitialized=True)
-    _ = BigInt[24, width=1](unsafe_uninitialized=True)
+    _ = BigInt[8, size=1](unsafe_uninitialized=True)
+    _ = BigInt[24, size=1](unsafe_uninitialized=True)
 
-    _ = BigUInt[8, width=1](unsafe_uninitialized=True)
-    _ = BigUInt[24, width=1](unsafe_uninitialized=True)
+    _ = BigUInt[8, size=1](unsafe_uninitialized=True)
+    _ = BigUInt[24, size=1](unsafe_uninitialized=True)
 
 
 fn test_init_from_int() raises:
-    _assert_equal(BigInt[8, width=1](1), 1)
-    _assert_equal(BigInt[24, width=1](1), 1)
+    _assert_equal(BigInt[8, size=1](1), 1)
+    _assert_equal(BigInt[24, size=1](1), 1)
 
-    _assert_equal(BigUInt[8, width=1](-1), 255)
-    _assert_equal(BigUInt[24, width=1](-1), 16_777_215)
+    _assert_equal(BigUInt[8, size=1](-1), 255)
+    _assert_equal(BigUInt[24, size=1](-1), 16_777_215)
 
 
 fn test_init_from_signed_simd() raises:
@@ -123,11 +123,11 @@ fn test_explicit_copy() raises:
         for j in range(len(SIGNED)):
             alias signed = SIGNED[j]
 
-            var existing = BigInt[bits, width=2, signed=signed](1)
+            var existing = BigInt[bits, size=2, signed=signed](1)
             var copy = BigInt(existing)
 
             assert_equal(existing.bits, copy.bits)
-            assert_equal(existing.width, copy.width)
+            assert_equal(existing.size, copy.size)
             assert_equal(existing.signed, copy.signed)
             assert_equal(existing.word_type, existing.word_type)
 
@@ -140,51 +140,51 @@ fn test_explicit_copy() raises:
 
 
 fn test_all_ones() raises:
-    _assert_equal(BigInt[8, width=1].all_ones(), -1)
-    _assert_equal(BigInt[24, width=1].all_ones(), -1)
+    _assert_equal(BigInt[8, size=1].all_ones(), -1)
+    _assert_equal(BigInt[24, size=1].all_ones(), -1)
 
-    _assert_equal(BigUInt[8, width=1].all_ones(), 255)
-    _assert_equal(BigUInt[24, width=1].all_ones(), 16_777_215)
+    _assert_equal(BigUInt[8, size=1].all_ones(), 255)
+    _assert_equal(BigUInt[24, size=1].all_ones(), 16_777_215)
 
 
 fn test_min() raises:
-    _assert_equal(BigInt[8, width=1].min(), -128)
-    _assert_equal(BigInt[24, width=1].min(), -8_388_608)
+    _assert_equal(BigInt[8, size=1].min(), -128)
+    _assert_equal(BigInt[24, size=1].min(), -8_388_608)
 
-    _assert_equal(BigUInt[8, width=1].min(), 0)
-    _assert_equal(BigUInt[24, width=1].min(), 0)
+    _assert_equal(BigUInt[8, size=1].min(), 0)
+    _assert_equal(BigUInt[24, size=1].min(), 0)
 
 
 fn test_max() raises:
-    _assert_equal(BigInt[8, width=1].max(), 127)
-    _assert_equal(BigInt[24, width=1].max(), 8_388_607)
+    _assert_equal(BigInt[8, size=1].max(), 127)
+    _assert_equal(BigInt[24, size=1].max(), 8_388_607)
 
-    _assert_equal(BigUInt[8, width=1].max(), 255)
-    _assert_equal(BigUInt[24, width=1].max(), 16_777_215)
+    _assert_equal(BigUInt[8, size=1].max(), 255)
+    _assert_equal(BigUInt[24, size=1].max(), 16_777_215)
 
 
 fn test_one() raises:
-    _assert_equal(BigInt[8, width=1].one(), 1)
-    _assert_equal(BigInt[24, width=1].one(), 1)
+    _assert_equal(BigInt[8, size=1].one(), 1)
+    _assert_equal(BigInt[24, size=1].one(), 1)
 
-    _assert_equal(BigUInt[8, width=1].one(), 1)
-    _assert_equal(BigUInt[24, width=1].one(), 1)
+    _assert_equal(BigUInt[8, size=1].one(), 1)
+    _assert_equal(BigUInt[24, size=1].one(), 1)
 
 
 fn test_zero() raises:
-    _assert_equal(BigInt[8, width=1].zero(), 0)
-    _assert_equal(BigInt[24, width=1].zero(), 0)
+    _assert_equal(BigInt[8, size=1].zero(), 0)
+    _assert_equal(BigInt[24, size=1].zero(), 0)
 
-    _assert_equal(BigUInt[8, width=1].zero(), 0)
-    _assert_equal(BigUInt[24, width=1].zero(), 0)
+    _assert_equal(BigUInt[8, size=1].zero(), 0)
+    _assert_equal(BigUInt[24, size=1].zero(), 0)
 
 
 fn test_add() raises:
-    _assert_equal(BigInt[8, width=1](1) + BigInt[8, width=1](-2), -1)
-    _assert_equal(BigInt[24, width=1](1) + BigInt[24, width=1](-2), -1)
+    _assert_equal(BigInt[8, size=1](1) + BigInt[8, size=1](-2), -1)
+    _assert_equal(BigInt[24, size=1](1) + BigInt[24, size=1](-2), -1)
 
-    _assert_equal(BigUInt[8, width=1](15) + BigUInt[8, width=1](16), 31)
-    _assert_equal(BigUInt[24, width=1](255) + BigUInt[24, width=1](1), 256)
+    _assert_equal(BigUInt[8, size=1](15) + BigUInt[8, size=1](16), 31)
+    _assert_equal(BigUInt[24, size=1](255) + BigUInt[24, size=1](1), 256)
 
     _assert_equal(
         BigUInt[24](SIMD[DEST_TYPE, 2](1, 2)) + 2,
@@ -193,10 +193,10 @@ fn test_add() raises:
 
 
 fn test_iadd() raises:
-    var sval = BigInt[8, width=1](1)
+    var sval = BigInt[8, size=1](1)
     var uval = BigUInt[24](SIMD[DEST_TYPE, 2](0, 255))
 
-    sval += BigInt[8, width=1](-2)
+    sval += BigInt[8, size=1](-2)
     _assert_equal(sval, -1)
 
     uval += 1
@@ -230,23 +230,23 @@ fn test_add_with_overflow() raises:
 
 
 fn test_sub() raises:
-    _assert_equal(BigInt[8, width=1](1) - BigInt[8, width=1](-2), 3)
+    _assert_equal(BigInt[8, size=1](1) - BigInt[8, size=1](-2), 3)
     _assert_equal(BigInt[24](Int32(383)) - BigInt[24](Int32(-511)), 894)
 
-    _assert_equal(BigUInt[8, width=1](16) - BigUInt[8, width=1](15), 1)
-    _assert_equal(BigUInt[24, width=1](383) - BigUInt[24, width=1](255), 128)
+    _assert_equal(BigUInt[8, size=1](16) - BigUInt[8, size=1](15), 1)
+    _assert_equal(BigUInt[24, size=1](383) - BigUInt[24, size=1](255), 128)
 
     _assert_equal(
-        BigInt[24, width=4](SIMD[DEST_TYPE, 4](1, 2, 3, 4)) - 2,
+        BigInt[24, size=4](SIMD[DEST_TYPE, 4](1, 2, 3, 4)) - 2,
         SIMD[DEST_TYPE, 4](-1, 0, 1, 2),
     )
 
 
 fn test_isub() raises:
-    var sval = BigInt[8, width=1](1)
+    var sval = BigInt[8, size=1](1)
     var uval = BigUInt[24](SIMD[DEST_TYPE, 2](1, 256))
 
-    sval -= BigInt[8, width=1](-2)
+    sval -= BigInt[8, size=1](-2)
     _assert_equal(sval, 3)
 
     uval -= 1
@@ -285,7 +285,7 @@ fn test_comparison() raises:
     fn _test_cmp[bits: Int, signed: Bool]() raises:
         alias WIDTH = 4
 
-        var val1: BigInt[bits, width=WIDTH, signed=signed]
+        var val1: BigInt[bits, size=WIDTH, signed=signed]
         var val2: __type_of(val1)
 
         @parameter
@@ -323,22 +323,22 @@ fn test_comparison() raises:
 
 
 fn test_invert() raises:
-    _assert_equal(~BigInt[8, width=1](1), -2)
-    _assert_equal(~BigInt[24, width=1](1), -2)
+    _assert_equal(~BigInt[8, size=1](1), -2)
+    _assert_equal(~BigInt[24, size=1](1), -2)
 
-    _assert_equal(~BigUInt[8, width=1](1), 254)
-    _assert_equal(~BigUInt[24, width=1](1), 16_777_214)
+    _assert_equal(~BigUInt[8, size=1](1), 254)
+    _assert_equal(~BigUInt[24, size=1](1), 16_777_214)
 
-    _assert_equal(~BigInt[8, width=1](127), -128)
-    _assert_equal(~BigInt[24, width=1](8_388_607), -8_388_608)
+    _assert_equal(~BigInt[8, size=1](127), -128)
+    _assert_equal(~BigInt[24, size=1](8_388_607), -8_388_608)
 
-    _assert_equal(~BigUInt[8, width=1](127), 128)
-    _assert_equal(~BigUInt[24, width=1](8_388_607), 8_388_608)
+    _assert_equal(~BigUInt[8, size=1](127), 128)
+    _assert_equal(~BigUInt[24, size=1](8_388_607), 8_388_608)
 
 
 fn test_lshift() raises:
-    var sval8 = BigInt[8, width=4, word_type = DType.uint8](-99)
-    var uval8 = BigUInt[8, width=4, word_type = DType.uint8](157)
+    var sval8 = BigInt[8, size=4, word_type = DType.uint8](-99)
+    var uval8 = BigUInt[8, size=4, word_type = DType.uint8](157)
     var offset = SIMD[DType.uint8, 4](0, 1, 4, 7)
 
     _assert_equal(sval8 << 0, -99)
@@ -347,8 +347,8 @@ fn test_lshift() raises:
     _assert_equal(uval8 << 0, 157)
     _assert_equal(uval8 << offset, SIMD[DEST_TYPE, 4](157, 58, 208, 128))
 
-    var sval24 = BigInt[24, width=4, word_type = DType.uint8](-3_962_546)
-    var uval24 = BigUInt[24, width=4, word_type = DType.uint8](12_814_670)
+    var sval24 = BigInt[24, size=4, word_type = DType.uint8](-3_962_546)
+    var uval24 = BigUInt[24, size=4, word_type = DType.uint8](12_814_670)
     offset = SIMD[uval24.word_type, 4](0, 1, 12, 23)
 
     _assert_equal(sval24 << 0, -3_962_546)
@@ -365,7 +365,7 @@ fn test_lshift() raises:
 
 
 fn test_ilshift() raises:
-    var val = BigInt[24, width=1](1)
+    var val = BigInt[24, size=1](1)
     val <<= 8
     _assert_equal(val, 256)
 
@@ -374,7 +374,7 @@ fn test_rshift() raises:
     var sval8 = BigInt[8, word_type = DType.uint8](
         SIMD[DType.int8, 4](1, 99, -99, -1)
     )
-    var uval8 = BigUInt[8, width=4, word_type = DType.uint8](157)
+    var uval8 = BigUInt[8, size=4, word_type = DType.uint8](157)
     var offset = SIMD[DType.uint8, 4](0, 1, 4, 7)
 
     _assert_equal(sval8 >> 0, SIMD[DEST_TYPE, 4](1, 99, -99, -1))
@@ -383,8 +383,8 @@ fn test_rshift() raises:
     _assert_equal(uval8 >> 0, 157)
     _assert_equal(uval8 >> offset, SIMD[DEST_TYPE, 4](157, 78, 9, 1))
 
-    var sval24 = BigInt[24, width=4, word_type = DType.uint8](-3_962_546)
-    var uval24 = BigUInt[24, width=4, word_type = DType.uint8](12_814_670)
+    var sval24 = BigInt[24, size=4, word_type = DType.uint8](-3_962_546)
+    var uval24 = BigUInt[24, size=4, word_type = DType.uint8](12_814_670)
     offset = SIMD[uval24.word_type, 4](0, 1, 12, 23)
 
     _assert_equal(sval24 >> 0, -3_962_546)
@@ -401,7 +401,7 @@ fn test_rshift() raises:
 
 
 fn test_irshift() raises:
-    var val = BigInt[24, width=1].min()
+    var val = BigInt[24, size=1].min()
     val >>= 16
     _assert_equal(val, -128)
 
@@ -446,16 +446,16 @@ fn test_unary_plus() raises:
 
 
 fn test_cast_to_signed_big_int() raises:
-    var sval8 = BigInt[8, width=1](-1)
-    var uval8 = BigUInt[8, width=1](255)
+    var sval8 = BigInt[8, size=1](-1)
+    var uval8 = BigUInt[8, size=1](255)
 
     _assert_equal(sval8.cast[8, signed=True](), -1)
     _assert_equal(sval8.cast[24, signed=True](), -1)
     _assert_equal(uval8.cast[8, signed=True](), -1)
     _assert_equal(uval8.cast[24, signed=True](), 255)
 
-    var sval24 = BigInt[24, width=1](-1)
-    var uval24 = BigUInt[24, width=1](16_777_215)
+    var sval24 = BigInt[24, size=1](-1)
+    var uval24 = BigUInt[24, size=1](16_777_215)
 
     _assert_equal(sval24.cast[8, signed=True](), -1)
     _assert_equal(sval24.cast[24, signed=True](), -1)
@@ -464,16 +464,16 @@ fn test_cast_to_signed_big_int() raises:
 
 
 fn test_cast_to_unsigned_big_int() raises:
-    var sval8 = BigInt[8, width=1](-1)
-    var uval8 = BigUInt[8, width=1](255)
+    var sval8 = BigInt[8, size=1](-1)
+    var uval8 = BigUInt[8, size=1](255)
 
     _assert_equal(sval8.cast[8, signed=False](), 255)
     _assert_equal(sval8.cast[24, signed=False](), 255)
     _assert_equal(uval8.cast[8, signed=False](), 255)
     _assert_equal(uval8.cast[24, signed=False](), 255)
 
-    var sval24 = BigInt[24, width=1](-1)
-    var uval24 = BigUInt[24, width=1](16_777_215)
+    var sval24 = BigInt[24, size=1](-1)
+    var uval24 = BigUInt[24, size=1](16_777_215)
 
     _assert_equal(sval24.cast[8, signed=False](), 255)
     _assert_equal(sval24.cast[24, signed=False](), 16_777_215)
@@ -512,8 +512,8 @@ fn test_cast_to_simd() raises:
 
 
 fn test_most_significant_digit() raises:
-    var sval = BigInt[24, width=1].max()
-    var uval = BigUInt[24, width=1].max()
+    var sval = BigInt[24, size=1].max()
+    var uval = BigUInt[24, size=1].max()
 
     _assert_equal(sval, 8_388_607)
     _assert_equal(uval, 16_777_215)
@@ -541,7 +541,7 @@ fn test_most_significant_digit() raises:
 
 
 fn test_count_leading_zeros() raises:
-    var uval8 = BigUInt[8, width=1](0)
+    var uval8 = BigUInt[8, size=1](0)
 
     assert_equal(uval8.count_leading_zeros(), 8)
 
@@ -551,7 +551,7 @@ fn test_count_leading_zeros() raises:
     uval8 >>= 1
     assert_equal(uval8.count_leading_zeros(), 1)
 
-    var uval24 = BigUInt[24, width=1](0)
+    var uval24 = BigUInt[24, size=1](0)
 
     assert_equal(uval24.count_leading_zeros(), 24)
 
