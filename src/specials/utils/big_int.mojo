@@ -110,22 +110,22 @@ fn _usub_with_carry(
 
 @always_inline
 fn _inplace_binop[
-    binop_with_carry: fn[type: DType, width: Int] (
-        SIMD[type, width], SIMD[type, width], SIMD[type, width]
-    ) -> (SIMD[type, width], SIMD[type, width]),
+    binop_with_carry: fn[type: DType, size: Int] (
+        SIMD[type, size], SIMD[type, size], SIMD[type, size]
+    ) -> (SIMD[type, size], SIMD[type, size]),
     type: DType,
-    width: Int,
+    size: Int,
 ](
-    inout dst: InlineArray[SIMD[type, width], _],
-    rhs: InlineArray[SIMD[type, width], _],
-) -> SIMD[type, width]:
+    inout dst: InlineArray[SIMD[type, size], _],
+    rhs: InlineArray[SIMD[type, size], _],
+) -> SIMD[type, size]:
     """Performs an in-place binary operation with carry propagation."""
     constrained[
         dst.size >= rhs.size,
         "`dst` must have at least as many elements as `rhs`",
     ]()
 
-    var carry_out = SIMD[type, width](0)
+    var carry_out = SIMD[type, size](0)
 
     @parameter
     for i in range(dst.size):
@@ -151,15 +151,15 @@ fn _inplace_binop[
 
 @always_inline
 fn _count_leading_zeros[
-    type: DType, width: Int
-](val: InlineArray[SIMD[type, width], _]) -> SIMD[type, width]:
+    type: DType, size: Int
+](val: InlineArray[SIMD[type, size], _]) -> SIMD[type, size]:
     """Counts the leading zeros in the internal representation of a `BigInt`."""
     constrained[type.is_integral(), "type must be an integral type"]()
 
     alias TYPE_SIZE = type.bitwidth()
 
-    var result = SIMD[type, width](0)
-    var should_stop = SIMD[DType.bool, width](False)
+    var result = SIMD[type, size](0)
+    var should_stop = SIMD[DType.bool, size](False)
 
     @parameter
     for i in reversed(range(val.size)):
@@ -199,14 +199,14 @@ fn _mask_trailing_ones[word_type: DType, count: Int]() -> Scalar[word_type]:
 
 
 @always_inline
-fn _iota[type: DType, width: Int]() -> SIMD[type, width]:
+fn _iota[type: DType, size: Int]() -> SIMD[type, size]:
     """Creates a SIMD vector containing an increasing sequence starting from 0.
     """
     # Unlike `math.iota`, this function can be executed at compile-time.
-    var result = SIMD[type, width]()
+    var result = SIMD[type, size]()
 
     @parameter
-    for i in range(width):
+    for i in range(size):
         result[i] = i
 
     return result
@@ -215,31 +215,31 @@ fn _iota[type: DType, width: Int]() -> SIMD[type, width]:
 @always_inline
 fn _gather[
     type: DType,
-    width: Int,
+    size: Int,
 ](
     ptr: DTypePointer[type, *_],
-    offset: SIMD[_, width],
-    mask: SIMD[DType.bool, width] = True,
-    default: SIMD[type, width] = 0,
-) -> SIMD[type, width]:
+    offset: SIMD[_, size],
+    mask: SIMD[DType.bool, size] = True,
+    default: SIMD[type, size] = 0,
+) -> SIMD[type, size]:
     """Gathers values from memory using a SIMD vector of offsets."""
     constrained[
         offset.type.is_integral(), "offset type must be an integral type"
     ]()
 
-    alias SHIFT = _iota[offset.type, width]()
+    alias SHIFT = _iota[offset.type, size]()
 
-    return ptr.gather(offset.fma(width, SHIFT), mask, default)
+    return ptr.gather(offset.fma(size, SHIFT), mask, default)
 
 
 @always_inline
 fn _shift[
-    type: DType, width: Int, *, is_left_shift: Bool
+    type: DType, size: Int, *, is_left_shift: Bool
 ](
     *,
-    val: InlineArray[SIMD[type, width], _],
-    offset: SIMD[type, width],
-    is_negative: SIMD[DType.bool, width],
+    val: InlineArray[SIMD[type, size], _],
+    offset: SIMD[type, size],
+    is_negative: SIMD[DType.bool, size],
     inout dst: __type_of(val),
 ):
     """Performs a bitwise shift on the internal representation of a `BigInt`."""
@@ -266,11 +266,11 @@ fn _shift[
             return index
 
     @parameter
-    fn safe_get(index: SIMD[DType.index, width]) -> SIMD[type, width]:
+    fn safe_get(index: SIMD[DType.index, size]) -> SIMD[type, size]:
         var is_index_below_size = index < dst.size
         var mask = (index >= 0) & is_index_below_size
         var default = (is_negative & ~is_index_below_size).select(
-            SIMD[type, width](-1), 0
+            SIMD[type, size](-1), 0
         )
 
         return _gather(val_ptr, index, mask, default)
@@ -309,11 +309,11 @@ fn _compare(lhs: SIMD, rhs: __type_of(lhs)) -> SIMD[DType.int8, lhs.size]:
 
 
 @always_inline
-fn _compare(lhs: BigInt, rhs: __type_of(lhs)) -> SIMD[DType.int8, lhs.width]:
+fn _compare(lhs: BigInt, rhs: __type_of(lhs)) -> SIMD[DType.int8, lhs.size]:
     """Compares two `BigInt` values element-wise."""
-    alias ONE = SIMD[DType.int8, lhs.width](1)
+    alias ONE = SIMD[DType.int8, lhs.size](1)
 
-    var result = SIMD[DType.int8, lhs.width](0)
+    var result = SIMD[DType.int8, lhs.size](0)
 
     @parameter
     if lhs.signed:
@@ -384,7 +384,7 @@ fn _big_int_construction_checks[
     ]()
 
 
-alias BigUInt = BigInt[_, width=_, signed=False, word_type=_]
+alias BigUInt = BigInt[_, size=_, signed=False, word_type=_]
 """Represents a small vector of arbitrary, fixed bit-size unsigned integers."""
 
 
@@ -393,7 +393,7 @@ struct BigInt[
     bits: Int,
     /,
     *,
-    width: Int,
+    size: Int,
     signed: Bool = True,
     word_type: DType = _default_word_type[bits](),
 ](Copyable, ExplicitlyCopyable, Movable):
@@ -410,7 +410,7 @@ struct BigInt[
         bits: The number of bits each element of the `BigInt` vector can
             represent. Constraints: Must be positive and a multiple of the word
             size.
-        width: The size of the `BigInt` vector. Constraints: Must be positive
+        size: The size of the `BigInt` vector. Constraints: Must be positive
             and a power of two.
         signed: A boolean indicating whether the integers are signed (`True`)
             or unsigned (`False`). Defaults to `True`.
@@ -429,7 +429,7 @@ struct BigInt[
     alias WORD_COUNT = bits // Self.WORD_SIZE
     """The number of words used to represent the integers."""
 
-    alias StorageType = InlineArray[SIMD[word_type, width], Self.WORD_COUNT]
+    alias StorageType = InlineArray[SIMD[word_type, size], Self.WORD_COUNT]
     """The type used for internal storage, represented as an array of words."""
 
     # ===------------------------------------------------------------------=== #
@@ -448,7 +448,7 @@ struct BigInt[
         """Initializes the `BigInt` vector with all elements set to zero."""
         _big_int_construction_checks[bits, word_type]()
 
-        alias BLOCK_SIZE = width * Self.WORD_COUNT
+        alias BLOCK_SIZE = size * Self.WORD_COUNT
 
         self._storage = Self.StorageType(unsafe_uninitialized=True)
 
@@ -478,10 +478,10 @@ struct BigInt[
             value: The integer value to set for each element in the `BigInt`
                 vector.
         """
-        self.__init__(SIMD[DType.index, width](value))
+        self.__init__(SIMD[DType.index, size](value))
 
     @always_inline
-    fn __init__(inout self, value: SIMD[_, width]):
+    fn __init__(inout self, value: SIMD[_, size]):
         """Initializes the `BigInt` vector with the provided SIMD vector.
 
         Constraints:
@@ -652,7 +652,7 @@ struct BigInt[
         _ = _inplace_binop[_usub_with_carry](self._storage, rhs._storage)
 
     @always_inline
-    fn __eq__(self, rhs: Self) -> SIMD[DType.bool, width]:
+    fn __eq__(self, rhs: Self) -> SIMD[DType.bool, size]:
         """Compares two `BigInt` vectors for equality, element-wise.
 
         Args:
@@ -665,7 +665,7 @@ struct BigInt[
         return _compare(self, rhs) == 0
 
     @always_inline
-    fn __ne__(self, rhs: Self) -> SIMD[DType.bool, width]:
+    fn __ne__(self, rhs: Self) -> SIMD[DType.bool, size]:
         """Compares two `BigInt` vectors for inequality, element-wise.
 
         Args:
@@ -678,7 +678,7 @@ struct BigInt[
         return _compare(self, rhs) != 0
 
     @always_inline
-    fn __lt__(self, rhs: Self) -> SIMD[DType.bool, width]:
+    fn __lt__(self, rhs: Self) -> SIMD[DType.bool, size]:
         """Compares two `BigInt` vectors for less-than, element-wise.
 
         Args:
@@ -691,7 +691,7 @@ struct BigInt[
         return _compare(self, rhs) == -1
 
     @always_inline
-    fn __le__(self, rhs: Self) -> SIMD[DType.bool, width]:
+    fn __le__(self, rhs: Self) -> SIMD[DType.bool, size]:
         """Compares two `BigInt` vectors for less-than-or-equal, element-wise.
 
         Args:
@@ -704,7 +704,7 @@ struct BigInt[
         return _compare(self, rhs) != 1
 
     @always_inline
-    fn __gt__(self, rhs: Self) -> SIMD[DType.bool, width]:
+    fn __gt__(self, rhs: Self) -> SIMD[DType.bool, size]:
         """Compares two `BigInt` vectors for greater-than, element-wise.
 
         Args:
@@ -717,7 +717,7 @@ struct BigInt[
         return _compare(self, rhs) == 1
 
     @always_inline
-    fn __ge__(self, rhs: Self) -> SIMD[DType.bool, width]:
+    fn __ge__(self, rhs: Self) -> SIMD[DType.bool, size]:
         """Compares two `BigInt` vectors for greater-than-or-equal, element-wise.
 
         Args:
@@ -746,7 +746,7 @@ struct BigInt[
         return result
 
     @always_inline
-    fn __lshift__(self, offset: SIMD[word_type, width]) -> Self:
+    fn __lshift__(self, offset: SIMD[word_type, size]) -> Self:
         """Performs a bitwise left shift on a `BigInt` vector, element-wise.
 
         Args:
@@ -774,7 +774,7 @@ struct BigInt[
         return result
 
     @always_inline
-    fn __ilshift__(inout self, offset: SIMD[word_type, width]):
+    fn __ilshift__(inout self, offset: SIMD[word_type, size]):
         """Performs an in-place bitwise left shift on a `BigInt` vector,
         element-wise.
 
@@ -785,7 +785,7 @@ struct BigInt[
         self = self << offset
 
     @always_inline
-    fn __rshift__(self, offset: SIMD[word_type, width]) -> Self:
+    fn __rshift__(self, offset: SIMD[word_type, size]) -> Self:
         """Performs a bitwise right shift on a `BigInt` vector, element-wise.
 
         Args:
@@ -813,7 +813,7 @@ struct BigInt[
         return result
 
     @always_inline
-    fn __irshift__(inout self, offset: SIMD[word_type, width]):
+    fn __irshift__(inout self, offset: SIMD[word_type, size]):
         """Performs an in-place bitwise right shift on a `BigInt` vector,
         element-wise.
 
@@ -848,7 +848,7 @@ struct BigInt[
     # ===------------------------------------------------------------------=== #
 
     @always_inline
-    fn add_with_overflow(inout self, rhs: Self) -> SIMD[DType.bool, width]:
+    fn add_with_overflow(inout self, rhs: Self) -> SIMD[DType.bool, size]:
         """Performs in-place addition with overflow detection, element-wise.
 
         Args:
@@ -876,7 +876,7 @@ struct BigInt[
             return carry_out.cast[DType.bool]()
 
     @always_inline
-    fn sub_with_overflow(inout self, rhs: Self) -> SIMD[DType.bool, width]:
+    fn sub_with_overflow(inout self, rhs: Self) -> SIMD[DType.bool, size]:
         """Performs in-place subtraction with overflow detection, element-wise.
 
         Args:
@@ -907,7 +907,7 @@ struct BigInt[
     fn cast[
         bits: Int, /, *, signed: Bool
     ](self) -> BigInt[
-        bits, width = Self.width, signed=signed, word_type = Self.word_type
+        bits, size = Self.size, signed=signed, word_type = Self.word_type
     ]:
         """Casts the `BigInt` vector to a new `BigInt` with a different number
         of bits and signedness.
@@ -921,10 +921,10 @@ struct BigInt[
 
         Returns:
             A new `BigInt` vector with the specified number of bits and
-            signedness. The width and word type are preserved.
+            signedness. The size and word type are preserved.
         """
         var result = BigInt[
-            bits, width = Self.width, signed=signed, word_type = Self.word_type
+            bits, size = Self.size, signed=signed, word_type = Self.word_type
         ](unsafe_uninitialized=True)
 
         @parameter
@@ -951,8 +951,8 @@ struct BigInt[
         return result
 
     @always_inline
-    fn cast[type: DType](self) -> SIMD[type, width]:
-        """Casts the `BigInt` vector to a SIMD vector with the same width.
+    fn cast[type: DType](self) -> SIMD[type, size]:
+        """Casts the `BigInt` vector to a SIMD vector with the same size.
 
         Parameters:
             type: The type of the SIMD vector to cast to. Constraints: Must be
@@ -996,7 +996,7 @@ struct BigInt[
         ]()
 
     @always_inline
-    fn get_most_significant_bit(self) -> SIMD[DType.bool, width]:
+    fn get_most_significant_bit(self) -> SIMD[DType.bool, size]:
         """Gets the most significant bit in each element of the `BigInt` vector.
 
         Returns:
@@ -1013,7 +1013,7 @@ struct BigInt[
         self._storage[Self.WORD_COUNT - 1] |= _mask_leading_ones[word_type, 1]()
 
     @always_inline
-    fn count_leading_zeros(self) -> SIMD[word_type, width]:
+    fn count_leading_zeros(self) -> SIMD[word_type, size]:
         """Counts the number of leading zeros in each element of the `BigInt`
         vector.
 
@@ -1024,7 +1024,7 @@ struct BigInt[
         return _count_leading_zeros(self._storage)
 
     @always_inline
-    fn is_negative(self) -> SIMD[DType.bool, width]:
+    fn is_negative(self) -> SIMD[DType.bool, size]:
         """Checks if the `BigInt` vector is negative, element-wise.
 
         Returns:
@@ -1034,14 +1034,14 @@ struct BigInt[
         return self.get_most_significant_bit() & signed
 
     @always_inline
-    fn is_zero(self) -> SIMD[DType.bool, width]:
+    fn is_zero(self) -> SIMD[DType.bool, size]:
         """Checks if the `BigInt` vector is zero, element-wise.
 
         Returns:
             A SIMD vector of booleans indicating whether each element in the
             `BigInt` vector is zero.
         """
-        var result = SIMD[DType.bool, width](True)
+        var result = SIMD[DType.bool, size](True)
 
         @parameter
         for i in range(Self.WORD_COUNT):
