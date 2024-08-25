@@ -255,6 +255,7 @@ fn _shift[
 
         return
 
+    @always_inline
     @parameter
     fn at(index: SIMD[DType.index, _]) -> __type_of(index):
         @parameter
@@ -263,6 +264,7 @@ fn _shift[
         else:
             return index
 
+    @always_inline
     @parameter
     fn safe_get(index: SIMD[DType.index, size]) -> SIMD[type, size]:
         var is_index_below_size = index < dst.size
