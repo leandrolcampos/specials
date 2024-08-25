@@ -211,26 +211,6 @@ fn _iota[type: DType, size: Int]() -> SIMD[type, size]:
 
 
 @always_inline
-fn _gather[
-    type: DType,
-    size: Int,
-](
-    ptr: DTypePointer[type, *_],
-    offset: SIMD[_, size],
-    mask: SIMD[DType.bool, size] = True,
-    default: SIMD[type, size] = 0,
-) -> SIMD[type, size]:
-    """Gathers values from memory using a SIMD vector of offsets."""
-    constrained[
-        offset.type.is_integral(), "offset type must be an integral type"
-    ]()
-
-    alias SHIFT = _iota[offset.type, size]()
-
-    return ptr.gather(offset.fma(size, SHIFT), mask, default)
-
-
-@always_inline
 fn _shift[
     type: DType, size: Int, *, is_left_shift: Bool
 ](
@@ -266,14 +246,16 @@ fn _shift[
 
     @always_inline
     @parameter
-    fn safe_get(index: SIMD[DType.index, size]) -> SIMD[type, size]:
+    fn safe_gather(index: SIMD[DType.index, size]) -> SIMD[type, size]:
+        alias SHIFT = _iota[DType.index, size]()
+
         var is_index_below_size = index < dst.size
         var mask = (index >= 0) & is_index_below_size
         var default = (is_negative & ~is_index_below_size).select(
             SIMD[type, size](-1), 0
         )
 
-        return _gather(val_ptr, index, mask, default)
+        return val_ptr.gather(index.fma(size, SHIFT), mask, default)
 
     var index_offset = offset.cast[DType.index]() // TYPE_BITWIDTH
     var bit_offset = offset % TYPE_BITWIDTH
@@ -281,8 +263,8 @@ fn _shift[
     @parameter
     for i in range(dst.size):
         var index = Scalar[DType.index](i)
-        var part1 = safe_get(at(index + index_offset))
-        var part2 = safe_get(at(index + index_offset + 1))
+        var part1 = safe_gather(at(index + index_offset))
+        var part2 = safe_gather(at(index + index_offset + 1))
 
         @parameter
         if is_left_shift:
