@@ -139,14 +139,6 @@ fn test_explicit_copy() raises:
             _assert_equal(copy, 2)
 
 
-fn test_all_ones() raises:
-    _assert_equal(BigInt[8, size=1].all_ones(), -1)
-    _assert_equal(BigInt[24, size=1].all_ones(), -1)
-
-    _assert_equal(BigUInt[8, size=1].all_ones(), 255)
-    _assert_equal(BigUInt[24, size=1].all_ones(), 16_777_215)
-
-
 fn test_min() raises:
     _assert_equal(BigInt[8, size=1].min(), -128)
     _assert_equal(BigInt[24, size=1].min(), -8_388_608)
@@ -161,22 +153,6 @@ fn test_max() raises:
 
     _assert_equal(BigUInt[8, size=1].max(), 255)
     _assert_equal(BigUInt[24, size=1].max(), 16_777_215)
-
-
-fn test_one() raises:
-    _assert_equal(BigInt[8, size=1].one(), 1)
-    _assert_equal(BigInt[24, size=1].one(), 1)
-
-    _assert_equal(BigUInt[8, size=1].one(), 1)
-    _assert_equal(BigUInt[24, size=1].one(), 1)
-
-
-fn test_zero() raises:
-    _assert_equal(BigInt[8, size=1].zero(), 0)
-    _assert_equal(BigInt[24, size=1].zero(), 0)
-
-    _assert_equal(BigUInt[8, size=1].zero(), 0)
-    _assert_equal(BigUInt[24, size=1].zero(), 0)
 
 
 fn test_add() raises:
@@ -591,11 +567,8 @@ fn main() raises:
     test_init_from_unsigned_simd()
     test_explicit_copy()
 
-    test_all_ones()
     test_min()
     test_max()
-    test_one()
-    test_zero()
 
     test_add()
     test_iadd()

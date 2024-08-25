@@ -530,16 +530,6 @@ struct BigInt[
 
     @staticmethod
     @always_inline
-    fn all_ones() -> Self:
-        """Creates a `BigInt` vector with all bits set to one.
-
-        Returns:
-            A new `BigInt` vector with all bits set to one.
-        """
-        return ~Self()
-
-    @staticmethod
-    @always_inline
     fn max() -> Self:
         """Creates a `BigInt` vector with all elements set to the maximum
         representable value.
@@ -548,7 +538,7 @@ struct BigInt[
             A new `BigInt` vector with all elements set to the maximum
             representable value.
         """
-        var result = Self.all_ones()
+        var result = ~Self()
 
         @parameter
         if signed:
@@ -573,26 +563,6 @@ struct BigInt[
             result.set_most_significant_bit()
 
         return result
-
-    @staticmethod
-    @always_inline
-    fn one() -> Self:
-        """Creates a `BigInt` vector with all elements set to one.
-
-        Returns:
-            A new `BigInt` vector with all elements set to one.
-        """
-        return Self(1)
-
-    @staticmethod
-    @always_inline
-    fn zero() -> Self:
-        """Creates a `BigInt` vector with all elements set to zero.
-
-        Returns:
-            A new `BigInt` vector with all elements set to zero.
-        """
-        return Self()
 
     # ===------------------------------------------------------------------=== #
     # Operator dunders
