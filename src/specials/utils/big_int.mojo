@@ -294,7 +294,7 @@ fn _compare(lhs: SIMD, rhs: __type_of(lhs)) -> SIMD[DType.int8, lhs.size]:
 
 @always_inline
 fn _compare(lhs: BigInt, rhs: __type_of(lhs)) -> SIMD[DType.int8, lhs.size]:
-    """Compares two `BigInt` values element-wise."""
+    """Compares two `BigInt` vectors element-wise."""
     alias ONE = SIMD[DType.int8, lhs.size](1)
 
     var result = SIMD[DType.int8, lhs.size](0)
