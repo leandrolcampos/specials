@@ -315,7 +315,7 @@ fn test_invert() raises:
 fn test_lshift() raises:
     var sval8 = BigInt[8, size=4, word_type = DType.uint8](-99)
     var uval8 = BigUInt[8, size=4, word_type = DType.uint8](157)
-    var offset = SIMD[DType.uint8, 4](0, 1, 4, 7)
+    var offset = SIMD[DType.index, 4](0, 1, 4, 7)
 
     _assert_equal(sval8 << 0, -99)
     _assert_equal(sval8 << offset, SIMD[DEST_TYPE, 4](-99, 58, -48, -128))
@@ -325,7 +325,7 @@ fn test_lshift() raises:
 
     var sval24 = BigInt[24, size=4, word_type = DType.uint8](-3_962_546)
     var uval24 = BigUInt[24, size=4, word_type = DType.uint8](12_814_670)
-    offset = SIMD[uval24.word_type, 4](0, 1, 12, 23)
+    offset = SIMD[DType.index, 4](0, 1, 12, 23)
 
     _assert_equal(sval24 << 0, -3_962_546)
     _assert_equal(
@@ -351,7 +351,7 @@ fn test_rshift() raises:
         SIMD[DType.int8, 4](1, 99, -99, -1)
     )
     var uval8 = BigUInt[8, size=4, word_type = DType.uint8](157)
-    var offset = SIMD[DType.uint8, 4](0, 1, 4, 7)
+    var offset = SIMD[DType.index, 4](0, 1, 4, 7)
 
     _assert_equal(sval8 >> 0, SIMD[DEST_TYPE, 4](1, 99, -99, -1))
     _assert_equal(sval8 >> offset, SIMD[DEST_TYPE, 4](1, 49, -7, -1))
@@ -361,7 +361,7 @@ fn test_rshift() raises:
 
     var sval24 = BigInt[24, size=4, word_type = DType.uint8](-3_962_546)
     var uval24 = BigUInt[24, size=4, word_type = DType.uint8](12_814_670)
-    offset = SIMD[uval24.word_type, 4](0, 1, 12, 23)
+    offset = SIMD[DType.index, 4](0, 1, 12, 23)
 
     _assert_equal(sval24 >> 0, -3_962_546)
     _assert_equal(
