@@ -211,88 +211,70 @@ fn _iota[type: DType, size: Int]() -> SIMD[type, size]:
 
 
 @always_inline
-fn _gather[
-    type: DType,
-    size: Int,
-](
-    ptr: DTypePointer[type, *_],
-    offset: SIMD[_, size],
-    mask: SIMD[DType.bool, size] = True,
-    default: SIMD[type, size] = 0,
-) -> SIMD[type, size]:
-    """Gathers values from memory using a SIMD vector of offsets."""
-    constrained[
-        offset.type.is_integral(), "offset type must be an integral type"
-    ]()
-
-    alias SHIFT = _iota[offset.type, size]()
-
-    return ptr.gather(offset.fma(size, SHIFT), mask, default)
-
-
-@always_inline
 fn _shift[
-    type: DType, size: Int, *, is_left_shift: Bool
-](
-    *,
-    val: InlineArray[SIMD[type, size], _],
-    offset: SIMD[type, size],
-    is_negative: SIMD[DType.bool, size],
-    inout dst: __type_of(val),
-):
+    *, is_left_shift: Bool
+](val: BigInt, offset: SIMD[DType.index, val.size],) -> __type_of(val):
     """Performs a bitwise shift on the internal representation of a `BigInt`."""
-    constrained[type.is_unsigned(), "type must be an unsigned, integral type"]()
+    alias SHIFT = _iota[DType.index, val.size]()
+    alias TYPE_BITWIDTH = val.word_type.bitwidth()
 
-    alias TYPE_BITWIDTH = type.bitwidth()
-
-    var val_ptr = DTypePointer(val.unsafe_ptr().bitcast[Scalar[type]]())
+    var dst = __type_of(val)(unsafe_uninitialized=True)
+    var val_ptr = DTypePointer(
+        val._storage.unsafe_ptr().bitcast[Scalar[val.word_type]]()
+    )
 
     if all(offset == 0):
 
         @parameter
-        for i in range(dst.size):
-            dst[i] = val[i]
+        for i in range(val.WORD_COUNT):
+            dst._storage[i] = val._storage[i]
 
-        return
+        return dst
 
+    @always_inline
     @parameter
     fn at(index: SIMD[DType.index, _]) -> __type_of(index):
         @parameter
         if is_left_shift:
-            return dst.size - index - 1
+            return val.WORD_COUNT - index - 1
         else:
             return index
 
+    @always_inline
     @parameter
-    fn safe_get(index: SIMD[DType.index, size]) -> SIMD[type, size]:
-        var is_index_below_size = index < dst.size
+    fn safe_gather(
+        index: SIMD[DType.index, val.size]
+    ) -> SIMD[val.word_type, val.size]:
+        var is_index_below_size = index < val.WORD_COUNT
         var mask = (index >= 0) & is_index_below_size
-        var default = (is_negative & ~is_index_below_size).select(
-            SIMD[type, size](-1), 0
+        var default = (val.is_negative() & ~is_index_below_size).select(
+            SIMD[val.word_type, val.size](-1), 0
         )
 
-        return _gather(val_ptr, index, mask, default)
+        return val_ptr.gather(index.fma(val.size, SHIFT), mask, default)
 
-    var index_offset = offset.cast[DType.index]() // TYPE_BITWIDTH
-    var bit_offset = offset % TYPE_BITWIDTH
+    var index_offset = offset // TYPE_BITWIDTH
+    var bit_offset = (offset % TYPE_BITWIDTH).cast[val.word_type]()
 
     @parameter
-    for i in range(dst.size):
+    for i in range(val.WORD_COUNT):
         var index = Scalar[DType.index](i)
-        var part1 = safe_get(at(index + index_offset))
-        var part2 = safe_get(at(index + index_offset + 1))
+        var part1 = safe_gather(at(index + index_offset))
+        var part2 = safe_gather(at(index + index_offset + 1))
 
         @parameter
         if is_left_shift:
-            dst[int(at(index))] = (bit_offset == 0).select(
+            dst._storage[int(at(index))] = (bit_offset == 0).select(
                 part1,
                 part1 << bit_offset | part2 >> (TYPE_BITWIDTH - bit_offset),
             )
         else:
-            dst[int(at(index))] = (bit_offset == 0).select(
+            dst._storage[int(at(index))] = (bit_offset == 0).select(
                 part1,
                 part1 >> bit_offset | part2 << (TYPE_BITWIDTH - bit_offset),
             )
+
+    return dst
 
 
 # ===----------------------------------------------------------------------=== #
@@ -310,7 +292,7 @@ fn _compare(lhs: SIMD, rhs: __type_of(lhs)) -> SIMD[DType.int8, lhs.size]:
 
 @always_inline
 fn _compare(lhs: BigInt, rhs: __type_of(lhs)) -> SIMD[DType.int8, lhs.size]:
-    """Compares two `BigInt` values element-wise."""
+    """Compares two `BigInt` vectors element-wise."""
     alias ONE = SIMD[DType.int8, lhs.size](1)
 
     var result = SIMD[DType.int8, lhs.size](0)
@@ -530,16 +512,6 @@ struct BigInt[
 
     @staticmethod
     @always_inline
-    fn all_ones() -> Self:
-        """Creates a `BigInt` vector with all bits set to one.
-
-        Returns:
-            A new `BigInt` vector with all bits set to one.
-        """
-        return ~Self()
-
-    @staticmethod
-    @always_inline
     fn max() -> Self:
         """Creates a `BigInt` vector with all elements set to the maximum
         representable value.
@@ -548,7 +520,7 @@ struct BigInt[
             A new `BigInt` vector with all elements set to the maximum
             representable value.
         """
-        var result = Self.all_ones()
+        var result = ~Self()
 
         @parameter
         if signed:
@@ -573,26 +545,6 @@ struct BigInt[
             result.set_most_significant_bit()
 
         return result
-
-    @staticmethod
-    @always_inline
-    fn one() -> Self:
-        """Creates a `BigInt` vector with all elements set to one.
-
-        Returns:
-            A new `BigInt` vector with all elements set to one.
-        """
-        return Self(1)
-
-    @staticmethod
-    @always_inline
-    fn zero() -> Self:
-        """Creates a `BigInt` vector with all elements set to zero.
-
-        Returns:
-            A new `BigInt` vector with all elements set to zero.
-        """
-        return Self()
 
     # ===------------------------------------------------------------------=== #
     # Operator dunders
@@ -744,7 +696,7 @@ struct BigInt[
         return result
 
     @always_inline
-    fn __lshift__(self, offset: SIMD[word_type, size]) -> Self:
+    fn __lshift__(self, offset: SIMD[DType.index, size]) -> Self:
         """Performs a bitwise left shift on a `BigInt` vector, element-wise.
 
         Args:
@@ -760,19 +712,10 @@ struct BigInt[
             "offset must be within bounds",
         )
 
-        var result = Self(unsafe_uninitialized=True)
-
-        _shift[is_left_shift=True](
-            val=self._storage,
-            offset=offset,
-            is_negative=self.is_negative(),
-            dst=result._storage,
-        )
-
-        return result
+        return _shift[is_left_shift=True](self, offset)
 
     @always_inline
-    fn __ilshift__(inout self, offset: SIMD[word_type, size]):
+    fn __ilshift__(inout self, offset: SIMD[DType.index, size]):
         """Performs an in-place bitwise left shift on a `BigInt` vector,
         element-wise.
 
@@ -783,7 +726,7 @@ struct BigInt[
         self = self << offset
 
     @always_inline
-    fn __rshift__(self, offset: SIMD[word_type, size]) -> Self:
+    fn __rshift__(self, offset: SIMD[DType.index, size]) -> Self:
         """Performs a bitwise right shift on a `BigInt` vector, element-wise.
 
         Args:
@@ -799,19 +742,10 @@ struct BigInt[
             "offset must be within bounds",
         )
 
-        var result = Self(unsafe_uninitialized=True)
-
-        _shift[is_left_shift=False](
-            val=self._storage,
-            offset=offset,
-            is_negative=self.is_negative(),
-            dst=result._storage,
-        )
-
-        return result
+        return _shift[is_left_shift=False](self, offset)
 
     @always_inline
-    fn __irshift__(inout self, offset: SIMD[word_type, size]):
+    fn __irshift__(inout self, offset: SIMD[DType.index, size]):
         """Performs an in-place bitwise right shift on a `BigInt` vector,
         element-wise.
 

@@ -139,14 +139,6 @@ fn test_explicit_copy() raises:
             _assert_equal(copy, 2)
 
 
-fn test_all_ones() raises:
-    _assert_equal(BigInt[8, size=1].all_ones(), -1)
-    _assert_equal(BigInt[24, size=1].all_ones(), -1)
-
-    _assert_equal(BigUInt[8, size=1].all_ones(), 255)
-    _assert_equal(BigUInt[24, size=1].all_ones(), 16_777_215)
-
-
 fn test_min() raises:
     _assert_equal(BigInt[8, size=1].min(), -128)
     _assert_equal(BigInt[24, size=1].min(), -8_388_608)
@@ -161,22 +153,6 @@ fn test_max() raises:
 
     _assert_equal(BigUInt[8, size=1].max(), 255)
     _assert_equal(BigUInt[24, size=1].max(), 16_777_215)
-
-
-fn test_one() raises:
-    _assert_equal(BigInt[8, size=1].one(), 1)
-    _assert_equal(BigInt[24, size=1].one(), 1)
-
-    _assert_equal(BigUInt[8, size=1].one(), 1)
-    _assert_equal(BigUInt[24, size=1].one(), 1)
-
-
-fn test_zero() raises:
-    _assert_equal(BigInt[8, size=1].zero(), 0)
-    _assert_equal(BigInt[24, size=1].zero(), 0)
-
-    _assert_equal(BigUInt[8, size=1].zero(), 0)
-    _assert_equal(BigUInt[24, size=1].zero(), 0)
 
 
 fn test_add() raises:
@@ -339,7 +315,7 @@ fn test_invert() raises:
 fn test_lshift() raises:
     var sval8 = BigInt[8, size=4, word_type = DType.uint8](-99)
     var uval8 = BigUInt[8, size=4, word_type = DType.uint8](157)
-    var offset = SIMD[DType.uint8, 4](0, 1, 4, 7)
+    var offset = SIMD[DType.index, 4](0, 1, 4, 7)
 
     _assert_equal(sval8 << 0, -99)
     _assert_equal(sval8 << offset, SIMD[DEST_TYPE, 4](-99, 58, -48, -128))
@@ -349,7 +325,7 @@ fn test_lshift() raises:
 
     var sval24 = BigInt[24, size=4, word_type = DType.uint8](-3_962_546)
     var uval24 = BigUInt[24, size=4, word_type = DType.uint8](12_814_670)
-    offset = SIMD[uval24.word_type, 4](0, 1, 12, 23)
+    offset = SIMD[DType.index, 4](0, 1, 12, 23)
 
     _assert_equal(sval24 << 0, -3_962_546)
     _assert_equal(
@@ -375,7 +351,7 @@ fn test_rshift() raises:
         SIMD[DType.int8, 4](1, 99, -99, -1)
     )
     var uval8 = BigUInt[8, size=4, word_type = DType.uint8](157)
-    var offset = SIMD[DType.uint8, 4](0, 1, 4, 7)
+    var offset = SIMD[DType.index, 4](0, 1, 4, 7)
 
     _assert_equal(sval8 >> 0, SIMD[DEST_TYPE, 4](1, 99, -99, -1))
     _assert_equal(sval8 >> offset, SIMD[DEST_TYPE, 4](1, 49, -7, -1))
@@ -385,7 +361,7 @@ fn test_rshift() raises:
 
     var sval24 = BigInt[24, size=4, word_type = DType.uint8](-3_962_546)
     var uval24 = BigUInt[24, size=4, word_type = DType.uint8](12_814_670)
-    offset = SIMD[uval24.word_type, 4](0, 1, 12, 23)
+    offset = SIMD[DType.index, 4](0, 1, 12, 23)
 
     _assert_equal(sval24 >> 0, -3_962_546)
     _assert_equal(
@@ -591,11 +567,8 @@ fn main() raises:
     test_init_from_unsigned_simd()
     test_explicit_copy()
 
-    test_all_ones()
     test_min()
     test_max()
-    test_one()
-    test_zero()
 
     test_add()
     test_iadd()
