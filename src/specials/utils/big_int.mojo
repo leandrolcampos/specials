@@ -285,16 +285,14 @@ fn _shift[
 @always_inline
 fn _compare(lhs: SIMD, rhs: __type_of(lhs)) -> SIMD[DType.int8, lhs.size]:
     """Compares two SIMD vectors element-wise."""
-    alias ONE = SIMD[DType.int8, lhs.size](1)
-
-    return (lhs == rhs).select(0, (lhs < rhs).select(-1, ONE))
+    return (lhs == rhs).select(
+        0, (lhs < rhs).select(-1, SIMD[DType.int8, lhs.size](1))
+    )
 
 
 @always_inline
 fn _compare(lhs: BigInt, rhs: __type_of(lhs)) -> SIMD[DType.int8, lhs.size]:
     """Compares two `BigInt` vectors element-wise."""
-    alias ONE = SIMD[DType.int8, lhs.size](1)
-
     var result = SIMD[DType.int8, lhs.size](0)
 
     @parameter
@@ -302,7 +300,7 @@ fn _compare(lhs: BigInt, rhs: __type_of(lhs)) -> SIMD[DType.int8, lhs.size]:
         var lhs_is_negative = lhs.is_negative()
         var rhs_is_negative = rhs.is_negative()
         result = (lhs_is_negative != rhs_is_negative).select(
-            lhs_is_negative.select(-1, ONE), result
+            lhs_is_negative.select(-1, SIMD[DType.int8, lhs.size](1)), result
         )
 
     @parameter
