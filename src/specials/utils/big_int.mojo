@@ -23,7 +23,7 @@
 
 from bit import countl_zero
 from memory import DTypePointer, memset_zero
-from sys.info import is_64bit
+from sys.info import is_64bit, sizeof
 from sys.intrinsics import _RegisterPackType
 from utils import InlineArray
 from utils.numerics import max_finite
@@ -285,16 +285,14 @@ fn _shift[
 @always_inline
 fn _compare(lhs: SIMD, rhs: __type_of(lhs)) -> SIMD[DType.int8, lhs.size]:
     """Compares two SIMD vectors element-wise."""
-    alias ONE = SIMD[DType.int8, lhs.size](1)
-
-    return (lhs == rhs).select(0, (lhs < rhs).select(-1, ONE))
+    return (lhs == rhs).select(
+        0, (lhs < rhs).select(-1, SIMD[DType.int8, lhs.size](1))
+    )
 
 
 @always_inline
 fn _compare(lhs: BigInt, rhs: __type_of(lhs)) -> SIMD[DType.int8, lhs.size]:
     """Compares two `BigInt` vectors element-wise."""
-    alias ONE = SIMD[DType.int8, lhs.size](1)
-
     var result = SIMD[DType.int8, lhs.size](0)
 
     @parameter
@@ -302,7 +300,7 @@ fn _compare(lhs: BigInt, rhs: __type_of(lhs)) -> SIMD[DType.int8, lhs.size]:
         var lhs_is_negative = lhs.is_negative()
         var rhs_is_negative = rhs.is_negative()
         result = (lhs_is_negative != rhs_is_negative).select(
-            lhs_is_negative.select(-1, ONE), result
+            lhs_is_negative.select(-1, SIMD[DType.int8, lhs.size](1)), result
         )
 
     @parameter
@@ -366,6 +364,20 @@ fn _big_int_construction_checks[
     ]()
 
 
+@always_inline
+fn _is_casting_safe[bits: Int, signed: Bool](value: IntLiteral) -> Bool:
+    """Checks if `value` fits in an integer with the specified number of bits
+    and signedness.
+    """
+    constrained[bits > 0, "number of bits must be positive"]()
+
+    @parameter
+    if signed:
+        return bits >= value._bit_width()
+    else:
+        return value >= 0 and bits >= (value._bit_width() - 1)
+
+
 alias BigUInt = BigInt[_, size=_, signed=False, word_type=_]
 """Represents a small vector of arbitrary, fixed bit-size unsigned integers."""
 
@@ -403,7 +415,7 @@ struct BigInt[
     # Aliases
     # ===------------------------------------------------------------------=== #
 
-    alias WORD_TYPE_BITWIDTH = word_type.bitwidth()
+    alias WORD_TYPE_BITWIDTH = 8 * sizeof[word_type]()
     """The size, in bits, of the `word_type` parameter."""
 
     alias WORD_COUNT = bits // Self.WORD_TYPE_BITWIDTH
@@ -449,6 +461,29 @@ struct BigInt[
 
         _ = unsafe_uninitialized
         self._storage = Self.StorageType(unsafe_uninitialized=True)
+
+    @always_inline
+    fn __init__(inout self, value: IntLiteral):
+        """Initializes the `BigInt` vector with a signed integer literal.
+
+        Args:
+            value: The signed integer literal to be splatted across all the
+                elements of the `BigInt` vector.
+        """
+        _big_int_construction_checks[bits, word_type]()
+
+        debug_assert(
+            _is_casting_safe[bits, signed](value),
+            "value must be within the bounds of the `BigInt`",
+        )
+
+        self._storage = Self.StorageType(unsafe_uninitialized=True)
+        var tmp: IntLiteral = value
+
+        @parameter
+        for i in range(Self.WORD_COUNT):
+            self._storage[i] = SIMD[word_type, size](tmp)
+            tmp >>= Self.WORD_TYPE_BITWIDTH
 
     @always_inline
     fn __init__(inout self, value: Int):

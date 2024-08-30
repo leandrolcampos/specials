@@ -63,12 +63,28 @@ fn test_init_unsafe() raises:
     _ = BigUInt[24, size=1](unsafe_uninitialized=True)
 
 
-fn test_init_from_int() raises:
-    _assert_equal(BigInt[8, size=1](1), 1)
-    _assert_equal(BigInt[24, size=1](1), 1)
+fn test_init_from_int_literal() raises:
+    _assert_equal(BigInt[8, size=1](0), 0)
+    _assert_equal(BigInt[8, size=1](127), 127)
+    _assert_equal(BigInt[8, size=1](-1), -1)
+    _assert_equal(BigInt[8, size=1](-128), -128)
+    _assert_equal(BigInt[24, size=1](0), 0)
+    _assert_equal(BigInt[24, size=1](8_388_607), 8_388_607)
+    _assert_equal(BigInt[24, size=1](-1), -1)
+    _assert_equal(BigInt[24, size=1](-8_388_608), -8_388_608)
 
-    _assert_equal(BigUInt[8, size=1](-1), 255)
-    _assert_equal(BigUInt[24, size=1](-1), 16_777_215)
+    _assert_equal(BigUInt[8, size=1](0), 0)
+    _assert_equal(BigUInt[8, size=1](255), 255)
+    _assert_equal(BigUInt[24, size=1](0), 0)
+    _assert_equal(BigUInt[24, size=1](16_777_215), 16_777_215)
+
+
+fn test_init_from_int() raises:
+    _assert_equal(BigInt[8, size=1](Int(1)), 1)
+    _assert_equal(BigInt[24, size=1](Int(1)), 1)
+
+    _assert_equal(BigUInt[8, size=1](Int(255)), 255)
+    _assert_equal(BigUInt[24, size=1](Int(16_777_215)), 16_777_215)
 
 
 fn test_init_from_signed_simd() raises:
@@ -562,6 +578,7 @@ fn test_is_zero() raises:
 fn main() raises:
     test_init()
     test_init_unsafe()
+    test_init_from_int_literal()
     test_init_from_int()
     test_init_from_signed_simd()
     test_init_from_unsigned_simd()
