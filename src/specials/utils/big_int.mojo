@@ -156,8 +156,6 @@ fn _count_leading_zeros[
     """Counts the leading zeros in the internal representation of a `BigInt`."""
     constrained[type.is_integral(), "type must be an integral type"]()
 
-    alias TYPE_BITWIDTH = type.bitwidth()
-
     var result = SIMD[type, size](0)
     var should_stop = SIMD[DType.bool, size](False)
 
@@ -165,7 +163,7 @@ fn _count_leading_zeros[
     for i in reversed(range(val.size)):
         var bit_count = countl_zero(val[i])
         result += should_stop.select(0, bit_count)
-        should_stop |= bit_count < TYPE_BITWIDTH
+        should_stop |= bit_count < type.bitwidth()
 
         if all(should_stop):
             break
@@ -463,7 +461,8 @@ struct BigInt[
         self._storage = Self.StorageType(unsafe_uninitialized=True)
 
         memset_zero[word_type](
-            self._storage.unsafe_ptr().bitcast[Scalar[word_type]](), BLOCK_SIZE
+            self._storage.unsafe_ptr().bitcast[Scalar[word_type]](),
+            count=BLOCK_SIZE,
         )
 
     @doc_private
