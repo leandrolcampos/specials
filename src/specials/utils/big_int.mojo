@@ -408,7 +408,7 @@ struct BigInt[
     size: Int,
     signed: Bool = True,
     word_type: DType = _default_word_type[bits](),
-](Copyable, ExplicitlyCopyable, Movable):
+](Copyable, Defaultable, ExplicitlyCopyable, Movable):
     """Represents a small vector of arbitrary, fixed bit-size integers.
 
     It can represent both signed and unsigned integers with a fixed number of
@@ -466,14 +466,14 @@ struct BigInt[
             self._storage.unsafe_ptr().bitcast[Scalar[word_type]](), BLOCK_SIZE
         )
 
+    @doc_private
     @always_inline
     fn __init__(inout self, *, unsafe_uninitialized: Bool):
-        """Initializes the `BigInt` vector with uninitialized storage.
+        """Initializes the `BigInt` vector with an uninitialized storage.
 
         Args:
-            unsafe_uninitialized: A boolean indicating whether the internal
-                storage should be left uninitialized. In practice, it is always
-                set to `True` (it is not actually used inside the constructor).
+            unsafe_uninitialized: Marker argument indicating this initializer
+                is unsafe. Its value is not used.
         """
         _big_int_construction_checks[bits, word_type]()
 
@@ -514,17 +514,17 @@ struct BigInt[
 
     @always_inline
     fn __init__(inout self, value: Int):
-        """Initializes the `BigInt` vector with the provided integer value.
+        """Initializes the `BigInt` vector with a signed integer value.
 
         Args:
-            value: The integer value to set for each element in the `BigInt`
-                vector.
+            value: The signed integer value to be splatted across all the
+                elements of the `BigInt` vector.
         """
         self.__init__(SIMD[DType.index, size](value))
 
     @always_inline
     fn __init__(inout self, value: SIMD[_, size]):
-        """Initializes the `BigInt` vector with the provided SIMD vector.
+        """Initializes the `BigInt` vector with a SIMD vector.
 
         Constraints:
             The value type must be an integral type.
@@ -558,7 +558,7 @@ struct BigInt[
 
     @always_inline
     fn __init__(inout self, other: Self):
-        """Initializes a new `BigInt` vector by copying an existing `BigInt`.
+        """Initializes the `BigInt` vector by copying an existing one.
 
         Args:
             other: The `BigInt` vector to copy from.
