@@ -277,6 +277,24 @@ fn _shift[
     return dst
 
 
+@always_inline
+fn _extend[
+    type: DType, size: Int, *, start: Int
+](
+    inout val: InlineArray[SIMD[type, size], _],
+    is_negative: SIMD[DType.bool, size],
+):
+    """Extends the internal representation of a `BigInt` with a sign extension.
+    """
+    constrained[type.is_unsigned(), "type must be an unsigned, integral type"]()
+
+    var extension = is_negative.select(max_finite[type](), 0)
+
+    @parameter
+    for i in range(start, val.size):
+        val[i] = extension
+
+
 # ===----------------------------------------------------------------------=== #
 # Operations for comparison
 # ===----------------------------------------------------------------------=== #
@@ -478,12 +496,21 @@ struct BigInt[
         )
 
         self._storage = Self.StorageType(unsafe_uninitialized=True)
+        self._storage[0] = SIMD[word_type, size](value)
+
+        if (
+            Self.WORD_TYPE_BITWIDTH >= value._bit_width()
+            and self.WORD_COUNT > 1
+        ):
+            _extend[start=1](self._storage, is_negative=value < 0 and signed)
+            return
+
         var tmp: IntLiteral = value
 
         @parameter
-        for i in range(Self.WORD_COUNT):
-            self._storage[i] = SIMD[word_type, size](tmp)
+        for i in range(1, Self.WORD_COUNT):
             tmp >>= Self.WORD_TYPE_BITWIDTH
+            self._storage[i] = SIMD[word_type, size](tmp)
 
     @always_inline
     fn __init__(inout self, value: Int):
@@ -511,26 +538,23 @@ struct BigInt[
         ]()
         _big_int_construction_checks[bits, word_type]()
 
-        alias TYPE_BITWIDTH = value.type.bitwidth()
-
-        var extension = ((value < 0) & signed).select(
-            max_finite[word_type](), 0
-        )
-        var tmp = value
-
         self._storage = Self.StorageType(unsafe_uninitialized=True)
+        self._storage[0] = value.cast[word_type]()
 
         @parameter
-        for i in range(Self.WORD_COUNT):
-            self._storage[i] = (tmp == 0).select(
-                extension, tmp.cast[word_type]()
-            )
+        if (
+            Self.WORD_TYPE_BITWIDTH >= value.type.bitwidth()
+            and self.WORD_COUNT > 1
+        ):
+            _extend[start=1](self._storage, is_negative=(value < 0) & signed)
+            return
 
-            @parameter
-            if TYPE_BITWIDTH > Self.WORD_TYPE_BITWIDTH:
-                tmp >>= Self.WORD_TYPE_BITWIDTH
-            else:
-                tmp = 0
+        var tmp = value
+
+        @parameter
+        for i in range(1, Self.WORD_COUNT):
+            tmp >>= Self.WORD_TYPE_BITWIDTH
+            self._storage[i] = tmp.cast[word_type]()
 
     @always_inline
     fn __init__(inout self, other: Self):
