@@ -229,8 +229,8 @@ fn _shift[
 
         return dst
 
-    @always_inline
     @parameter
+    @always_inline
     fn at(index: SIMD[DType.index, _]) -> __type_of(index):
         @parameter
         if is_left_shift:
@@ -238,8 +238,8 @@ fn _shift[
         else:
             return index
 
-    @always_inline
     @parameter
+    @always_inline
     fn safe_gather(
         index: SIMD[DType.index, val.size]
     ) -> SIMD[val.word_type, val.size]:
