@@ -211,7 +211,7 @@ fn _iota[type: DType, size: Int]() -> SIMD[type, size]:
 @always_inline
 fn _shift[
     *, is_left_shift: Bool
-](val: BigInt, offset: SIMD[DType.index, val.size],) -> __type_of(val):
+](val: BigInt, offset: SIMD[DType.index, val.size]) -> __type_of(val):
     """Performs a bitwise shift on the internal representation of a `BigInt`."""
     alias SHIFT = _iota[DType.index, val.size]()
     alias TYPE_BITWIDTH = val.word_type.bitwidth()
@@ -545,7 +545,7 @@ struct BigInt[
             Self.WORD_TYPE_BITWIDTH >= value.type.bitwidth()
             and self.WORD_COUNT > 1
         ):
-            _extend[start=1](self._storage, is_negative=(value < 0) & signed)
+            _extend[start=1](self._storage, is_negative=value < 0 & signed)
             return
 
         var tmp = value
@@ -757,29 +757,33 @@ struct BigInt[
     fn __lshift__(self, offset: SIMD[DType.index, size]) -> Self:
         """Performs a bitwise left shift on a `BigInt` vector, element-wise.
 
+        The bits that are shifted off the left end are discarded, including the
+        sign bit, if present. And the bit positions vacated at the right end are
+        filled with zeros.
+
         Args:
-            offset: The number of bits to shift the vector by. Must be less than
-                `bits`; otherwise, the behavior of this method is undefined.
+            offset: The number of bits to shift the vector by. Must be
+                non-negative.
 
         Returns:
             A new `BigInt` vector containing the result of the bitwise left
             shift.
         """
-        debug_assert(
-            all((offset >= 0) & (offset < bits)),
-            "offset must be within bounds",
-        )
+        debug_assert(all(offset >= 0), "offset must be non-negative")
 
         return _shift[is_left_shift=True](self, offset)
 
     @always_inline
     fn __ilshift__(inout self, offset: SIMD[DType.index, size]):
-        """Performs an in-place bitwise left shift on a `BigInt` vector,
-        element-wise.
+        """Performs a bitwise left shift on a `BigInt` vector, element-wise.
+
+        The bits that are shifted off the left end are discarded, including the
+        sign bit, if present. And the bit positions vacated at the right end are
+        filled with zeros.
 
         Args:
-            offset: The number of bits to shift the vector by. Must be less than
-                `bits`; otherwise, the behavior of this method is undefined.
+            offset: The number of bits to shift the vector by. Must be
+                non-negative.
         """
         self = self << offset
 
@@ -787,18 +791,20 @@ struct BigInt[
     fn __rshift__(self, offset: SIMD[DType.index, size]) -> Self:
         """Performs a bitwise right shift on a `BigInt` vector, element-wise.
 
+        The bits that are shifted off the right end are discarded, except for the
+        sign bit, if present. And the bit positions vacated at the left end are
+        filled with zeros, if the `BigInt` is unsigned, or with the sign bit, if
+        the `BigInt` is signed.
+
         Args:
-            offset: The number of bits to shift the vector by. Must be less than
-                `bits`; otherwise, the behavior of this method is undefined.
+            offset: The number of bits to shift the vector by. Must be
+                non-negative.
 
         Returns:
             A new `BigInt` vector containing the result of the bitwise right
             shift.
         """
-        debug_assert(
-            all((offset >= 0) & (offset < bits)),
-            "offset must be within bounds",
-        )
+        debug_assert(all(offset >= 0), "offset must be non-negative")
 
         return _shift[is_left_shift=False](self, offset)
 

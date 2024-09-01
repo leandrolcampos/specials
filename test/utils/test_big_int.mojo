@@ -356,6 +356,22 @@ fn test_lshift() raises:
     )
 
 
+fn test_lshift_edge_cases() raises:
+    _assert_equal(BigInt[8, size=1](-128) << 1, 0)
+    _assert_equal(BigInt[8, size=1](-1) << 8, 0)
+    _assert_equal(BigInt[8, size=1](64) << 2, 0)
+    _assert_equal(BigInt[8, size=1](1) << 8, 0)
+    _assert_equal(BigUInt[8, size=1](128) << 1, 0)
+    _assert_equal(BigUInt[8, size=1](1) << 8, 0)
+
+    _assert_equal(BigInt[24, size=1](-8388608) << 1, 0)
+    _assert_equal(BigInt[24, size=1](-1) << 24, 0)
+    _assert_equal(BigInt[24, size=1](4194304) << 2, 0)
+    _assert_equal(BigInt[24, size=1](1) << 24, 0)
+    _assert_equal(BigUInt[24, size=1](8388608) << 1, 0)
+    _assert_equal(BigUInt[24, size=1](1) << 24, 0)
+
+
 fn test_ilshift() raises:
     var val = BigInt[24, size=1](1)
     val <<= 8
@@ -390,6 +406,22 @@ fn test_rshift() raises:
         uval24 >> offset,
         SIMD[DEST_TYPE, 4](12_814_670, 6_407_335, 3_128, 1),
     )
+
+
+fn test_rshift_edge_cases() raises:
+    _assert_equal(BigInt[8, size=1](-128) >> 7, -1)
+    _assert_equal(BigInt[8, size=1](-128) >> 8, -1)
+    _assert_equal(BigInt[8, size=1](64) >> 7, 0)
+    _assert_equal(BigInt[8, size=1](64) >> 8, 0)
+    _assert_equal(BigUInt[8, size=1](128) >> 7, 1)
+    _assert_equal(BigUInt[8, size=1](128) >> 8, 0)
+
+    _assert_equal(BigInt[24, size=1](-8388608) >> 23, -1)
+    _assert_equal(BigInt[24, size=1](-8388608) >> 24, -1)
+    _assert_equal(BigInt[24, size=1](4194304) >> 23, 0)
+    _assert_equal(BigInt[24, size=1](4194304) >> 24, 0)
+    _assert_equal(BigUInt[24, size=1](8388608) >> 23, 1)
+    _assert_equal(BigUInt[24, size=1](8388608) >> 24, 0)
 
 
 fn test_irshift() raises:
@@ -600,9 +632,11 @@ fn main() raises:
     test_invert()
 
     test_lshift()
+    test_lshift_edge_cases()
     test_ilshift()
 
     test_rshift()
+    test_rshift_edge_cases()
     test_irshift()
 
     test_negation()
