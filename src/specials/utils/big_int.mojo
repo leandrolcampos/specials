@@ -350,7 +350,6 @@ fn _conditional[T: AnyType, //, pred: Bool, true_case: T, false_case: T]() -> T:
 @always_inline
 fn _default_word_type[bits: Int]() -> DType:
     """Returns the default word type for a `BigInt` based on `bits`."""
-    constrained[bits > 0, "number of bits must be positive"]()
     constrained[bits % 8 == 0, "number of bits must be a multiple of 8"]()
 
     @parameter
@@ -385,7 +384,6 @@ fn _is_casting_safe[bits: Int, signed: Bool](value: IntLiteral) -> Bool:
     """Checks if `value` fits in an integer with the specified number of bits
     and signedness.
     """
-    constrained[bits > 0, "number of bits must be positive"]()
 
     @parameter
     if signed:
