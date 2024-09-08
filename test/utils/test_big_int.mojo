@@ -88,43 +88,25 @@ fn test_init_from_int() raises:
 
 
 fn test_init_from_signed_simd() raises:
-    alias WIDTH = 4
-    alias VALUE = SIMD[DEST_TYPE, WIDTH](-2, -1, 1, 2)
+    alias VALUE = SIMD[DEST_TYPE, 4](-128, -1, 1, 127)
+    alias POS_VALUE = SIMD[DEST_TYPE, 2](1, 127)
 
     _assert_equal(BigInt[8](VALUE), VALUE)
     _assert_equal(BigInt[24](VALUE), VALUE)
 
-    _assert_equal(
-        BigUInt[8](VALUE),
-        SIMD[DEST_TYPE, WIDTH](254, 255, 1, 2),
-    )
-    _assert_equal(
-        BigUInt[24](VALUE),
-        SIMD[DEST_TYPE, WIDTH](16_777_214, 16_777_215, 1, 2),
-    )
+    _assert_equal(BigUInt[8](POS_VALUE), POS_VALUE)
+    _assert_equal(BigUInt[24](POS_VALUE), POS_VALUE)
 
 
 fn test_init_from_unsigned_simd() raises:
-    alias WIDTH = 4
-    alias VALUE = SIMD[DType.uint64, WIDTH](1, 2, 255, 16_777_215)
+    alias VALUE = SIMD[DEST_TYPE, 4](1, 127, 128, 255)
+    alias SMALL_VALUE = SIMD[DEST_TYPE, 2](1, 127)
 
-    _assert_equal(
-        BigInt[8](VALUE),
-        SIMD[DEST_TYPE, WIDTH](1, 2, -1, -1),
-    )
-    _assert_equal(
-        BigInt[24](VALUE),
-        SIMD[DEST_TYPE, WIDTH](1, 2, 255, -1),
-    )
+    _assert_equal(BigInt[8](SMALL_VALUE), SMALL_VALUE)
+    _assert_equal(BigInt[24](VALUE), VALUE)
 
-    _assert_equal(
-        BigUInt[8](VALUE),
-        SIMD[DEST_TYPE, WIDTH](1, 2, 255, 255),
-    )
-    _assert_equal(
-        BigUInt[24](VALUE),
-        SIMD[DEST_TYPE, WIDTH](1, 2, 255, 16_777_215),
-    )
+    _assert_equal(BigUInt[8](VALUE), VALUE)
+    _assert_equal(BigUInt[24](VALUE), VALUE)
 
 
 fn test_explicit_copy() raises:
@@ -433,23 +415,12 @@ fn test_irshift() raises:
 fn test_negation() raises:
     var val = SIMD[DEST_TYPE, 4](-2, -1, 0, 1)
 
-    @always_inline
-    @parameter
-    fn _test_neg[bits: Int, signed: Bool]() raises:
-        _assert_equal(
-            -BigInt[bits, signed=signed](val),
-            BigInt[bits, signed=signed](-val).cast[DEST_TYPE](),
-        )
-
-    _test_neg[8, signed=True]()
-    _test_neg[8, signed=False]()
-
-    _test_neg[24, signed=True]()
-    _test_neg[24, signed=False]()
+    _assert_equal(-BigInt[8](val), BigInt[8](-val).cast[DEST_TYPE]())
+    _assert_equal(-BigInt[24](val), BigInt[24](-val).cast[DEST_TYPE]())
 
 
 fn test_unary_plus() raises:
-    var val = SIMD[DEST_TYPE, 4](-2, -1, 0, 1)
+    var val = SIMD[DEST_TYPE, 2](0, 1)
 
     @always_inline
     @parameter
@@ -590,21 +561,21 @@ fn test_is_negative() raises:
     var val = SIMD[DType.int8, 2](-1, 0)
 
     assert_equal(BigInt[8](val).is_negative(), val < 0)
-    assert_equal(BigUInt[8](val).is_negative(), False)
+    assert_equal(BigUInt[8, size=1](0).is_negative(), False)
 
     assert_equal(BigInt[24](val).is_negative(), val < 0)
-    assert_equal(BigUInt[24](val).is_negative(), False)
+    assert_equal(BigUInt[24, size=1](0).is_negative(), False)
 
 
 fn test_is_zero() raises:
-    var val = SIMD[DType.int8, 4](-1, 0, 1, 2)
-    var expected = val == 0
+    var sval = SIMD[DType.int8, 4](-1, 0, 1, 2)
+    var uval = SIMD[DType.uint8, 4](0, 1, 2, 3)
 
-    assert_equal(BigInt[8](val).is_zero(), expected)
-    assert_equal(BigUInt[8](val).is_zero(), expected)
+    assert_equal(BigInt[8](sval).is_zero(), sval == 0)
+    assert_equal(BigUInt[8](uval).is_zero(), uval == 0)
 
-    assert_equal(BigInt[24](val).is_zero(), expected)
-    assert_equal(BigUInt[24](val).is_zero(), expected)
+    assert_equal(BigInt[24](sval).is_zero(), sval == 0)
+    assert_equal(BigUInt[24](uval).is_zero(), uval == 0)
 
 
 fn main() raises:

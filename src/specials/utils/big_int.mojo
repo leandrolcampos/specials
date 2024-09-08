@@ -392,6 +392,43 @@ fn _is_casting_safe[bits: Int, signed: Bool](value: IntLiteral) -> Bool:
         return value >= 0 and bits >= (value._bit_width() - 1)
 
 
+@always_inline
+fn _is_casting_safe[bits: Int, signed: Bool](value: SIMD) -> Bool:
+    """Checks if `value` fits in an integer with the specified number of bits
+    and signedness.
+    """
+    constrained[
+        value.type.is_integral(),
+        "value type must be an integral type",
+    ]()
+
+    @parameter
+    if bits > value.type.bitwidth():
+        return signed or value.type.is_unsigned() or all(value >= 0)
+    else:
+        alias TWO = Scalar[value.type](2)
+
+        @parameter
+        if value.type.is_unsigned():
+            alias MAX_VALUE = _conditional[
+                signed, TWO ** (bits - 1) - 1, TWO**bits - 1
+            ]()
+
+            return all(value <= MAX_VALUE)
+        else:
+            alias MIN_VALUE = _conditional[signed, -(TWO ** (bits - 1)), 0]()
+
+            @parameter
+            if bits == value.type.bitwidth():
+                return all(value >= MIN_VALUE)
+            else:
+                alias MAX_VALUE = _conditional[
+                    signed, TWO ** (bits - 1) - 1, TWO**bits - 1
+                ]()
+
+                return all(value >= MIN_VALUE) and all(value <= MAX_VALUE)
+
+
 alias BigUInt = BigInt[_, size=_, signed=False, word_type=_]
 """Represents a small vector of arbitrary, fixed bit-size unsigned integers."""
 
@@ -483,13 +520,14 @@ struct BigInt[
 
         Args:
             value: The signed integer literal to be splatted across all the
-                elements of the `BigInt` vector.
+                elements of the `BigInt` vector. Should be within the bounds of
+                the `BigInt`.
         """
         _big_int_construction_checks[bits, word_type]()
 
         debug_assert(
             _is_casting_safe[bits, signed](value),
-            "value must be within the bounds of the `BigInt`",
+            "value should be within the bounds of the `BigInt`",
         )
 
         self._storage = Self.StorageType(unsafe_uninitialized=True)
@@ -515,7 +553,8 @@ struct BigInt[
 
         Args:
             value: The signed integer value to be splatted across all the
-                elements of the `BigInt` vector.
+                elements of the `BigInt` vector. Should be within the bounds of
+                the `BigInt`.
         """
         self.__init__(SIMD[DType.index, size](value))
 
@@ -527,13 +566,19 @@ struct BigInt[
             The value type must be an integral type.
 
         Args:
-            value: The SIMD vector to initialize the `BigInt` vector with.
+            value: The SIMD vector to initialize the `BigInt` vector with. Each
+                of its elements should be within the bounds of the `BigInt`.
         """
         constrained[
             value.type.is_integral(),
             "value type must be an integral type",
         ]()
         _big_int_construction_checks[bits, word_type]()
+
+        debug_assert(
+            _is_casting_safe[bits, signed](value),
+            "value should be within the bounds of the `BigInt`",
+        )
 
         self._storage = Self.StorageType(unsafe_uninitialized=True)
         self._storage[0] = value.cast[word_type]()
@@ -827,9 +872,13 @@ struct BigInt[
     fn __neg__(self) -> Self:
         """Performs arithmetic negation on a `BigInt` vector, element-wise.
 
+        It is only applicable to signed `BigInt` vectors.
+
         Returns:
             A new `BigInt` vector representing the result of the negation.
         """
+        constrained[signed, "argument must be a signed `BigInt` vector"]()
+
         var result = ~self
         result += 1
         return result
