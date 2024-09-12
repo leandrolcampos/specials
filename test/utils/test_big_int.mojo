@@ -137,6 +137,34 @@ fn test_explicit_copy() raises:
             _assert_equal(copy, 2)
 
 
+fn test_from_signed_big_int() raises:
+    alias _BigInt = BigInt[_, size=1, signed=_, word_type = DType.uint8]
+    alias _BigUInt = BigUInt[_, size=1, word_type = DType.uint8]
+
+    var sval8 = _BigInt[8](-1)
+    var sval24 = _BigInt[24](127)
+
+    _assert_equal(_BigInt[8](other=sval24), 127)
+    _assert_equal(_BigUInt[8](other=sval24), 127)
+
+    _assert_equal(_BigInt[24](other=sval8), -1)
+    _assert_equal(_BigUInt[24](other=sval24), 127)
+
+
+fn test_from_unsigned_big_int() raises:
+    alias _BigInt = BigInt[_, size=1, signed=_, word_type = DType.uint8]
+    alias _BigUInt = BigUInt[_, size=1, word_type = DType.uint8]
+
+    var uval8 = _BigUInt[8](255)
+    var uval24 = _BigUInt[24](127)
+
+    _assert_equal(_BigInt[8](other=uval24), 127)
+    _assert_equal(_BigUInt[8](other=uval24), 127)
+
+    _assert_equal(_BigInt[24](other=uval8), 255)
+    _assert_equal(_BigUInt[24](other=uval24), 127)
+
+
 fn test_min() raises:
     _assert_equal(BigInt[8, size=1].min(), -128)
     _assert_equal(BigInt[24, size=1].min(), -8_388_608)
@@ -440,43 +468,7 @@ fn test_unary_plus() raises:
     _test_plus[24, signed=False]()
 
 
-fn test_cast_to_signed_big_int() raises:
-    var sval8 = BigInt[8, size=1](-1)
-    var uval8 = BigUInt[8, size=1](255)
-
-    _assert_equal(sval8.cast[8, signed=True](), -1)
-    _assert_equal(sval8.cast[24, signed=True](), -1)
-    _assert_equal(uval8.cast[8, signed=True](), -1)
-    _assert_equal(uval8.cast[24, signed=True](), 255)
-
-    var sval24 = BigInt[24, size=1](-1)
-    var uval24 = BigUInt[24, size=1](16_777_215)
-
-    _assert_equal(sval24.cast[8, signed=True](), -1)
-    _assert_equal(sval24.cast[24, signed=True](), -1)
-    _assert_equal(uval24.cast[8, signed=True](), -1)
-    _assert_equal(uval24.cast[24, signed=True](), -1)
-
-
-fn test_cast_to_unsigned_big_int() raises:
-    var sval8 = BigInt[8, size=1](-1)
-    var uval8 = BigUInt[8, size=1](255)
-
-    _assert_equal(sval8.cast[8, signed=False](), 255)
-    _assert_equal(sval8.cast[24, signed=False](), 255)
-    _assert_equal(uval8.cast[8, signed=False](), 255)
-    _assert_equal(uval8.cast[24, signed=False](), 255)
-
-    var sval24 = BigInt[24, size=1](-1)
-    var uval24 = BigUInt[24, size=1](16_777_215)
-
-    _assert_equal(sval24.cast[8, signed=False](), 255)
-    _assert_equal(sval24.cast[24, signed=False](), 16_777_215)
-    _assert_equal(uval24.cast[8, signed=False](), 255)
-    _assert_equal(uval24.cast[24, signed=False](), 16_777_215)
-
-
-fn test_cast_to_simd() raises:
+fn test_cast() raises:
     alias DTYPES = List[DType](
         DType.int8,
         DType.uint8,
@@ -586,6 +578,8 @@ fn main() raises:
     test_init_from_signed_simd()
     test_init_from_unsigned_simd()
     test_explicit_copy()
+    test_from_signed_big_int()
+    test_from_unsigned_big_int()
 
     test_min()
     test_max()
@@ -613,9 +607,7 @@ fn main() raises:
     test_negation()
     test_unary_plus()
 
-    test_cast_to_signed_big_int()
-    test_cast_to_unsigned_big_int()
-    test_cast_to_simd()
+    test_cast()
 
     test_most_significant_digit()
 

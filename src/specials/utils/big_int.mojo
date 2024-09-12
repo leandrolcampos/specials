@@ -332,51 +332,8 @@ fn _compare(lhs: BigInt, rhs: __type_of(lhs)) -> SIMD[DType.int8, lhs.size]:
 
 
 # ===----------------------------------------------------------------------=== #
-# BigInt
+# Casting safety checks
 # ===----------------------------------------------------------------------=== #
-
-
-@always_inline
-fn _conditional[T: AnyType, //, pred: Bool, true_case: T, false_case: T]() -> T:
-    """Returns the true or false case based on the value of `pred`."""
-
-    @parameter
-    if pred:
-        return true_case
-    else:
-        return false_case
-
-
-@always_inline
-fn _default_word_type[bits: Int]() -> DType:
-    """Returns the default word type for a `BigInt` based on `bits`."""
-    constrained[bits % 8 == 0, "number of bits must be a multiple of 8"]()
-
-    @parameter
-    if bits % 64 == 0 and is_64bit():
-        return DType.uint64
-    elif bits % 32 == 0:
-        return DType.uint32
-    elif bits % 16 == 0:
-        return DType.uint16
-    else:
-        return DType.uint8
-
-
-@always_inline
-fn _big_int_construction_checks[
-    bits: Int,
-    word_type: DType,
-]():
-    """Performs checks on the parameters of a `BigInt` constructor."""
-    constrained[bits > 0, "number of bits must be positive"]()
-    constrained[
-        word_type.is_unsigned(), "word type must be an unsigned, integral type"
-    ]()
-    constrained[
-        bits % word_type.bitwidth() == 0,
-        "number of bits must be a multiple of the word type's bitwidth",
-    ]()
 
 
 @always_inline
@@ -427,6 +384,98 @@ fn _is_casting_safe[bits: Int, signed: Bool](value: SIMD) -> Bool:
                 ]()
 
                 return all(value >= MIN_VALUE) and all(value <= MAX_VALUE)
+
+
+@always_inline
+fn _bits_as_int_literal(bits: Int) -> IntLiteral:
+    """Converts the number of bits to an integer literal."""
+    var result: IntLiteral = 0
+
+    for _ in range(0, bits, 8):
+        result += 8
+
+    return result
+
+
+@always_inline
+fn _is_casting_safe[bits: Int, signed: Bool](value: BigInt) -> Bool:
+    """Checks if `value` fits in an integer with the specified number of bits
+    and signedness.
+    """
+
+    @parameter
+    if bits > value.bits:
+        return signed or (not value.signed) or all(value >= 0)
+    else:
+        alias _bits = _bits_as_int_literal(bits)
+
+        @parameter
+        if not value.signed:
+            alias MAX_VALUE = _conditional[
+                signed, 2 ** (_bits - 1) - 1, 2**_bits - 1
+            ]()
+
+            return all(value <= MAX_VALUE)
+        else:
+            alias MIN_VALUE = _conditional[signed, -(2 ** (_bits - 1)), 0]()
+
+            @parameter
+            if bits == value.bits:
+                return all(value >= MIN_VALUE)
+            else:
+                alias MAX_VALUE = _conditional[
+                    signed, 2 ** (_bits - 1) - 1, 2**_bits - 1
+                ]()
+
+                return all(value >= MIN_VALUE) and all(value <= MAX_VALUE)
+
+
+# ===----------------------------------------------------------------------=== #
+# BigInt
+# ===----------------------------------------------------------------------=== #
+
+
+@always_inline
+fn _conditional[T: AnyType, //, pred: Bool, true_case: T, false_case: T]() -> T:
+    """Returns the true or false case based on the value of `pred`."""
+
+    @parameter
+    if pred:
+        return true_case
+    else:
+        return false_case
+
+
+@always_inline
+fn _default_word_type[bits: Int]() -> DType:
+    """Returns the default word type for a `BigInt` based on `bits`."""
+    constrained[bits % 8 == 0, "number of bits must be a multiple of 8"]()
+
+    @parameter
+    if bits % 64 == 0 and is_64bit():
+        return DType.uint64
+    elif bits % 32 == 0:
+        return DType.uint32
+    elif bits % 16 == 0:
+        return DType.uint16
+    else:
+        return DType.uint8
+
+
+@always_inline
+fn _big_int_construction_checks[
+    bits: Int,
+    word_type: DType,
+]():
+    """Performs checks on the parameters of a `BigInt` constructor."""
+    constrained[bits > 0, "number of bits must be positive"]()
+    constrained[
+        word_type.is_unsigned(), "word type must be an unsigned, integral type"
+    ]()
+    constrained[
+        bits % word_type.bitwidth() == 0,
+        "number of bits must be a multiple of the word type's bitwidth",
+    ]()
 
 
 alias BigUInt = BigInt[_, size=_, signed=False, word_type=_]
@@ -577,7 +626,10 @@ struct BigInt[
 
         debug_assert(
             _is_casting_safe[bits, signed](value),
-            "value should be within the bounds of the `BigInt`",
+            (
+                "each element in `value` should be within the bounds of the"
+                " `BigInt`"
+            ),
         )
 
         self._storage = Self.StorageType(unsafe_uninitialized=True)
@@ -606,6 +658,52 @@ struct BigInt[
             other: The `BigInt` vector to copy from.
         """
         self.__copyinit__(other)
+
+    @always_inline
+    fn __init__(
+        inout self,
+        *,
+        other: BigInt[_, size=size, signed=_, word_type=word_type],
+    ):
+        """Initializes the `BigInt` vector by casting an existing one.
+
+        Args:
+            other: The `BigInt` vector to cast from. Must have the same size and
+                word type as the new `BigInt`, and each element should be within
+                the bounds of the new vector.
+        """
+        _big_int_construction_checks[bits, word_type]()
+
+        debug_assert(
+            _is_casting_safe[bits, signed](other),
+            (
+                "each element in `other` should be within the bounds of the"
+                " new `BigInt`"
+            ),
+        )
+
+        self._storage = Self.StorageType(unsafe_uninitialized=True)
+
+        @parameter
+        if bits <= other.bits:
+
+            @parameter
+            for i in range(Self.WORD_COUNT):
+                self._storage[i] = other._storage[i]
+
+        else:
+            var extension = (other.is_negative() & other.signed).select(
+                max_finite[word_type](), 0
+            )
+
+            @parameter
+            for i in range(Self.WORD_COUNT):
+
+                @parameter
+                if i < other.WORD_COUNT:
+                    self._storage[i] = other._storage[i]
+                else:
+                    self._storage[i] = extension
 
     # ===------------------------------------------------------------------=== #
     # Factory methods
@@ -951,52 +1049,6 @@ struct BigInt[
                 self._storage, rhs._storage
             )
             return carry_out.cast[DType.bool]()
-
-    @always_inline
-    fn cast[
-        bits: Int, /, *, signed: Bool
-    ](self) -> BigInt[
-        bits, size = Self.size, signed=signed, word_type = Self.word_type
-    ]:
-        """Casts the `BigInt` vector to a new `BigInt` with a different number
-        of bits and signedness.
-
-        Parameters:
-            bits: The number of bits for the new `BigInt`. Constraints: Must be
-                a positive integer and a multiple of the bitwidth of word type.
-            signed: A boolean indicating whether the new `BigInt` is signed
-                (`True`) or unsigned (`False`).
-
-        Returns:
-            A new `BigInt` vector with the specified number of bits and
-            signedness. The size and word type are preserved.
-        """
-        var result = BigInt[
-            bits, size = Self.size, signed=signed, word_type = Self.word_type
-        ](unsafe_uninitialized=True)
-
-        @parameter
-        if bits <= self.bits:
-
-            @parameter
-            for i in range(result.WORD_COUNT):
-                result._storage[i] = self._storage[i]
-
-        else:
-            var extension = (self.is_negative() & signed).select(
-                max_finite[word_type](), 0
-            )
-
-            @parameter
-            for i in range(result.WORD_COUNT):
-
-                @parameter
-                if i < self.WORD_COUNT:
-                    result._storage[i] = self._storage[i]
-                else:
-                    result._storage[i] = extension
-
-        return result
 
     @always_inline
     fn cast[type: DType](self) -> SIMD[type, size]:
