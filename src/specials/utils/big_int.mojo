@@ -125,12 +125,19 @@ fn _inplace_binop[
         "`dst` must have at least as many elements as `rhs`",
     ]()
 
+    var rhs_value: SIMD[type, size]
     var carry_out = SIMD[type, size](0)
 
     @parameter
     for i in range(dst.size):
-        var has_rhs_value = i < rhs.size
-        var rhs_value = rhs[i] if has_rhs_value else 0
+        alias HAS_RHS_VALUE = i < rhs.size
+
+        @parameter
+        if HAS_RHS_VALUE:
+            rhs_value = rhs[i]
+        else:
+            rhs_value = 0
+
         var carry_in = carry_out
         var result_and_carry = binop_with_carry(dst[i], rhs_value, carry_in)
 
@@ -138,8 +145,10 @@ fn _inplace_binop[
         carry_out = result_and_carry[1]
 
         # Stop early when rhs is over and there is no carry out to propagate.
-        if all(carry_out == 0) and not has_rhs_value:
-            break
+        @parameter
+        if not HAS_RHS_VALUE:
+            if all(carry_out == 0):
+                break
 
     return carry_out
 
