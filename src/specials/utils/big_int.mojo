@@ -210,66 +210,75 @@ fn _iota[type: DType, size: Int]() -> SIMD[type, size]:
 
 @always_inline
 fn _shift[
-    *, is_left_shift: Bool
+    *, is_left_shift: Bool, treat_offset_as_int: Bool = False
 ](val: BigInt, offset: SIMD[DType.index, val.size]) -> __type_of(val):
     """Performs a bitwise shift on the internal representation of a `BigInt`."""
     alias SHIFT = _iota[DType.index, val.size]()
     alias TYPE_BITWIDTH = val.word_type.bitwidth()
 
     var dst = __type_of(val)(unsafe_uninitialized=True)
+    var val_is_negative = val.is_negative()
     var val_ptr = DTypePointer(
         val._storage.unsafe_ptr().bitcast[Scalar[val.word_type]]()
     )
 
-    if all(offset == 0):
-
-        @parameter
-        for i in range(val.WORD_COUNT):
-            dst._storage[i] = val._storage[i]
-
-        return dst
+    @parameter
+    @always_inline
+    fn at[index: Int]() -> Int:
+        return _conditional[is_left_shift, val.WORD_COUNT - index - 1, index]()
 
     @parameter
     @always_inline
-    fn at(index: SIMD[DType.index, _]) -> __type_of(index):
+    fn at(index: __type_of(offset)) -> __type_of(offset):
         @parameter
         if is_left_shift:
-            return val.WORD_COUNT - index - 1
+            alias WORD_COUNT_MINUS_ONE = val.WORD_COUNT - 1
+            return WORD_COUNT_MINUS_ONE - index
         else:
             return index
 
     @parameter
     @always_inline
-    fn safe_gather(
-        index: SIMD[DType.index, val.size]
-    ) -> SIMD[val.word_type, val.size]:
+    fn safe_get(index: __type_of(offset)) -> SIMD[val.word_type, val.size]:
         var is_index_below_size = index < val.WORD_COUNT
         var mask = (index >= 0) & is_index_below_size
-        var default = (val.is_negative() & ~is_index_below_size).select(
+        var default = (val_is_negative & ~is_index_below_size).select(
             SIMD[val.word_type, val.size](-1), 0
         )
 
-        return val_ptr.gather(index.fma(val.size, SHIFT), mask, default)
+        @parameter
+        if treat_offset_as_int:
+            var safe_index = int(mask.select(index, 0)[0])
+            return mask.select(
+                val_ptr.load[width = val.size](safe_index * val.size), default
+            )
+        else:
+            return val_ptr.gather(index.fma(val.size, SHIFT), mask, default)
 
     var index_offset = offset // TYPE_BITWIDTH
+    var index_offset_plus_one = index_offset + 1
+
     var bit_offset = (offset % TYPE_BITWIDTH).cast[val.word_type]()
+    var bit_offset_is_zero = bit_offset == 0
+    var bit_offset_complement = TYPE_BITWIDTH - bit_offset
+
+    var part2 = safe_get(at(index_offset))
 
     @parameter
     for i in range(val.WORD_COUNT):
-        var index = Scalar[DType.index](i)
-        var part1 = safe_gather(at(index + index_offset))
-        var part2 = safe_gather(at(index + index_offset + 1))
+        var part1 = part2
+        part2 = safe_get(at(i + index_offset_plus_one))
 
         @parameter
         if is_left_shift:
-            dst._storage[int(at(index))] = (bit_offset == 0).select(
+            dst._storage[at[i]()] = bit_offset_is_zero.select(
                 part1,
-                part1 << bit_offset | part2 >> (TYPE_BITWIDTH - bit_offset),
+                part1 << bit_offset | part2 >> bit_offset_complement,
             )
         else:
-            dst._storage[int(at(index))] = (bit_offset == 0).select(
+            dst._storage[at[i]()] = bit_offset_is_zero.select(
                 part1,
-                part1 >> bit_offset | part2 << (TYPE_BITWIDTH - bit_offset),
+                part1 >> bit_offset | part2 << bit_offset_complement,
             )
 
     return dst
@@ -895,6 +904,28 @@ struct BigInt[
         return result
 
     @always_inline
+    fn __lshift__(self, offset: Int) -> Self:
+        """Performs a bitwise left shift on a `BigInt` vector, element-wise.
+
+        The bits that are shifted off the left end are discarded, including the
+        sign bit, if present. And the bit positions vacated at the right end are
+        filled with zeros.
+
+        Args:
+            offset: The number of bits to shift the vector by. Must be
+                non-negative.
+
+        Returns:
+            A new `BigInt` vector containing the result of the bitwise left
+            shift.
+        """
+        debug_assert(all(offset >= 0), "offset must be non-negative")
+
+        return _shift[is_left_shift=True, treat_offset_as_int=True](
+            self, offset
+        )
+
+    @always_inline
     fn __lshift__(self, offset: SIMD[DType.index, size]) -> Self:
         """Performs a bitwise left shift on a `BigInt` vector, element-wise.
 
@@ -915,6 +946,21 @@ struct BigInt[
         return _shift[is_left_shift=True](self, offset)
 
     @always_inline
+    fn __ilshift__(inout self, offset: Int):
+        """Performs an in-place bitwise left shift on a `BigInt` vector,
+        element-wise.
+
+        The bits that are shifted off the left end are discarded, including the
+        sign bit, if present. And the bit positions vacated at the right end are
+        filled with zeros.
+
+        Args:
+            offset: The number of bits to shift the vector by. Must be
+                non-negative.
+        """
+        self = self << offset
+
+    @always_inline
     fn __ilshift__(inout self, offset: SIMD[DType.index, size]):
         """Performs an in-place bitwise left shift on a `BigInt` vector,
         element-wise.
@@ -928,6 +974,29 @@ struct BigInt[
                 non-negative.
         """
         self = self << offset
+
+    @always_inline
+    fn __rshift__(self, offset: Int) -> Self:
+        """Performs a bitwise right shift on a `BigInt` vector, element-wise.
+
+        The bits that are shifted off the right end are discarded, except for the
+        sign bit, if present. And the bit positions vacated at the left end are
+        filled with zeros, if the `BigInt` is unsigned, or with the sign bit, if
+        the `BigInt` is signed.
+
+        Args:
+            offset: The number of bits to shift the vector by. Must be
+                non-negative.
+
+        Returns:
+            A new `BigInt` vector containing the result of the bitwise right
+            shift.
+        """
+        debug_assert(all(offset >= 0), "offset must be non-negative")
+
+        return _shift[is_left_shift=False, treat_offset_as_int=True](
+            self, offset
+        )
 
     @always_inline
     fn __rshift__(self, offset: SIMD[DType.index, size]) -> Self:
@@ -949,6 +1018,22 @@ struct BigInt[
         debug_assert(all(offset >= 0), "offset must be non-negative")
 
         return _shift[is_left_shift=False](self, offset)
+
+    @always_inline
+    fn __irshift__(inout self, offset: Int):
+        """Performs an in-place bitwise right shift on a `BigInt` vector,
+        element-wise.
+
+        The bits that are shifted off the right end are discarded, except for the
+        sign bit, if present. And the bit positions vacated at the left end are
+        filled with zeros, if the `BigInt` is unsigned, or with the sign bit, if
+        the `BigInt` is signed.
+
+        Args:
+            offset: The number of bits to shift the vector by. Must be
+                non-negative.
+        """
+        self = self >> offset
 
     @always_inline
     fn __irshift__(inout self, offset: SIMD[DType.index, size]):
