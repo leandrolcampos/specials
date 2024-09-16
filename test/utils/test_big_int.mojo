@@ -88,43 +88,25 @@ fn test_init_from_int() raises:
 
 
 fn test_init_from_signed_simd() raises:
-    alias WIDTH = 4
-    alias VALUE = SIMD[DEST_TYPE, WIDTH](-2, -1, 1, 2)
+    alias VALUE = SIMD[DEST_TYPE, 4](-128, -1, 1, 127)
+    alias POS_VALUE = SIMD[DEST_TYPE, 2](1, 127)
 
     _assert_equal(BigInt[8](VALUE), VALUE)
     _assert_equal(BigInt[24](VALUE), VALUE)
 
-    _assert_equal(
-        BigUInt[8](VALUE),
-        SIMD[DEST_TYPE, WIDTH](254, 255, 1, 2),
-    )
-    _assert_equal(
-        BigUInt[24](VALUE),
-        SIMD[DEST_TYPE, WIDTH](16_777_214, 16_777_215, 1, 2),
-    )
+    _assert_equal(BigUInt[8](POS_VALUE), POS_VALUE)
+    _assert_equal(BigUInt[24](POS_VALUE), POS_VALUE)
 
 
 fn test_init_from_unsigned_simd() raises:
-    alias WIDTH = 4
-    alias VALUE = SIMD[DType.uint64, WIDTH](1, 2, 255, 16_777_215)
+    alias VALUE = SIMD[DEST_TYPE, 4](1, 127, 128, 255)
+    alias SMALL_VALUE = SIMD[DEST_TYPE, 2](1, 127)
 
-    _assert_equal(
-        BigInt[8](VALUE),
-        SIMD[DEST_TYPE, WIDTH](1, 2, -1, -1),
-    )
-    _assert_equal(
-        BigInt[24](VALUE),
-        SIMD[DEST_TYPE, WIDTH](1, 2, 255, -1),
-    )
+    _assert_equal(BigInt[8](SMALL_VALUE), SMALL_VALUE)
+    _assert_equal(BigInt[24](VALUE), VALUE)
 
-    _assert_equal(
-        BigUInt[8](VALUE),
-        SIMD[DEST_TYPE, WIDTH](1, 2, 255, 255),
-    )
-    _assert_equal(
-        BigUInt[24](VALUE),
-        SIMD[DEST_TYPE, WIDTH](1, 2, 255, 16_777_215),
-    )
+    _assert_equal(BigUInt[8](VALUE), VALUE)
+    _assert_equal(BigUInt[24](VALUE), VALUE)
 
 
 fn test_explicit_copy() raises:
@@ -153,6 +135,34 @@ fn test_explicit_copy() raises:
             copy += 1
             _assert_equal(existing, 1)
             _assert_equal(copy, 2)
+
+
+fn test_from_signed_big_int() raises:
+    alias _BigInt = BigInt[_, size=1, signed=_, word_type = DType.uint8]
+    alias _BigUInt = BigUInt[_, size=1, word_type = DType.uint8]
+
+    var sval8 = _BigInt[8](-1)
+    var sval24 = _BigInt[24](127)
+
+    _assert_equal(_BigInt[8](other=sval24), 127)
+    _assert_equal(_BigUInt[8](other=sval24), 127)
+
+    _assert_equal(_BigInt[24](other=sval8), -1)
+    _assert_equal(_BigUInt[24](other=sval24), 127)
+
+
+fn test_from_unsigned_big_int() raises:
+    alias _BigInt = BigInt[_, size=1, signed=_, word_type = DType.uint8]
+    alias _BigUInt = BigUInt[_, size=1, word_type = DType.uint8]
+
+    var uval8 = _BigUInt[8](255)
+    var uval24 = _BigUInt[24](127)
+
+    _assert_equal(_BigInt[8](other=uval24), 127)
+    _assert_equal(_BigUInt[8](other=uval24), 127)
+
+    _assert_equal(_BigInt[24](other=uval8), 255)
+    _assert_equal(_BigUInt[24](other=uval24), 127)
 
 
 fn test_min() raises:
@@ -356,6 +366,22 @@ fn test_lshift() raises:
     )
 
 
+fn test_lshift_edge_cases() raises:
+    _assert_equal(BigInt[8, size=1](-128) << 1, 0)
+    _assert_equal(BigInt[8, size=1](-1) << 8, 0)
+    _assert_equal(BigInt[8, size=1](64) << 2, 0)
+    _assert_equal(BigInt[8, size=1](1) << 8, 0)
+    _assert_equal(BigUInt[8, size=1](128) << 1, 0)
+    _assert_equal(BigUInt[8, size=1](1) << 8, 0)
+
+    _assert_equal(BigInt[24, size=1](-8388608) << 1, 0)
+    _assert_equal(BigInt[24, size=1](-1) << 24, 0)
+    _assert_equal(BigInt[24, size=1](4194304) << 2, 0)
+    _assert_equal(BigInt[24, size=1](1) << 24, 0)
+    _assert_equal(BigUInt[24, size=1](8388608) << 1, 0)
+    _assert_equal(BigUInt[24, size=1](1) << 24, 0)
+
+
 fn test_ilshift() raises:
     var val = BigInt[24, size=1](1)
     val <<= 8
@@ -392,6 +418,22 @@ fn test_rshift() raises:
     )
 
 
+fn test_rshift_edge_cases() raises:
+    _assert_equal(BigInt[8, size=1](-128) >> 7, -1)
+    _assert_equal(BigInt[8, size=1](-128) >> 8, -1)
+    _assert_equal(BigInt[8, size=1](64) >> 7, 0)
+    _assert_equal(BigInt[8, size=1](64) >> 8, 0)
+    _assert_equal(BigUInt[8, size=1](128) >> 7, 1)
+    _assert_equal(BigUInt[8, size=1](128) >> 8, 0)
+
+    _assert_equal(BigInt[24, size=1](-8388608) >> 23, -1)
+    _assert_equal(BigInt[24, size=1](-8388608) >> 24, -1)
+    _assert_equal(BigInt[24, size=1](4194304) >> 23, 0)
+    _assert_equal(BigInt[24, size=1](4194304) >> 24, 0)
+    _assert_equal(BigUInt[24, size=1](8388608) >> 23, 1)
+    _assert_equal(BigUInt[24, size=1](8388608) >> 24, 0)
+
+
 fn test_irshift() raises:
     var val = BigInt[24, size=1].min()
     val >>= 16
@@ -401,23 +443,12 @@ fn test_irshift() raises:
 fn test_negation() raises:
     var val = SIMD[DEST_TYPE, 4](-2, -1, 0, 1)
 
-    @always_inline
-    @parameter
-    fn _test_neg[bits: Int, signed: Bool]() raises:
-        _assert_equal(
-            -BigInt[bits, signed=signed](val),
-            BigInt[bits, signed=signed](-val).cast[DEST_TYPE](),
-        )
-
-    _test_neg[8, signed=True]()
-    _test_neg[8, signed=False]()
-
-    _test_neg[24, signed=True]()
-    _test_neg[24, signed=False]()
+    _assert_equal(-BigInt[8](val), BigInt[8](-val).cast[DEST_TYPE]())
+    _assert_equal(-BigInt[24](val), BigInt[24](-val).cast[DEST_TYPE]())
 
 
 fn test_unary_plus() raises:
-    var val = SIMD[DEST_TYPE, 4](-2, -1, 0, 1)
+    var val = SIMD[DEST_TYPE, 2](0, 1)
 
     @always_inline
     @parameter
@@ -437,43 +468,7 @@ fn test_unary_plus() raises:
     _test_plus[24, signed=False]()
 
 
-fn test_cast_to_signed_big_int() raises:
-    var sval8 = BigInt[8, size=1](-1)
-    var uval8 = BigUInt[8, size=1](255)
-
-    _assert_equal(sval8.cast[8, signed=True](), -1)
-    _assert_equal(sval8.cast[24, signed=True](), -1)
-    _assert_equal(uval8.cast[8, signed=True](), -1)
-    _assert_equal(uval8.cast[24, signed=True](), 255)
-
-    var sval24 = BigInt[24, size=1](-1)
-    var uval24 = BigUInt[24, size=1](16_777_215)
-
-    _assert_equal(sval24.cast[8, signed=True](), -1)
-    _assert_equal(sval24.cast[24, signed=True](), -1)
-    _assert_equal(uval24.cast[8, signed=True](), -1)
-    _assert_equal(uval24.cast[24, signed=True](), -1)
-
-
-fn test_cast_to_unsigned_big_int() raises:
-    var sval8 = BigInt[8, size=1](-1)
-    var uval8 = BigUInt[8, size=1](255)
-
-    _assert_equal(sval8.cast[8, signed=False](), 255)
-    _assert_equal(sval8.cast[24, signed=False](), 255)
-    _assert_equal(uval8.cast[8, signed=False](), 255)
-    _assert_equal(uval8.cast[24, signed=False](), 255)
-
-    var sval24 = BigInt[24, size=1](-1)
-    var uval24 = BigUInt[24, size=1](16_777_215)
-
-    _assert_equal(sval24.cast[8, signed=False](), 255)
-    _assert_equal(sval24.cast[24, signed=False](), 16_777_215)
-    _assert_equal(uval24.cast[8, signed=False](), 255)
-    _assert_equal(uval24.cast[24, signed=False](), 16_777_215)
-
-
-fn test_cast_to_simd() raises:
+fn test_cast() raises:
     alias DTYPES = List[DType](
         DType.int8,
         DType.uint8,
@@ -558,21 +553,21 @@ fn test_is_negative() raises:
     var val = SIMD[DType.int8, 2](-1, 0)
 
     assert_equal(BigInt[8](val).is_negative(), val < 0)
-    assert_equal(BigUInt[8](val).is_negative(), False)
+    assert_equal(BigUInt[8, size=1](0).is_negative(), False)
 
     assert_equal(BigInt[24](val).is_negative(), val < 0)
-    assert_equal(BigUInt[24](val).is_negative(), False)
+    assert_equal(BigUInt[24, size=1](0).is_negative(), False)
 
 
 fn test_is_zero() raises:
-    var val = SIMD[DType.int8, 4](-1, 0, 1, 2)
-    var expected = val == 0
+    var sval = SIMD[DType.int8, 4](-1, 0, 1, 2)
+    var uval = SIMD[DType.uint8, 4](0, 1, 2, 3)
 
-    assert_equal(BigInt[8](val).is_zero(), expected)
-    assert_equal(BigUInt[8](val).is_zero(), expected)
+    assert_equal(BigInt[8](sval).is_zero(), sval == 0)
+    assert_equal(BigUInt[8](uval).is_zero(), uval == 0)
 
-    assert_equal(BigInt[24](val).is_zero(), expected)
-    assert_equal(BigUInt[24](val).is_zero(), expected)
+    assert_equal(BigInt[24](sval).is_zero(), sval == 0)
+    assert_equal(BigUInt[24](uval).is_zero(), uval == 0)
 
 
 fn main() raises:
@@ -583,6 +578,8 @@ fn main() raises:
     test_init_from_signed_simd()
     test_init_from_unsigned_simd()
     test_explicit_copy()
+    test_from_signed_big_int()
+    test_from_unsigned_big_int()
 
     test_min()
     test_max()
@@ -600,17 +597,17 @@ fn main() raises:
     test_invert()
 
     test_lshift()
+    test_lshift_edge_cases()
     test_ilshift()
 
     test_rshift()
+    test_rshift_edge_cases()
     test_irshift()
 
     test_negation()
     test_unary_plus()
 
-    test_cast_to_signed_big_int()
-    test_cast_to_unsigned_big_int()
-    test_cast_to_simd()
+    test_cast()
 
     test_most_significant_digit()
 

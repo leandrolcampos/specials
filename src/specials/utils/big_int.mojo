@@ -125,12 +125,19 @@ fn _inplace_binop[
         "`dst` must have at least as many elements as `rhs`",
     ]()
 
+    var rhs_value: SIMD[type, size]
     var carry_out = SIMD[type, size](0)
 
     @parameter
     for i in range(dst.size):
-        var has_rhs_value = i < rhs.size
-        var rhs_value = rhs[i] if has_rhs_value else 0
+        alias HAS_RHS_VALUE = i < rhs.size
+
+        @parameter
+        if HAS_RHS_VALUE:
+            rhs_value = rhs[i]
+        else:
+            rhs_value = 0
+
         var carry_in = carry_out
         var result_and_carry = binop_with_carry(dst[i], rhs_value, carry_in)
 
@@ -138,8 +145,10 @@ fn _inplace_binop[
         carry_out = result_and_carry[1]
 
         # Stop early when rhs is over and there is no carry out to propagate.
-        if all(carry_out == 0) and not has_rhs_value:
-            break
+        @parameter
+        if not HAS_RHS_VALUE:
+            if all(carry_out == 0):
+                break
 
     return carry_out
 
@@ -156,8 +165,6 @@ fn _count_leading_zeros[
     """Counts the leading zeros in the internal representation of a `BigInt`."""
     constrained[type.is_integral(), "type must be an integral type"]()
 
-    alias TYPE_BITWIDTH = type.bitwidth()
-
     var result = SIMD[type, size](0)
     var should_stop = SIMD[DType.bool, size](False)
 
@@ -165,7 +172,7 @@ fn _count_leading_zeros[
     for i in reversed(range(val.size)):
         var bit_count = countl_zero(val[i])
         result += should_stop.select(0, bit_count)
-        should_stop |= bit_count < TYPE_BITWIDTH
+        should_stop |= bit_count < type.bitwidth()
 
         if all(should_stop):
             break
@@ -212,69 +219,96 @@ fn _iota[type: DType, size: Int]() -> SIMD[type, size]:
 
 @always_inline
 fn _shift[
-    *, is_left_shift: Bool
-](val: BigInt, offset: SIMD[DType.index, val.size],) -> __type_of(val):
+    *, is_left_shift: Bool, treat_offset_as_int: Bool = False
+](val: BigInt, offset: SIMD[DType.index, val.size]) -> __type_of(val):
     """Performs a bitwise shift on the internal representation of a `BigInt`."""
     alias SHIFT = _iota[DType.index, val.size]()
     alias TYPE_BITWIDTH = val.word_type.bitwidth()
 
     var dst = __type_of(val)(unsafe_uninitialized=True)
+    var val_is_negative = val.is_negative()
     var val_ptr = DTypePointer(
         val._storage.unsafe_ptr().bitcast[Scalar[val.word_type]]()
     )
 
-    if all(offset == 0):
-
-        @parameter
-        for i in range(val.WORD_COUNT):
-            dst._storage[i] = val._storage[i]
-
-        return dst
-
-    @always_inline
     @parameter
-    fn at(index: SIMD[DType.index, _]) -> __type_of(index):
+    @always_inline
+    fn at[index: Int]() -> Int:
+        return _conditional[is_left_shift, val.WORD_COUNT - index - 1, index]()
+
+    @parameter
+    @always_inline
+    fn at(index: __type_of(offset)) -> __type_of(offset):
         @parameter
         if is_left_shift:
-            return val.WORD_COUNT - index - 1
+            alias WORD_COUNT_MINUS_ONE = val.WORD_COUNT - 1
+            return WORD_COUNT_MINUS_ONE - index
         else:
             return index
 
-    @always_inline
     @parameter
-    fn safe_gather(
-        index: SIMD[DType.index, val.size]
-    ) -> SIMD[val.word_type, val.size]:
+    @always_inline
+    fn safe_get(index: __type_of(offset)) -> SIMD[val.word_type, val.size]:
         var is_index_below_size = index < val.WORD_COUNT
         var mask = (index >= 0) & is_index_below_size
-        var default = (val.is_negative() & ~is_index_below_size).select(
+        var default = (val_is_negative & ~is_index_below_size).select(
             SIMD[val.word_type, val.size](-1), 0
         )
 
-        return val_ptr.gather(index.fma(val.size, SHIFT), mask, default)
+        @parameter
+        if treat_offset_as_int:
+            var safe_index = int(mask.select(index, 0)[0])
+            return mask.select(
+                val_ptr.load[width = val.size](safe_index * val.size), default
+            )
+        else:
+            return val_ptr.gather(index.fma(val.size, SHIFT), mask, default)
 
     var index_offset = offset // TYPE_BITWIDTH
+    var index_offset_plus_one = index_offset + 1
+
     var bit_offset = (offset % TYPE_BITWIDTH).cast[val.word_type]()
+    var bit_offset_is_zero = bit_offset == 0
+    var bit_offset_complement = TYPE_BITWIDTH - bit_offset
+
+    var part2 = safe_get(at(index_offset))
 
     @parameter
     for i in range(val.WORD_COUNT):
-        var index = Scalar[DType.index](i)
-        var part1 = safe_gather(at(index + index_offset))
-        var part2 = safe_gather(at(index + index_offset + 1))
+        var part1 = part2
+        part2 = safe_get(at(i + index_offset_plus_one))
 
         @parameter
         if is_left_shift:
-            dst._storage[int(at(index))] = (bit_offset == 0).select(
+            dst._storage[at[i]()] = bit_offset_is_zero.select(
                 part1,
-                part1 << bit_offset | part2 >> (TYPE_BITWIDTH - bit_offset),
+                part1 << bit_offset | part2 >> bit_offset_complement,
             )
         else:
-            dst._storage[int(at(index))] = (bit_offset == 0).select(
+            dst._storage[at[i]()] = bit_offset_is_zero.select(
                 part1,
-                part1 >> bit_offset | part2 << (TYPE_BITWIDTH - bit_offset),
+                part1 >> bit_offset | part2 << bit_offset_complement,
             )
 
     return dst
+
+
+@always_inline
+fn _extend[
+    type: DType, size: Int, *, start: Int
+](
+    inout val: InlineArray[SIMD[type, size], _],
+    is_negative: SIMD[DType.bool, size],
+):
+    """Extends the internal representation of a `BigInt` with a sign extension.
+    """
+    constrained[type.is_unsigned(), "type must be an unsigned, integral type"]()
+
+    var extension = is_negative.select(max_finite[type](), 0)
+
+    @parameter
+    for i in range(start, val.size):
+        val[i] = extension
 
 
 # ===----------------------------------------------------------------------=== #
@@ -316,6 +350,105 @@ fn _compare(lhs: BigInt, rhs: __type_of(lhs)) -> SIMD[DType.int8, lhs.size]:
 
 
 # ===----------------------------------------------------------------------=== #
+# Casting safety checks
+# ===----------------------------------------------------------------------=== #
+
+
+@always_inline
+fn _is_casting_safe[bits: Int, signed: Bool](value: IntLiteral) -> Bool:
+    """Checks if `value` fits in an integer with the specified number of bits
+    and signedness.
+    """
+
+    @parameter
+    if signed:
+        return bits >= value._bit_width()
+    else:
+        return value >= 0 and bits >= (value._bit_width() - 1)
+
+
+@always_inline
+fn _is_casting_safe[bits: Int, signed: Bool](value: SIMD) -> Bool:
+    """Checks if `value` fits in an integer with the specified number of bits
+    and signedness.
+    """
+    constrained[
+        value.type.is_integral(),
+        "value type must be an integral type",
+    ]()
+
+    @parameter
+    if bits > value.type.bitwidth():
+        return signed or value.type.is_unsigned() or all(value >= 0)
+    else:
+        alias TWO = Scalar[value.type](2)
+
+        @parameter
+        if value.type.is_unsigned():
+            alias MAX_VALUE = _conditional[
+                signed, TWO ** (bits - 1) - 1, TWO**bits - 1
+            ]()
+
+            return all(value <= MAX_VALUE)
+        else:
+            alias MIN_VALUE = _conditional[signed, -(TWO ** (bits - 1)), 0]()
+
+            @parameter
+            if bits == value.type.bitwidth():
+                return all(value >= MIN_VALUE)
+            else:
+                alias MAX_VALUE = _conditional[
+                    signed, TWO ** (bits - 1) - 1, TWO**bits - 1
+                ]()
+
+                return all(value >= MIN_VALUE) and all(value <= MAX_VALUE)
+
+
+@always_inline
+fn _bits_as_int_literal(bits: Int) -> IntLiteral:
+    """Converts the number of bits to an integer literal."""
+    var result: IntLiteral = 0
+
+    for _ in range(0, bits, 8):
+        result += 8
+
+    return result
+
+
+@always_inline
+fn _is_casting_safe[bits: Int, signed: Bool](value: BigInt) -> Bool:
+    """Checks if `value` fits in an integer with the specified number of bits
+    and signedness.
+    """
+
+    @parameter
+    if bits > value.bits:
+        return signed or (not value.signed) or all(value >= 0)
+    else:
+        alias _bits = _bits_as_int_literal(bits)
+
+        @parameter
+        if not value.signed:
+            alias MAX_VALUE = _conditional[
+                signed, 2 ** (_bits - 1) - 1, 2**_bits - 1
+            ]()
+
+            return all(value <= MAX_VALUE)
+        else:
+            alias MIN_VALUE = _conditional[signed, -(2 ** (_bits - 1)), 0]()
+
+            @parameter
+            if bits == value.bits:
+                return all(value >= MIN_VALUE)
+            else:
+                alias MAX_VALUE = _conditional[
+                    signed, 2 ** (_bits - 1) - 1, 2**_bits - 1
+                ]()
+
+                return all(value >= MIN_VALUE) and all(value <= MAX_VALUE)
+
+
+# ===----------------------------------------------------------------------=== #
 # BigInt
 # ===----------------------------------------------------------------------=== #
 
@@ -334,7 +467,6 @@ fn _conditional[T: AnyType, //, pred: Bool, true_case: T, false_case: T]() -> T:
 @always_inline
 fn _default_word_type[bits: Int]() -> DType:
     """Returns the default word type for a `BigInt` based on `bits`."""
-    constrained[bits > 0, "number of bits must be positive"]()
     constrained[bits % 8 == 0, "number of bits must be a multiple of 8"]()
 
     @parameter
@@ -364,20 +496,6 @@ fn _big_int_construction_checks[
     ]()
 
 
-@always_inline
-fn _is_casting_safe[bits: Int, signed: Bool](value: IntLiteral) -> Bool:
-    """Checks if `value` fits in an integer with the specified number of bits
-    and signedness.
-    """
-    constrained[bits > 0, "number of bits must be positive"]()
-
-    @parameter
-    if signed:
-        return bits >= value._bit_width()
-    else:
-        return value >= 0 and bits >= (value._bit_width() - 1)
-
-
 alias BigUInt = BigInt[_, size=_, signed=False, word_type=_]
 """Represents a small vector of arbitrary, fixed bit-size unsigned integers."""
 
@@ -390,7 +508,7 @@ struct BigInt[
     size: Int,
     signed: Bool = True,
     word_type: DType = _default_word_type[bits](),
-](Copyable, ExplicitlyCopyable, Movable):
+](Copyable, Defaultable, ExplicitlyCopyable, Movable):
     """Represents a small vector of arbitrary, fixed bit-size integers.
 
     It can represent both signed and unsigned integers with a fixed number of
@@ -445,17 +563,18 @@ struct BigInt[
         self._storage = Self.StorageType(unsafe_uninitialized=True)
 
         memset_zero[word_type](
-            self._storage.unsafe_ptr().bitcast[Scalar[word_type]](), BLOCK_SIZE
+            self._storage.unsafe_ptr().bitcast[Scalar[word_type]](),
+            count=BLOCK_SIZE,
         )
 
+    @doc_private
     @always_inline
     fn __init__(inout self, *, unsafe_uninitialized: Bool):
-        """Initializes the `BigInt` vector with uninitialized storage.
+        """Initializes the `BigInt` vector with an uninitialized storage.
 
         Args:
-            unsafe_uninitialized: A boolean indicating whether the internal
-                storage should be left uninitialized. In practice, it is always
-                set to `True` (it is not actually used inside the constructor).
+            unsafe_uninitialized: Marker argument indicating this initializer
+                is unsafe. Its value is not used.
         """
         _big_int_construction_checks[bits, word_type]()
 
@@ -468,42 +587,54 @@ struct BigInt[
 
         Args:
             value: The signed integer literal to be splatted across all the
-                elements of the `BigInt` vector.
+                elements of the `BigInt` vector. Should be within the bounds of
+                the `BigInt`.
         """
         _big_int_construction_checks[bits, word_type]()
 
         debug_assert(
             _is_casting_safe[bits, signed](value),
-            "value must be within the bounds of the `BigInt`",
+            "value should be within the bounds of the `BigInt`",
         )
 
         self._storage = Self.StorageType(unsafe_uninitialized=True)
+        self._storage[0] = SIMD[word_type, size](value)
+
+        if (
+            Self.WORD_TYPE_BITWIDTH >= value._bit_width()
+            and self.WORD_COUNT > 1
+        ):
+            _extend[start=1](self._storage, is_negative=value < 0 and signed)
+            return
+
         var tmp: IntLiteral = value
 
         @parameter
-        for i in range(Self.WORD_COUNT):
-            self._storage[i] = SIMD[word_type, size](tmp)
+        for i in range(1, Self.WORD_COUNT):
             tmp >>= Self.WORD_TYPE_BITWIDTH
+            self._storage[i] = SIMD[word_type, size](tmp)
 
     @always_inline
     fn __init__(inout self, value: Int):
-        """Initializes the `BigInt` vector with the provided integer value.
+        """Initializes the `BigInt` vector with a signed integer value.
 
         Args:
-            value: The integer value to set for each element in the `BigInt`
-                vector.
+            value: The signed integer value to be splatted across all the
+                elements of the `BigInt` vector. Should be within the bounds of
+                the `BigInt`.
         """
         self.__init__(SIMD[DType.index, size](value))
 
     @always_inline
     fn __init__(inout self, value: SIMD[_, size]):
-        """Initializes the `BigInt` vector with the provided SIMD vector.
+        """Initializes the `BigInt` vector with a SIMD vector.
 
         Constraints:
             The value type must be an integral type.
 
         Args:
-            value: The SIMD vector to initialize the `BigInt` vector with.
+            value: The SIMD vector to initialize the `BigInt` vector with. Each
+                of its elements should be within the bounds of the `BigInt`.
         """
         constrained[
             value.type.is_integral(),
@@ -511,35 +642,86 @@ struct BigInt[
         ]()
         _big_int_construction_checks[bits, word_type]()
 
-        alias TYPE_BITWIDTH = value.type.bitwidth()
-
-        var extension = ((value < 0) & signed).select(
-            max_finite[word_type](), 0
+        debug_assert(
+            _is_casting_safe[bits, signed](value),
+            (
+                "each element in `value` should be within the bounds of the"
+                " `BigInt`"
+            ),
         )
-        var tmp = value
 
         self._storage = Self.StorageType(unsafe_uninitialized=True)
+        self._storage[0] = value.cast[word_type]()
 
         @parameter
-        for i in range(Self.WORD_COUNT):
-            self._storage[i] = (tmp == 0).select(
-                extension, tmp.cast[word_type]()
-            )
+        if (
+            Self.WORD_TYPE_BITWIDTH >= value.type.bitwidth()
+            and self.WORD_COUNT > 1
+        ):
+            _extend[start=1](self._storage, is_negative=value < 0 & signed)
+            return
 
-            @parameter
-            if TYPE_BITWIDTH > Self.WORD_TYPE_BITWIDTH:
-                tmp >>= Self.WORD_TYPE_BITWIDTH
-            else:
-                tmp = 0
+        var tmp = value
+
+        @parameter
+        for i in range(1, Self.WORD_COUNT):
+            tmp >>= Self.WORD_TYPE_BITWIDTH
+            self._storage[i] = tmp.cast[word_type]()
 
     @always_inline
     fn __init__(inout self, other: Self):
-        """Initializes a new `BigInt` vector by copying an existing `BigInt`.
+        """Initializes the `BigInt` vector by copying an existing one.
 
         Args:
             other: The `BigInt` vector to copy from.
         """
         self.__copyinit__(other)
+
+    @always_inline
+    fn __init__(
+        inout self,
+        *,
+        other: BigInt[_, size=size, signed=_, word_type=word_type],
+    ):
+        """Initializes the `BigInt` vector by casting an existing one.
+
+        Args:
+            other: The `BigInt` vector to cast from. Must have the same size and
+                word type as the new `BigInt`, and each element should be within
+                the bounds of the new vector.
+        """
+        _big_int_construction_checks[bits, word_type]()
+
+        debug_assert(
+            _is_casting_safe[bits, signed](other),
+            (
+                "each element in `other` should be within the bounds of the"
+                " new `BigInt`"
+            ),
+        )
+
+        self._storage = Self.StorageType(unsafe_uninitialized=True)
+
+        @parameter
+        if bits <= other.bits:
+
+            @parameter
+            for i in range(Self.WORD_COUNT):
+                self._storage[i] = other._storage[i]
+
+        else:
+            var extension = (other.is_negative() & other.signed).select(
+                max_finite[word_type](), 0
+            )
+
+            @parameter
+            for i in range(Self.WORD_COUNT):
+
+                @parameter
+                if i < other.WORD_COUNT:
+                    self._storage[i] = other._storage[i]
+                else:
+                    self._storage[i] = extension
 
     # ===------------------------------------------------------------------=== #
     # Factory methods
@@ -731,62 +913,150 @@ struct BigInt[
         return result
 
     @always_inline
-    fn __lshift__(self, offset: SIMD[DType.index, size]) -> Self:
+    fn __lshift__(self, offset: Int) -> Self:
         """Performs a bitwise left shift on a `BigInt` vector, element-wise.
 
+        The bits that are shifted off the left end are discarded, including the
+        sign bit, if present. And the bit positions vacated at the right end are
+        filled with zeros.
+
         Args:
-            offset: The number of bits to shift the vector by. Must be less than
-                `bits`; otherwise, the behavior of this method is undefined.
+            offset: The number of bits to shift the vector by. Must be
+                non-negative.
 
         Returns:
             A new `BigInt` vector containing the result of the bitwise left
             shift.
         """
-        debug_assert(
-            all((offset >= 0) & (offset < bits)),
-            "offset must be within bounds",
+        debug_assert(all(offset >= 0), "offset must be non-negative")
+
+        return _shift[is_left_shift=True, treat_offset_as_int=True](
+            self, offset
         )
 
+    @always_inline
+    fn __lshift__(self, offset: SIMD[DType.index, size]) -> Self:
+        """Performs a bitwise left shift on a `BigInt` vector, element-wise.
+
+        The bits that are shifted off the left end are discarded, including the
+        sign bit, if present. And the bit positions vacated at the right end are
+        filled with zeros.
+
+        Args:
+            offset: The number of bits to shift the vector by. Must be
+                non-negative.
+
+        Returns:
+            A new `BigInt` vector containing the result of the bitwise left
+            shift.
+        """
+        debug_assert(all(offset >= 0), "offset must be non-negative")
+
         return _shift[is_left_shift=True](self, offset)
+
+    @always_inline
+    fn __ilshift__(inout self, offset: Int):
+        """Performs an in-place bitwise left shift on a `BigInt` vector,
+        element-wise.
+
+        The bits that are shifted off the left end are discarded, including the
+        sign bit, if present. And the bit positions vacated at the right end are
+        filled with zeros.
+
+        Args:
+            offset: The number of bits to shift the vector by. Must be
+                non-negative.
+        """
+        self = self << offset
 
     @always_inline
     fn __ilshift__(inout self, offset: SIMD[DType.index, size]):
         """Performs an in-place bitwise left shift on a `BigInt` vector,
         element-wise.
 
+        The bits that are shifted off the left end are discarded, including the
+        sign bit, if present. And the bit positions vacated at the right end are
+        filled with zeros.
+
         Args:
-            offset: The number of bits to shift the vector by. Must be less than
-                `bits`; otherwise, the behavior of this method is undefined.
+            offset: The number of bits to shift the vector by. Must be
+                non-negative.
         """
         self = self << offset
 
     @always_inline
-    fn __rshift__(self, offset: SIMD[DType.index, size]) -> Self:
+    fn __rshift__(self, offset: Int) -> Self:
         """Performs a bitwise right shift on a `BigInt` vector, element-wise.
 
+        The bits that are shifted off the right end are discarded, except for the
+        sign bit, if present. And the bit positions vacated at the left end are
+        filled with zeros, if the `BigInt` is unsigned, or with the sign bit, if
+        the `BigInt` is signed.
+
         Args:
-            offset: The number of bits to shift the vector by. Must be less than
-                `bits`; otherwise, the behavior of this method is undefined.
+            offset: The number of bits to shift the vector by. Must be
+                non-negative.
 
         Returns:
             A new `BigInt` vector containing the result of the bitwise right
             shift.
         """
-        debug_assert(
-            all((offset >= 0) & (offset < bits)),
-            "offset must be within bounds",
+        debug_assert(all(offset >= 0), "offset must be non-negative")
+
+        return _shift[is_left_shift=False, treat_offset_as_int=True](
+            self, offset
         )
 
+    @always_inline
+    fn __rshift__(self, offset: SIMD[DType.index, size]) -> Self:
+        """Performs a bitwise right shift on a `BigInt` vector, element-wise.
+
+        The bits that are shifted off the right end are discarded, except for the
+        sign bit, if present. And the bit positions vacated at the left end are
+        filled with zeros, if the `BigInt` is unsigned, or with the sign bit, if
+        the `BigInt` is signed.
+
+        Args:
+            offset: The number of bits to shift the vector by. Must be
+                non-negative.
+
+        Returns:
+            A new `BigInt` vector containing the result of the bitwise right
+            shift.
+        """
+        debug_assert(all(offset >= 0), "offset must be non-negative")
+
         return _shift[is_left_shift=False](self, offset)
+
+    @always_inline
+    fn __irshift__(inout self, offset: Int):
+        """Performs an in-place bitwise right shift on a `BigInt` vector,
+        element-wise.
+
+        The bits that are shifted off the right end are discarded, except for the
+        sign bit, if present. And the bit positions vacated at the left end are
+        filled with zeros, if the `BigInt` is unsigned, or with the sign bit, if
+        the `BigInt` is signed.
+
+        Args:
+            offset: The number of bits to shift the vector by. Must be
+                non-negative.
+        """
+        self = self >> offset
 
     @always_inline
     fn __irshift__(inout self, offset: SIMD[DType.index, size]):
         """Performs an in-place bitwise right shift on a `BigInt` vector,
         element-wise.
 
+        The bits that are shifted off the right end are discarded, except for the
+        sign bit, if present. And the bit positions vacated at the left end are
+        filled with zeros, if the `BigInt` is unsigned, or with the sign bit, if
+        the `BigInt` is signed.
+
         Args:
-            offset: The number of bits to shift the vector by. Must be less than
-                `bits`; otherwise, the behavior of this method is undefined.
+            offset: The number of bits to shift the vector by. Must be
+                non-negative.
         """
         self = self >> offset
 
@@ -794,9 +1064,13 @@ struct BigInt[
     fn __neg__(self) -> Self:
         """Performs arithmetic negation on a `BigInt` vector, element-wise.
 
+        It is only applicable to signed `BigInt` vectors.
+
         Returns:
             A new `BigInt` vector representing the result of the negation.
         """
+        constrained[signed, "argument must be a signed `BigInt` vector"]()
+
         var result = ~self
         result += 1
         return result
@@ -869,52 +1143,6 @@ struct BigInt[
                 self._storage, rhs._storage
             )
             return carry_out.cast[DType.bool]()
-
-    @always_inline
-    fn cast[
-        bits: Int, /, *, signed: Bool
-    ](self) -> BigInt[
-        bits, size = Self.size, signed=signed, word_type = Self.word_type
-    ]:
-        """Casts the `BigInt` vector to a new `BigInt` with a different number
-        of bits and signedness.
-
-        Parameters:
-            bits: The number of bits for the new `BigInt`. Constraints: Must be
-                a positive integer and a multiple of the bitwidth of word type.
-            signed: A boolean indicating whether the new `BigInt` is signed
-                (`True`) or unsigned (`False`).
-
-        Returns:
-            A new `BigInt` vector with the specified number of bits and
-            signedness. The size and word type are preserved.
-        """
-        var result = BigInt[
-            bits, size = Self.size, signed=signed, word_type = Self.word_type
-        ](unsafe_uninitialized=True)
-
-        @parameter
-        if bits <= self.bits:
-
-            @parameter
-            for i in range(result.WORD_COUNT):
-                result._storage[i] = self._storage[i]
-
-        else:
-            var extension = (self.is_negative() & signed).select(
-                max_finite[word_type](), 0
-            )
-
-            @parameter
-            for i in range(result.WORD_COUNT):
-
-                @parameter
-                if i < self.WORD_COUNT:
-                    result._storage[i] = self._storage[i]
-                else:
-                    result._storage[i] = extension
-
-        return result
 
     @always_inline
     fn cast[type: DType](self) -> SIMD[type, size]:
