@@ -30,6 +30,65 @@ from utils.numerics import max_finite
 
 
 # ===----------------------------------------------------------------------=== #
+# Utilities
+# ===----------------------------------------------------------------------=== #
+
+
+@always_inline
+fn _conditional[T: AnyType, //, pred: Bool, true_case: T, false_case: T]() -> T:
+    """Returns the true or false case based on the value of `pred`."""
+
+    @parameter
+    if pred:
+        return true_case
+    else:
+        return false_case
+
+
+@always_inline
+fn _default_word_type[bits: Int]() -> DType:
+    """Returns the default word type for a `BigInt` based on `bits`."""
+    constrained[bits % 8 == 0, "number of bits must be a multiple of 8"]()
+
+    @parameter
+    if bits % 64 == 0 and is_64bit():
+        return DType.uint64
+    elif bits % 32 == 0:
+        return DType.uint32
+    elif bits % 16 == 0:
+        return DType.uint16
+    else:
+        return DType.uint8
+
+
+@always_inline
+fn _big_int_construction_checks[
+    bits: Int,
+    word_type: DType,
+]():
+    """Performs checks on the parameters of a `BigInt` constructor."""
+    constrained[bits > 0, "number of bits must be positive"]()
+    constrained[
+        word_type.is_unsigned(), "word type must be an unsigned, integral type"
+    ]()
+    constrained[
+        bits % word_type.bitwidth() == 0,
+        "number of bits must be a multiple of the word type's bitwidth",
+    ]()
+
+
+@always_inline
+fn _bits_as_int_literal(bits: Int) -> IntLiteral:
+    """Converts the number of bits to an integer literal."""
+    var result: IntLiteral = 0
+
+    for _ in range(0, bits, 8):
+        result += 8
+
+    return result
+
+
+# ===----------------------------------------------------------------------=== #
 # Operations with carry propagation
 # ===----------------------------------------------------------------------=== #
 
@@ -311,6 +370,28 @@ fn _extend[
         val[i] = extension
 
 
+@always_inline
+fn _inplace_binop[
+    binop: fn[type: DType, size: Int] (
+        SIMD[type, size], SIMD[type, size]
+    ) -> SIMD[type, size],
+    type: DType,
+    size: Int,
+](
+    inout dst: InlineArray[SIMD[type, size], _],
+    rhs: InlineArray[SIMD[type, size], _],
+):
+    """Performs an in-place binary operation."""
+    constrained[
+        dst.size >= rhs.size,
+        "`dst` must have at least as many elements as `rhs`",
+    ]()
+
+    @parameter
+    for i in range(rhs.size):
+        dst[i] = binop(dst[i], rhs[i])
+
+
 # ===----------------------------------------------------------------------=== #
 # Operations for comparison
 # ===----------------------------------------------------------------------=== #
@@ -405,17 +486,6 @@ fn _is_casting_safe[bits: Int, signed: Bool](value: SIMD) -> Bool:
 
 
 @always_inline
-fn _bits_as_int_literal(bits: Int) -> IntLiteral:
-    """Converts the number of bits to an integer literal."""
-    var result: IntLiteral = 0
-
-    for _ in range(0, bits, 8):
-        result += 8
-
-    return result
-
-
-@always_inline
 fn _is_casting_safe[bits: Int, signed: Bool](value: BigInt) -> Bool:
     """Checks if `value` fits in an integer with the specified number of bits
     and signedness.
@@ -451,49 +521,6 @@ fn _is_casting_safe[bits: Int, signed: Bool](value: BigInt) -> Bool:
 # ===----------------------------------------------------------------------=== #
 # BigInt
 # ===----------------------------------------------------------------------=== #
-
-
-@always_inline
-fn _conditional[T: AnyType, //, pred: Bool, true_case: T, false_case: T]() -> T:
-    """Returns the true or false case based on the value of `pred`."""
-
-    @parameter
-    if pred:
-        return true_case
-    else:
-        return false_case
-
-
-@always_inline
-fn _default_word_type[bits: Int]() -> DType:
-    """Returns the default word type for a `BigInt` based on `bits`."""
-    constrained[bits % 8 == 0, "number of bits must be a multiple of 8"]()
-
-    @parameter
-    if bits % 64 == 0 and is_64bit():
-        return DType.uint64
-    elif bits % 32 == 0:
-        return DType.uint32
-    elif bits % 16 == 0:
-        return DType.uint16
-    else:
-        return DType.uint8
-
-
-@always_inline
-fn _big_int_construction_checks[
-    bits: Int,
-    word_type: DType,
-]():
-    """Performs checks on the parameters of a `BigInt` constructor."""
-    constrained[bits > 0, "number of bits must be positive"]()
-    constrained[
-        word_type.is_unsigned(), "word type must be an unsigned, integral type"
-    ]()
-    constrained[
-        bits % word_type.bitwidth() == 0,
-        "number of bits must be a multiple of the word type's bitwidth",
-    ]()
 
 
 alias BigUInt = BigInt[_, size=_, signed=False, word_type=_]
@@ -768,6 +795,30 @@ struct BigInt[
     # ===------------------------------------------------------------------=== #
 
     @always_inline
+    fn __neg__(self) -> Self:
+        """Performs arithmetic negation on a `BigInt` vector, element-wise.
+
+        It is only applicable to signed `BigInt` vectors.
+
+        Returns:
+            A new `BigInt` vector representing the result of the negation.
+        """
+        constrained[signed, "argument must be a signed `BigInt` vector"]()
+
+        var result = ~self
+        result += 1
+        return result
+
+    @always_inline
+    fn __pos__(self) -> Self:
+        """Performs the unary plus operation on a `BigInt` vector, element-wise.
+
+        Returns:
+            A new `BigInt` vector that is identical to the original.
+        """
+        return Self(self)
+
+    @always_inline
     fn __add__(self, rhs: Self) -> Self:
         """Performs addition between two `BigInt` vectors, element-wise.
 
@@ -819,82 +870,88 @@ struct BigInt[
         _ = _inplace_binop[_usub_with_carry](self._storage, rhs._storage)
 
     @always_inline
-    fn __eq__(self, rhs: Self) -> SIMD[DType.bool, size]:
-        """Compares two `BigInt` vectors for equality, element-wise.
+    fn __and__(self, rhs: Self) -> Self:
+        """Performs a bitwise AND operation between two `BigInt` vectors,
+        element-wise.
 
         Args:
             rhs: The right-hand side `BigInt` vector.
 
         Returns:
-            A SIMD vector of booleans indicating whether the corresponding
-            elements are equal.
+            A new `BigInt` vector containing the result of the bitwise AND
+            operation.
         """
-        return _compare(self, rhs) == 0
+        var result = Self(self)
+
+        _ = _inplace_binop[SIMD.__and__](result._storage, rhs._storage)
+
+        return result
 
     @always_inline
-    fn __ne__(self, rhs: Self) -> SIMD[DType.bool, size]:
-        """Compares two `BigInt` vectors for inequality, element-wise.
+    fn __iand__(inout self, rhs: Self):
+        """Performs an in-place bitwise AND operation between two `BigInt`
+        vectors, element-wise.
 
         Args:
             rhs: The right-hand side `BigInt` vector.
-
-        Returns:
-            A SIMD vector of booleans indicating whether the corresponding
-            elements are not equal.
         """
-        return _compare(self, rhs) != 0
+        _ = _inplace_binop[SIMD.__and__](self._storage, rhs._storage)
 
     @always_inline
-    fn __lt__(self, rhs: Self) -> SIMD[DType.bool, size]:
-        """Compares two `BigInt` vectors for less-than, element-wise.
+    fn __or__(self, rhs: Self) -> Self:
+        """Performs a bitwise OR operation between two `BigInt` vectors,
+        element-wise.
 
         Args:
             rhs: The right-hand side `BigInt` vector.
 
         Returns:
-            A SIMD vector of booleans indicating whether the corresponding
-            elements are less than those of the right-hand side.
+            A new `BigInt` vector containing the result of the bitwise OR
+            operation.
         """
-        return _compare(self, rhs) == -1
+        var result = Self(self)
+
+        _ = _inplace_binop[SIMD.__or__](result._storage, rhs._storage)
+
+        return result
 
     @always_inline
-    fn __le__(self, rhs: Self) -> SIMD[DType.bool, size]:
-        """Compares two `BigInt` vectors for less-than-or-equal, element-wise.
+    fn __ior__(inout self, rhs: Self):
+        """Performs an in-place bitwise OR operation between two `BigInt`
+        vectors, element-wise.
 
         Args:
             rhs: The right-hand side `BigInt` vector.
-
-        Returns:
-            A SIMD vector of booleans indicating whether the corresponding
-            elements are less than or equal to those of the right-hand side.
         """
-        return _compare(self, rhs) != 1
+        _ = _inplace_binop[SIMD.__or__](self._storage, rhs._storage)
 
     @always_inline
-    fn __gt__(self, rhs: Self) -> SIMD[DType.bool, size]:
-        """Compares two `BigInt` vectors for greater-than, element-wise.
+    fn __xor__(self, rhs: Self) -> Self:
+        """Performs a bitwise XOR operation between two `BigInt` vectors,
+        element-wise.
 
         Args:
             rhs: The right-hand side `BigInt` vector.
 
         Returns:
-            A SIMD vector of booleans indicating whether the corresponding
-            elements are greater than those of the right-hand side.
+            A new `BigInt` vector containing the result of the bitwise XOR
+            operation.
         """
-        return _compare(self, rhs) == 1
+        var result = Self(self)
+
+        _ = _inplace_binop[SIMD.__xor__](result._storage, rhs._storage)
+
+        return result
 
     @always_inline
-    fn __ge__(self, rhs: Self) -> SIMD[DType.bool, size]:
-        """Compares two `BigInt` vectors for greater-than-or-equal, element-wise.
+    fn __ixor__(inout self, rhs: Self):
+        """Performs an in-place bitwise XOR operation between two `BigInt`
+        vectors, element-wise.
 
         Args:
             rhs: The right-hand side `BigInt` vector.
-
-        Returns:
-            A SIMD vector of booleans indicating whether the corresponding
-            elements are greater than or equal to those of the right-hand side.
         """
-        return _compare(self, rhs) != -1
+        _ = _inplace_binop[SIMD.__xor__](self._storage, rhs._storage)
 
     @always_inline
     fn __invert__(self) -> Self:
@@ -1061,28 +1118,82 @@ struct BigInt[
         self = self >> offset
 
     @always_inline
-    fn __neg__(self) -> Self:
-        """Performs arithmetic negation on a `BigInt` vector, element-wise.
+    fn __eq__(self, rhs: Self) -> SIMD[DType.bool, size]:
+        """Compares two `BigInt` vectors for equality, element-wise.
 
-        It is only applicable to signed `BigInt` vectors.
+        Args:
+            rhs: The right-hand side `BigInt` vector.
 
         Returns:
-            A new `BigInt` vector representing the result of the negation.
+            A SIMD vector of booleans indicating whether the corresponding
+            elements are equal.
         """
-        constrained[signed, "argument must be a signed `BigInt` vector"]()
-
-        var result = ~self
-        result += 1
-        return result
+        return _compare(self, rhs) == 0
 
     @always_inline
-    fn __pos__(self) -> Self:
-        """Performs the unary plus operation on a `BigInt` vector, element-wise.
+    fn __ne__(self, rhs: Self) -> SIMD[DType.bool, size]:
+        """Compares two `BigInt` vectors for inequality, element-wise.
+
+        Args:
+            rhs: The right-hand side `BigInt` vector.
 
         Returns:
-            A new `BigInt` vector that is identical to the original.
+            A SIMD vector of booleans indicating whether the corresponding
+            elements are not equal.
         """
-        return Self(self)
+        return _compare(self, rhs) != 0
+
+    @always_inline
+    fn __lt__(self, rhs: Self) -> SIMD[DType.bool, size]:
+        """Compares two `BigInt` vectors for less-than, element-wise.
+
+        Args:
+            rhs: The right-hand side `BigInt` vector.
+
+        Returns:
+            A SIMD vector of booleans indicating whether the corresponding
+            elements are less than those of the right-hand side.
+        """
+        return _compare(self, rhs) == -1
+
+    @always_inline
+    fn __le__(self, rhs: Self) -> SIMD[DType.bool, size]:
+        """Compares two `BigInt` vectors for less-than-or-equal, element-wise.
+
+        Args:
+            rhs: The right-hand side `BigInt` vector.
+
+        Returns:
+            A SIMD vector of booleans indicating whether the corresponding
+            elements are less than or equal to those of the right-hand side.
+        """
+        return _compare(self, rhs) != 1
+
+    @always_inline
+    fn __gt__(self, rhs: Self) -> SIMD[DType.bool, size]:
+        """Compares two `BigInt` vectors for greater-than, element-wise.
+
+        Args:
+            rhs: The right-hand side `BigInt` vector.
+
+        Returns:
+            A SIMD vector of booleans indicating whether the corresponding
+            elements are greater than those of the right-hand side.
+        """
+        return _compare(self, rhs) == 1
+
+    @always_inline
+    fn __ge__(self, rhs: Self) -> SIMD[DType.bool, size]:
+        """Compares two `BigInt` vectors for greater-than-or-equal, element-wise.
+
+        Args:
+            rhs: The right-hand side `BigInt` vector.
+
+        Returns:
+            A SIMD vector of booleans indicating whether the corresponding
+            elements are greater than or equal to those of the right-hand side.
+        """
+        return _compare(self, rhs) != -1
 
     # ===------------------------------------------------------------------=== #
     # Methods
@@ -1186,44 +1297,6 @@ struct BigInt[
                 return result
 
     @always_inline
-    fn clear_most_significant_bit(inout self):
-        """Clears the most significant bit of the `BigInt` vector, element-wise.
-        """
-        self._storage[Self.WORD_COUNT - 1] &= _mask_trailing_ones[
-            word_type, Self.WORD_TYPE_BITWIDTH - 1
-        ]()
-
-    @always_inline
-    fn get_most_significant_bit(self) -> SIMD[DType.bool, size]:
-        """Gets the most significant bit in each element of the `BigInt` vector.
-
-        Returns:
-            A SIMD vector containing the most significant bit for each element
-            in the `BigInt` vector.
-        """
-        var msb = self._storage[Self.WORD_COUNT - 1] >> (
-            Self.WORD_TYPE_BITWIDTH - 1
-        )
-        return msb.cast[DType.bool]()
-
-    @always_inline
-    fn set_most_significant_bit(inout self):
-        """Sets the most significant bit of the `BigInt` vector, element-wise.
-        """
-        self._storage[Self.WORD_COUNT - 1] |= _mask_leading_ones[word_type, 1]()
-
-    @always_inline
-    fn count_leading_zeros(self) -> SIMD[word_type, size]:
-        """Counts the number of leading zeros in each element of the `BigInt`
-        vector.
-
-        Returns:
-            A SIMD vector containing the count of leading zeros for each element
-            in the `BigInt` vector.
-        """
-        return _count_leading_zeros(self._storage)
-
-    @always_inline
     fn is_negative(self) -> SIMD[DType.bool, size]:
         """Checks if the `BigInt` vector is negative, element-wise.
 
@@ -1251,3 +1324,41 @@ struct BigInt[
                 break
 
         return result
+
+    @always_inline
+    fn count_leading_zeros(self) -> SIMD[word_type, size]:
+        """Counts the number of leading zeros in each element of the `BigInt`
+        vector.
+
+        Returns:
+            A SIMD vector containing the count of leading zeros for each element
+            in the `BigInt` vector.
+        """
+        return _count_leading_zeros(self._storage)
+
+    @always_inline
+    fn get_most_significant_bit(self) -> SIMD[DType.bool, size]:
+        """Gets the most significant bit in each element of the `BigInt` vector.
+
+        Returns:
+            A SIMD vector containing the most significant bit for each element
+            in the `BigInt` vector.
+        """
+        var msb = self._storage[Self.WORD_COUNT - 1] >> (
+            Self.WORD_TYPE_BITWIDTH - 1
+        )
+        return msb.cast[DType.bool]()
+
+    @always_inline
+    fn set_most_significant_bit(inout self):
+        """Sets the most significant bit of the `BigInt` vector, element-wise.
+        """
+        self._storage[Self.WORD_COUNT - 1] |= _mask_leading_ones[word_type, 1]()
+
+    @always_inline
+    fn clear_most_significant_bit(inout self):
+        """Clears the most significant bit of the `BigInt` vector, element-wise.
+        """
+        self._storage[Self.WORD_COUNT - 1] &= _mask_trailing_ones[
+            word_type, Self.WORD_TYPE_BITWIDTH - 1
+        ]()
