@@ -165,6 +165,14 @@ fn test_from_unsigned_big_int() raises:
     _assert_equal(_BigUInt[24](other=uval24), 127)
 
 
+fn test_max() raises:
+    _assert_equal(BigInt[8, size=1].max(), 127)
+    _assert_equal(BigInt[24, size=1].max(), 8_388_607)
+
+    _assert_equal(BigUInt[8, size=1].max(), 255)
+    _assert_equal(BigUInt[24, size=1].max(), 16_777_215)
+
+
 fn test_min() raises:
     _assert_equal(BigInt[8, size=1].min(), -128)
     _assert_equal(BigInt[24, size=1].min(), -8_388_608)
@@ -173,12 +181,32 @@ fn test_min() raises:
     _assert_equal(BigUInt[24, size=1].min(), 0)
 
 
-fn test_max() raises:
-    _assert_equal(BigInt[8, size=1].max(), 127)
-    _assert_equal(BigInt[24, size=1].max(), 8_388_607)
+fn test_negation() raises:
+    var val = SIMD[DEST_TYPE, 4](-2, -1, 0, 1)
 
-    _assert_equal(BigUInt[8, size=1].max(), 255)
-    _assert_equal(BigUInt[24, size=1].max(), 16_777_215)
+    _assert_equal(-BigInt[8](val), BigInt[8](-val).cast[DEST_TYPE]())
+    _assert_equal(-BigInt[24](val), BigInt[24](-val).cast[DEST_TYPE]())
+
+
+fn test_unary_plus() raises:
+    var val = SIMD[DEST_TYPE, 2](0, 1)
+
+    @always_inline
+    @parameter
+    fn _test_plus[bits: Int, signed: Bool]() raises:
+        var original = BigInt[bits, signed=signed](val)
+        var updated = +original
+
+        _assert_equal(updated, original.cast[DEST_TYPE]())
+
+        updated += 1
+        _assert_equal(updated, (original + 1).cast[DEST_TYPE]())
+
+    _test_plus[8, signed=True]()
+    _test_plus[8, signed=False]()
+
+    _test_plus[24, signed=True]()
+    _test_plus[24, signed=False]()
 
 
 fn test_add() raises:
@@ -205,32 +233,6 @@ fn test_iadd() raises:
     _assert_equal(uval, SIMD[DEST_TYPE, 2](1, 256))
 
 
-fn test_add_with_overflow() raises:
-    var sval8 = BigInt[8](SIMD[DEST_TYPE, 2](-128, 127))
-    var uval8 = BigUInt[8](SIMD[DEST_TYPE, 2](0, 255))
-
-    assert_equal(sval8.add_with_overflow(1), SIMD[DType.bool, 2](False, True))
-    _assert_equal(sval8, SIMD[DEST_TYPE, 2](-127, -128))
-
-    assert_equal(sval8.add_with_overflow(-1), SIMD[DType.bool, 2](False, True))
-    _assert_equal(sval8, SIMD[DEST_TYPE, 2](-128, 127))
-
-    assert_equal(uval8.add_with_overflow(1), SIMD[DType.bool, 2](False, True))
-    _assert_equal(uval8, SIMD[DEST_TYPE, 2](1, 0))
-
-    var sval24 = BigInt[24](SIMD[DEST_TYPE, 2](-8_388_608, 8_388_607))
-    var uval24 = BigUInt[24](SIMD[DEST_TYPE, 2](0, 16_777_215))
-
-    assert_equal(sval24.add_with_overflow(1), SIMD[DType.bool, 2](False, True))
-    _assert_equal(sval24, SIMD[DEST_TYPE, 2](-8_388_607, -8_388_608))
-
-    assert_equal(sval24.add_with_overflow(-1), SIMD[DType.bool, 2](False, True))
-    _assert_equal(sval24, SIMD[DEST_TYPE, 2](-8_388_608, 8_388_607))
-
-    assert_equal(uval24.add_with_overflow(1), SIMD[DType.bool, 2](False, True))
-    _assert_equal(uval24, SIMD[DEST_TYPE, 2](1, 0))
-
-
 fn test_sub() raises:
     _assert_equal(BigInt[8, size=1](1) - BigInt[8, size=1](-2), 3)
     _assert_equal(BigInt[24](Int32(383)) - BigInt[24](Int32(-511)), 894)
@@ -255,73 +257,46 @@ fn test_isub() raises:
     _assert_equal(uval, SIMD[DEST_TYPE, 2](0, 255))
 
 
-fn test_sub_with_overflow() raises:
-    var sval8 = BigInt[8](SIMD[DEST_TYPE, 2](-128, 127))
-    var uval8 = BigUInt[8](SIMD[DEST_TYPE, 2](0, 255))
+fn test_signed_bitwise_op() raises:
+    var a = BigInt[24, size=1](-8_355_613)
+    var b = BigInt[24, size=1](32_933)
 
-    assert_equal(sval8.sub_with_overflow(1), SIMD[DType.bool, 2](True, False))
-    _assert_equal(sval8, SIMD[DEST_TYPE, 2](127, 126))
+    _assert_equal(a & b, 32_929)
+    _assert_equal(a | b, -8_355_609)
+    _assert_equal(a ^ b, -8_388_538)
 
-    assert_equal(sval8.sub_with_overflow(-1), SIMD[DType.bool, 2](True, False))
-    _assert_equal(sval8, SIMD[DEST_TYPE, 2](-128, 127))
+    var c = BigInt[24, size=1](a)
+    c &= b
+    _assert_equal(c, 32_929)
 
-    assert_equal(uval8.sub_with_overflow(1), SIMD[DType.bool, 2](True, False))
-    _assert_equal(uval8, SIMD[DEST_TYPE, 2](255, 254))
+    c = BigInt[24, size=1](a)
+    c |= b
+    _assert_equal(c, -8_355_609)
 
-    var sval24 = BigInt[24](SIMD[DEST_TYPE, 2](-8_388_608, 8_388_607))
-    var uval24 = BigUInt[24](SIMD[DEST_TYPE, 2](0, 16_777_215))
-
-    assert_equal(sval24.sub_with_overflow(1), SIMD[DType.bool, 2](True, False))
-    _assert_equal(sval24, SIMD[DEST_TYPE, 2](8_388_607, 8_388_606))
-
-    assert_equal(sval24.sub_with_overflow(-1), SIMD[DType.bool, 2](True, False))
-    _assert_equal(sval24, SIMD[DEST_TYPE, 2](-8_388_608, 8_388_607))
-
-    assert_equal(uval24.sub_with_overflow(1), SIMD[DType.bool, 2](True, False))
-    _assert_equal(uval24, SIMD[DEST_TYPE, 2](16_777_215, 16_777_214))
+    c = BigInt[24, size=1](a)
+    c ^= b
+    _assert_equal(c, -8_388_538)
 
 
-fn test_comparison() raises:
-    @always_inline
-    @parameter
-    fn _test_cmp[bits: Int, signed: Bool]() raises:
-        alias WIDTH = 4
+fn test_unsigned_bitwise_op() raises:
+    var a = BigUInt[24, size=1](8_421_603)
+    var b = BigUInt[24, size=1](32_933)
 
-        var val1: BigInt[bits, size=WIDTH, signed=signed]
-        var val2: __type_of(val1)
+    _assert_equal(a & b, 32_929)
+    _assert_equal(a | b, 8_421_607)
+    _assert_equal(a ^ b, 8_388_678)
 
-        @parameter
-        if signed:
-            val1 = SIMD[DEST_TYPE, WIDTH](-1, 0, 1, 2)
-            val2 = SIMD[DEST_TYPE, WIDTH](-2, 0, 2, -1)
-        else:
-            val1 = SIMD[DEST_TYPE, WIDTH](1, 0, 1, 2)
-            val2 = SIMD[DEST_TYPE, WIDTH](0, 0, 2, 1)
+    var c = BigUInt[24, size=1](a)
+    c &= b
+    _assert_equal(c, 32_929)
 
-        assert_equal(
-            val1 == val2, SIMD[DType.bool, WIDTH](False, True, False, False)
-        )
-        assert_equal(
-            val1 != val2, SIMD[DType.bool, WIDTH](True, False, True, True)
-        )
-        assert_equal(
-            val1 < val2, SIMD[DType.bool, WIDTH](False, False, True, False)
-        )
-        assert_equal(
-            val1 <= val2, SIMD[DType.bool, WIDTH](False, True, True, False)
-        )
-        assert_equal(
-            val1 > val2, SIMD[DType.bool, WIDTH](True, False, False, True)
-        )
-        assert_equal(
-            val1 >= val2, SIMD[DType.bool, WIDTH](True, True, False, True)
-        )
+    c = BigUInt[24, size=1](a)
+    c |= b
+    _assert_equal(c, 8_421_607)
 
-    _test_cmp[8, signed=True]()
-    _test_cmp[8, signed=False]()
-
-    _test_cmp[24, signed=True]()
-    _test_cmp[24, signed=False]()
+    c = BigUInt[24, size=1](a)
+    c ^= b
+    _assert_equal(c, 8_388_678)
 
 
 fn test_invert() raises:
@@ -440,32 +415,99 @@ fn test_irshift() raises:
     _assert_equal(val, -128)
 
 
-fn test_negation() raises:
-    var val = SIMD[DEST_TYPE, 4](-2, -1, 0, 1)
-
-    _assert_equal(-BigInt[8](val), BigInt[8](-val).cast[DEST_TYPE]())
-    _assert_equal(-BigInt[24](val), BigInt[24](-val).cast[DEST_TYPE]())
-
-
-fn test_unary_plus() raises:
-    var val = SIMD[DEST_TYPE, 2](0, 1)
-
+fn test_comparison() raises:
     @always_inline
     @parameter
-    fn _test_plus[bits: Int, signed: Bool]() raises:
-        var original = BigInt[bits, signed=signed](val)
-        var updated = +original
+    fn _test_cmp[bits: Int, signed: Bool]() raises:
+        alias WIDTH = 4
 
-        _assert_equal(updated, original.cast[DEST_TYPE]())
+        var val1: BigInt[bits, size=WIDTH, signed=signed]
+        var val2: __type_of(val1)
 
-        updated += 1
-        _assert_equal(updated, (original + 1).cast[DEST_TYPE]())
+        @parameter
+        if signed:
+            val1 = SIMD[DEST_TYPE, WIDTH](-1, 0, 1, 2)
+            val2 = SIMD[DEST_TYPE, WIDTH](-2, 0, 2, -1)
+        else:
+            val1 = SIMD[DEST_TYPE, WIDTH](1, 0, 1, 2)
+            val2 = SIMD[DEST_TYPE, WIDTH](0, 0, 2, 1)
 
-    _test_plus[8, signed=True]()
-    _test_plus[8, signed=False]()
+        assert_equal(
+            val1 == val2, SIMD[DType.bool, WIDTH](False, True, False, False)
+        )
+        assert_equal(
+            val1 != val2, SIMD[DType.bool, WIDTH](True, False, True, True)
+        )
+        assert_equal(
+            val1 < val2, SIMD[DType.bool, WIDTH](False, False, True, False)
+        )
+        assert_equal(
+            val1 <= val2, SIMD[DType.bool, WIDTH](False, True, True, False)
+        )
+        assert_equal(
+            val1 > val2, SIMD[DType.bool, WIDTH](True, False, False, True)
+        )
+        assert_equal(
+            val1 >= val2, SIMD[DType.bool, WIDTH](True, True, False, True)
+        )
 
-    _test_plus[24, signed=True]()
-    _test_plus[24, signed=False]()
+    _test_cmp[8, signed=True]()
+    _test_cmp[8, signed=False]()
+
+    _test_cmp[24, signed=True]()
+    _test_cmp[24, signed=False]()
+
+
+fn test_add_with_overflow() raises:
+    var sval8 = BigInt[8](SIMD[DEST_TYPE, 2](-128, 127))
+    var uval8 = BigUInt[8](SIMD[DEST_TYPE, 2](0, 255))
+
+    assert_equal(sval8.add_with_overflow(1), SIMD[DType.bool, 2](False, True))
+    _assert_equal(sval8, SIMD[DEST_TYPE, 2](-127, -128))
+
+    assert_equal(sval8.add_with_overflow(-1), SIMD[DType.bool, 2](False, True))
+    _assert_equal(sval8, SIMD[DEST_TYPE, 2](-128, 127))
+
+    assert_equal(uval8.add_with_overflow(1), SIMD[DType.bool, 2](False, True))
+    _assert_equal(uval8, SIMD[DEST_TYPE, 2](1, 0))
+
+    var sval24 = BigInt[24](SIMD[DEST_TYPE, 2](-8_388_608, 8_388_607))
+    var uval24 = BigUInt[24](SIMD[DEST_TYPE, 2](0, 16_777_215))
+
+    assert_equal(sval24.add_with_overflow(1), SIMD[DType.bool, 2](False, True))
+    _assert_equal(sval24, SIMD[DEST_TYPE, 2](-8_388_607, -8_388_608))
+
+    assert_equal(sval24.add_with_overflow(-1), SIMD[DType.bool, 2](False, True))
+    _assert_equal(sval24, SIMD[DEST_TYPE, 2](-8_388_608, 8_388_607))
+
+    assert_equal(uval24.add_with_overflow(1), SIMD[DType.bool, 2](False, True))
+    _assert_equal(uval24, SIMD[DEST_TYPE, 2](1, 0))
+
+
+fn test_sub_with_overflow() raises:
+    var sval8 = BigInt[8](SIMD[DEST_TYPE, 2](-128, 127))
+    var uval8 = BigUInt[8](SIMD[DEST_TYPE, 2](0, 255))
+
+    assert_equal(sval8.sub_with_overflow(1), SIMD[DType.bool, 2](True, False))
+    _assert_equal(sval8, SIMD[DEST_TYPE, 2](127, 126))
+
+    assert_equal(sval8.sub_with_overflow(-1), SIMD[DType.bool, 2](True, False))
+    _assert_equal(sval8, SIMD[DEST_TYPE, 2](-128, 127))
+
+    assert_equal(uval8.sub_with_overflow(1), SIMD[DType.bool, 2](True, False))
+    _assert_equal(uval8, SIMD[DEST_TYPE, 2](255, 254))
+
+    var sval24 = BigInt[24](SIMD[DEST_TYPE, 2](-8_388_608, 8_388_607))
+    var uval24 = BigUInt[24](SIMD[DEST_TYPE, 2](0, 16_777_215))
+
+    assert_equal(sval24.sub_with_overflow(1), SIMD[DType.bool, 2](True, False))
+    _assert_equal(sval24, SIMD[DEST_TYPE, 2](8_388_607, 8_388_606))
+
+    assert_equal(sval24.sub_with_overflow(-1), SIMD[DType.bool, 2](True, False))
+    _assert_equal(sval24, SIMD[DEST_TYPE, 2](-8_388_608, 8_388_607))
+
+    assert_equal(uval24.sub_with_overflow(1), SIMD[DType.bool, 2](True, False))
+    _assert_equal(uval24, SIMD[DEST_TYPE, 2](16_777_215, 16_777_214))
 
 
 fn test_cast() raises:
@@ -496,6 +538,27 @@ fn test_cast() raises:
         assert_equal(pos_sval.cast[DTYPE](), casted_pos_num)
         assert_equal(neg_sval.cast[DTYPE](), casted_neg_num)
         assert_equal(uval.cast[DTYPE](), casted_pos_num)
+
+
+fn test_is_negative() raises:
+    var val = SIMD[DType.int8, 2](-1, 0)
+
+    assert_equal(BigInt[8](val).is_negative(), val < 0)
+    assert_equal(BigUInt[8, size=1](0).is_negative(), False)
+
+    assert_equal(BigInt[24](val).is_negative(), val < 0)
+    assert_equal(BigUInt[24, size=1](0).is_negative(), False)
+
+
+fn test_is_zero() raises:
+    var sval = SIMD[DType.int8, 4](-1, 0, 1, 2)
+    var uval = SIMD[DType.uint8, 4](0, 1, 2, 3)
+
+    assert_equal(BigInt[8](sval).is_zero(), sval == 0)
+    assert_equal(BigUInt[8](uval).is_zero(), uval == 0)
+
+    assert_equal(BigInt[24](sval).is_zero(), sval == 0)
+    assert_equal(BigUInt[24](uval).is_zero(), uval == 0)
 
 
 fn test_most_significant_digit() raises:
@@ -549,27 +612,6 @@ fn test_count_leading_zeros() raises:
     assert_equal(uval24.count_leading_zeros(), 12)
 
 
-fn test_is_negative() raises:
-    var val = SIMD[DType.int8, 2](-1, 0)
-
-    assert_equal(BigInt[8](val).is_negative(), val < 0)
-    assert_equal(BigUInt[8, size=1](0).is_negative(), False)
-
-    assert_equal(BigInt[24](val).is_negative(), val < 0)
-    assert_equal(BigUInt[24, size=1](0).is_negative(), False)
-
-
-fn test_is_zero() raises:
-    var sval = SIMD[DType.int8, 4](-1, 0, 1, 2)
-    var uval = SIMD[DType.uint8, 4](0, 1, 2, 3)
-
-    assert_equal(BigInt[8](sval).is_zero(), sval == 0)
-    assert_equal(BigUInt[8](uval).is_zero(), uval == 0)
-
-    assert_equal(BigInt[24](sval).is_zero(), sval == 0)
-    assert_equal(BigUInt[24](uval).is_zero(), uval == 0)
-
-
 fn main() raises:
     test_init()
     test_init_unsafe()
@@ -581,19 +623,20 @@ fn main() raises:
     test_from_signed_big_int()
     test_from_unsigned_big_int()
 
-    test_min()
     test_max()
+    test_min()
+
+    test_negation()
+    test_unary_plus()
 
     test_add()
     test_iadd()
-    test_add_with_overflow()
 
     test_sub()
     test_isub()
-    test_sub_with_overflow()
 
-    test_comparison()
-
+    test_signed_bitwise_op()
+    test_unsigned_bitwise_op()
     test_invert()
 
     test_lshift()
@@ -604,15 +647,16 @@ fn main() raises:
     test_rshift_edge_cases()
     test_irshift()
 
-    test_negation()
-    test_unary_plus()
+    test_comparison()
+
+    test_add_with_overflow()
+    test_sub_with_overflow()
 
     test_cast()
+
+    test_is_negative()
+    test_is_zero()
 
     test_most_significant_digit()
 
     test_count_leading_zeros()
-
-    test_is_negative()
-
-    test_is_zero()
