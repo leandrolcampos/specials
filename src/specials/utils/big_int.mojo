@@ -168,7 +168,7 @@ fn _usub_with_carry(
 
 
 @always_inline
-fn _inplace_binop[
+fn _apply_inplace_binop[
     binop_with_carry: fn[type: DType, size: Int] (
         SIMD[type, size], SIMD[type, size], SIMD[type, size]
     ) -> (SIMD[type, size], SIMD[type, size]),
@@ -280,7 +280,7 @@ fn _iota[type: DType, size: Int]() -> SIMD[type, size]:
 fn _shift[
     *, is_left_shift: Bool, treat_offset_as_int: Bool = False
 ](val: BigInt, offset: SIMD[DType.index, val.size]) -> __type_of(val):
-    """Performs a bitwise shift on the internal representation of a `BigInt`."""
+    """Performs a bitwise shift on a `BigInt` vector, element-wise."""
     alias SHIFT = _iota[DType.index, val.size]()
     alias TYPE_BITWIDTH = val.word_type.bitwidth()
 
@@ -371,24 +371,40 @@ fn _extend[
 
 
 @always_inline
-fn _inplace_binop[
+fn _apply_binop[
     binop: fn[type: DType, size: Int] (
         SIMD[type, size], SIMD[type, size]
     ) -> SIMD[type, size],
     type: DType,
     size: Int,
 ](
-    inout dst: InlineArray[SIMD[type, size], _],
-    rhs: InlineArray[SIMD[type, size], _],
+    lhs: InlineArray[SIMD[type, size], _],
+    rhs: __type_of(lhs),
+) -> __type_of(
+    lhs
 ):
-    """Performs an in-place binary operation."""
-    constrained[
-        dst.size >= rhs.size,
-        "`dst` must have at least as many elements as `rhs`",
-    ]()
+    """Performs a binary operation element-wise."""
+    var dst = __type_of(lhs)(unsafe_uninitialized=True)
 
     @parameter
-    for i in range(rhs.size):
+    for i in range(lhs.size):
+        dst[i] = binop(lhs[i], rhs[i])
+
+    return dst
+
+
+@always_inline
+fn _apply_inplace_binop[
+    binop: fn[type: DType, size: Int] (
+        SIMD[type, size], SIMD[type, size]
+    ) -> SIMD[type, size],
+    type: DType,
+    size: Int,
+](inout dst: InlineArray[SIMD[type, size], _], rhs: __type_of(dst)):
+    """Performs an in-place binary operation element-wise."""
+
+    @parameter
+    for i in range(dst.size):
         dst[i] = binop(dst[i], rhs[i])
 
 
@@ -830,7 +846,9 @@ struct BigInt[
         """
         var result = Self(self)
 
-        _ = _inplace_binop[_uadd_with_carry](result._storage, rhs._storage)
+        _ = _apply_inplace_binop[_uadd_with_carry](
+            result._storage, rhs._storage
+        )
 
         return result
 
@@ -841,7 +859,7 @@ struct BigInt[
         Args:
             rhs: The right-hand side `BigInt` vector.
         """
-        _ = _inplace_binop[_uadd_with_carry](self._storage, rhs._storage)
+        _ = _apply_inplace_binop[_uadd_with_carry](self._storage, rhs._storage)
 
     @always_inline
     fn __sub__(self, rhs: Self) -> Self:
@@ -855,7 +873,9 @@ struct BigInt[
         """
         var result = Self(self)
 
-        _ = _inplace_binop[_usub_with_carry](result._storage, rhs._storage)
+        _ = _apply_inplace_binop[_usub_with_carry](
+            result._storage, rhs._storage
+        )
 
         return result
 
@@ -867,7 +887,7 @@ struct BigInt[
         Args:
             rhs: The right-hand side `BigInt` vector.
         """
-        _ = _inplace_binop[_usub_with_carry](self._storage, rhs._storage)
+        _ = _apply_inplace_binop[_usub_with_carry](self._storage, rhs._storage)
 
     @always_inline
     fn __and__(self, rhs: Self) -> Self:
@@ -881,11 +901,7 @@ struct BigInt[
             A new `BigInt` vector containing the result of the bitwise AND
             operation.
         """
-        var result = Self(self)
-
-        _ = _inplace_binop[SIMD.__and__](result._storage, rhs._storage)
-
-        return result
+        return _apply_binop[SIMD.__and__](self._storage, rhs._storage)
 
     @always_inline
     fn __iand__(inout self, rhs: Self):
@@ -895,7 +911,7 @@ struct BigInt[
         Args:
             rhs: The right-hand side `BigInt` vector.
         """
-        _ = _inplace_binop[SIMD.__and__](self._storage, rhs._storage)
+        _apply_inplace_binop[SIMD.__and__](self._storage, rhs._storage)
 
     @always_inline
     fn __or__(self, rhs: Self) -> Self:
@@ -909,11 +925,7 @@ struct BigInt[
             A new `BigInt` vector containing the result of the bitwise OR
             operation.
         """
-        var result = Self(self)
-
-        _ = _inplace_binop[SIMD.__or__](result._storage, rhs._storage)
-
-        return result
+        return _apply_binop[SIMD.__or__](self._storage, rhs._storage)
 
     @always_inline
     fn __ior__(inout self, rhs: Self):
@@ -923,7 +935,7 @@ struct BigInt[
         Args:
             rhs: The right-hand side `BigInt` vector.
         """
-        _ = _inplace_binop[SIMD.__or__](self._storage, rhs._storage)
+        _apply_inplace_binop[SIMD.__or__](self._storage, rhs._storage)
 
     @always_inline
     fn __xor__(self, rhs: Self) -> Self:
@@ -937,11 +949,7 @@ struct BigInt[
             A new `BigInt` vector containing the result of the bitwise XOR
             operation.
         """
-        var result = Self(self)
-
-        _ = _inplace_binop[SIMD.__xor__](result._storage, rhs._storage)
-
-        return result
+        return _apply_binop[SIMD.__xor__](self._storage, rhs._storage)
 
     @always_inline
     fn __ixor__(inout self, rhs: Self):
@@ -951,7 +959,7 @@ struct BigInt[
         Args:
             rhs: The right-hand side `BigInt` vector.
         """
-        _ = _inplace_binop[SIMD.__xor__](self._storage, rhs._storage)
+        _apply_inplace_binop[SIMD.__xor__](self._storage, rhs._storage)
 
     @always_inline
     fn __invert__(self) -> Self:
@@ -1216,13 +1224,15 @@ struct BigInt[
             var lhs_msb = self.get_most_significant_bit()
             var rhs_msb = rhs.get_most_significant_bit()
 
-            _ = _inplace_binop[_uadd_with_carry](self._storage, rhs._storage)
+            _ = _apply_inplace_binop[_uadd_with_carry](
+                self._storage, rhs._storage
+            )
 
             return (lhs_msb == rhs_msb) & (
                 lhs_msb != self.get_most_significant_bit()
             )
         else:
-            var carry_out = _inplace_binop[_uadd_with_carry](
+            var carry_out = _apply_inplace_binop[_uadd_with_carry](
                 self._storage, rhs._storage
             )
             return carry_out.cast[DType.bool]()
@@ -1244,13 +1254,15 @@ struct BigInt[
             var lhs_msb = self.get_most_significant_bit()
             var rhs_msb = rhs.get_most_significant_bit()
 
-            _ = _inplace_binop[_usub_with_carry](self._storage, rhs._storage)
+            _ = _apply_inplace_binop[_usub_with_carry](
+                self._storage, rhs._storage
+            )
 
             return (lhs_msb != rhs_msb) & (
                 lhs_msb != self.get_most_significant_bit()
             )
         else:
-            var carry_out = _inplace_binop[_usub_with_carry](
+            var carry_out = _apply_inplace_binop[_usub_with_carry](
                 self._storage, rhs._storage
             )
             return carry_out.cast[DType.bool]()
