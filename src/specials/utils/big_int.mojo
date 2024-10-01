@@ -35,6 +35,33 @@ from utils.numerics import max_finite
 
 
 @always_inline
+fn _big_int_construction_checks[
+    bits: Int,
+    word_type: DType,
+]():
+    """Performs checks on the parameters of a `BigInt` constructor."""
+    constrained[bits > 0, "number of bits must be positive"]()
+    constrained[
+        word_type.is_unsigned(), "word type must be an unsigned, integral type"
+    ]()
+    constrained[
+        bits % word_type.bitwidth() == 0,
+        "number of bits must be a multiple of the word type's bitwidth",
+    ]()
+
+
+@always_inline
+fn _bits_as_int_literal(bits: Int) -> IntLiteral:
+    """Converts the number of bits to an integer literal."""
+    var result: IntLiteral = 0
+
+    for _ in range(0, bits, 8):
+        result += 8
+
+    return result
+
+
+@always_inline
 fn _conditional[T: AnyType, //, pred: Bool, true_case: T, false_case: T]() -> T:
     """Returns the true or false case based on the value of `pred`."""
 
@@ -62,30 +89,19 @@ fn _default_word_type[bits: Int]() -> DType:
 
 
 @always_inline
-fn _big_int_construction_checks[
-    bits: Int,
-    word_type: DType,
-]():
-    """Performs checks on the parameters of a `BigInt` constructor."""
-    constrained[bits > 0, "number of bits must be positive"]()
-    constrained[
-        word_type.is_unsigned(), "word type must be an unsigned, integral type"
-    ]()
-    constrained[
-        bits % word_type.bitwidth() == 0,
-        "number of bits must be a multiple of the word type's bitwidth",
-    ]()
+fn _half_bitwidth_type_of[type: DType]() -> DType:
+    """Returns the unsigned type with half the bitwidth of the input type."""
+    constrained[type.is_unsigned(), "type must be an unsigned, integral type"]()
 
-
-@always_inline
-fn _bits_as_int_literal(bits: Int) -> IntLiteral:
-    """Converts the number of bits to an integer literal."""
-    var result: IntLiteral = 0
-
-    for _ in range(0, bits, 8):
-        result += 8
-
-    return result
+    @parameter
+    if type == DType.uint16:
+        return DType.uint8
+    elif type == DType.uint32:
+        return DType.uint16
+    elif type == DType.uint64:
+        return DType.uint32
+    else:
+        return DType.invalid
 
 
 # ===----------------------------------------------------------------------=== #
@@ -100,7 +116,7 @@ fn _uadd_with_overflow(
     """Performs unsigned addition with overflow detection."""
     constrained[
         lhs.type.is_unsigned(),
-        "argument type must be an unsigned, integral type",
+        "input type must be an unsigned, integral type",
     ]()
 
     var result = llvm_intrinsic[
@@ -120,7 +136,7 @@ fn _uadd_with_carry(
     """Performs unsigned addition with carry propagation."""
     constrained[
         lhs.type.is_unsigned(),
-        "argument type must be an unsigned, integral type",
+        "input type must be an unsigned, integral type",
     ]()
 
     var sum_and_carry0 = _uadd_with_overflow(lhs, rhs)
@@ -137,7 +153,7 @@ fn _usub_with_overflow(
     """Performs unsigned subtraction with overflow detection."""
     constrained[
         lhs.type.is_unsigned(),
-        "argument type must be an unsigned, integral type",
+        "input type must be an unsigned, integral type",
     ]()
 
     var result = llvm_intrinsic[
@@ -157,7 +173,7 @@ fn _usub_with_carry(
     """Performs subtraction with carry propagation."""
     constrained[
         lhs.type.is_unsigned(),
-        "argument type must be an unsigned, integral type",
+        "input type must be an unsigned, integral type",
     ]()
 
     var diff_and_carry0 = _usub_with_overflow(lhs, rhs)
@@ -168,7 +184,7 @@ fn _usub_with_carry(
 
 
 @always_inline
-fn _apply_inplace_binop[
+fn _apply_binop_with_carry[
     binop_with_carry: fn[type: DType, size: Int] (
         SIMD[type, size], SIMD[type, size], SIMD[type, size]
     ) -> (SIMD[type, size], SIMD[type, size]),
@@ -210,6 +226,227 @@ fn _apply_inplace_binop[
                 break
 
     return carry_out
+
+
+@always_inline
+fn _get_lower_half[new_type: DType](value: SIMD) -> SIMD[new_type, value.size]:
+    """Extracts the lower half of each element in a SIMD vector."""
+    constrained[
+        new_type.is_unsigned(), "new type must be an unsigned, integral type"
+    ]()
+    constrained[
+        value.type.is_unsigned(),
+        "input type must be an unsigned, integral type",
+    ]()
+    constrained[
+        value.type.bitwidth() == 2 * new_type.bitwidth(),
+        "new type must be half the bitwidth of the input type",
+    ]()
+
+    return value.cast[new_type]()
+
+
+@always_inline
+fn _get_higher_half[new_type: DType](value: SIMD) -> SIMD[new_type, value.size]:
+    """Extracts the higher half of each element in a SIMD vector."""
+    constrained[
+        new_type.is_unsigned(), "new type must be an unsigned, integral type"
+    ]()
+    constrained[
+        value.type.is_unsigned(),
+        "input type must be an unsigned, integral type",
+    ]()
+    constrained[
+        value.type.bitwidth() == 2 * new_type.bitwidth(),
+        "new type must be half the bitwidth of the input type",
+    ]()
+
+    return (value >> new_type.bitwidth()).cast[new_type]()
+
+
+@always_inline
+fn _split_into_halves[
+    new_type: DType
+](value: SIMD) -> InlineArray[SIMD[new_type, value.size], 2]:
+    """Splits each element in a SIMD vector into its lower and higher halves."""
+    return InlineArray[SIMD[new_type, value.size], 2](
+        _get_lower_half[new_type](value),
+        _get_higher_half[new_type](value),
+    )
+
+
+@always_inline
+fn _umul_double_wide(
+    lhs: SIMD, rhs: __type_of(lhs)
+) -> InlineArray[__type_of(lhs), 2]:
+    """Performs unsigned multiplication producing a double-width result."""
+    constrained[
+        lhs.type.is_unsigned(),
+        "input type must be an unsigned, integral type",
+    ]()
+
+    @parameter
+    if lhs.type == DType.uint8:
+        return _split_into_halves[lhs.type](
+            lhs.cast[DType.uint16]() * rhs.cast[DType.uint16]()
+        )
+    elif lhs.type == DType.uint16:
+        return _split_into_halves[lhs.type](
+            lhs.cast[DType.uint32]() * rhs.cast[DType.uint32]()
+        )
+    elif lhs.type == DType.uint32 and is_64bit():
+        return _split_into_halves[lhs.type](
+            lhs.cast[DType.uint64]() * rhs.cast[DType.uint64]()
+        )
+    else:
+        alias HALF_BITWIDTH = lhs.type.bitwidth() // 2
+        alias HALF_BITWIDTH_TYPE = _half_bitwidth_type_of[lhs.type]()
+
+        var lhs_lo = _get_lower_half[HALF_BITWIDTH_TYPE](lhs).cast[lhs.type]()
+        var rhs_lo = _get_lower_half[HALF_BITWIDTH_TYPE](rhs).cast[lhs.type]()
+        var lhs_hi = _get_higher_half[HALF_BITWIDTH_TYPE](lhs).cast[lhs.type]()
+        var rhs_hi = _get_higher_half[HALF_BITWIDTH_TYPE](rhs).cast[lhs.type]()
+
+        var prod_lo_lo = rhs_lo * lhs_lo
+        var prod_lo_hi = rhs_lo * lhs_hi
+        var prod_hi_lo = rhs_hi * lhs_lo
+        var prod_hi_hi = rhs_hi * lhs_hi
+
+        var sum_and_carry = _uadd_with_carry(
+            prod_lo_lo, prod_lo_hi << HALF_BITWIDTH, 0
+        )
+        var lower_half = sum_and_carry[0]
+        var carry = sum_and_carry[1]
+
+        sum_and_carry = _uadd_with_carry(
+            prod_hi_hi, prod_lo_hi >> HALF_BITWIDTH, carry
+        )
+        var higher_half = sum_and_carry[0]
+
+        sum_and_carry = _uadd_with_carry(
+            lower_half, prod_hi_lo << HALF_BITWIDTH, 0
+        )
+        lower_half = sum_and_carry[0]
+        carry = sum_and_carry[1]
+
+        sum_and_carry = _uadd_with_carry(
+            higher_half, prod_hi_lo >> HALF_BITWIDTH, carry
+        )
+        higher_half = sum_and_carry[0]
+
+        return InlineArray[__type_of(lhs), 2](lower_half, higher_half)
+
+
+@value
+struct _Accumulator[type: DType, size: Int]:
+    """Represents an accumulator for SIMD operations with carry propagation."""
+
+    var _storage: InlineArray[SIMD[type, size], 2]
+    """The internal storage of the accumulator."""
+
+    @always_inline
+    fn __init__(inout self):
+        """Initializes the accumulator with all elements set to zero."""
+        self._storage = InlineArray[SIMD[type, size], 2](0, 0)
+
+    @always_inline
+    fn propagate(inout self, carry_in: SIMD[type, size]) -> SIMD[type, size]:
+        """Propagates the accumulator elements forward and incorporates a
+        carry-in value.
+        """
+        var result = self._storage[0]
+        self._storage[0] = self._storage[1]
+        self._storage[1] = carry_in
+
+        return result
+
+    @always_inline
+    fn get_sum(self) -> SIMD[type, size]:
+        """Returns the sum of the accumulator."""
+        return self._storage[0]
+
+    @always_inline
+    fn get_carry(self) -> SIMD[type, size]:
+        """Returns the carry of the accumulator."""
+        return self._storage[1]
+
+
+@always_inline
+fn _umul_uadd_with_carry[
+    type: DType,
+    size: Int,
+](
+    inout dst: _Accumulator[type, size],
+    lhs: SIMD[type, size],
+    rhs: SIMD[type, size],
+) -> SIMD[type, size]:
+    """Performs in-place unsigned multiply-add operation with carry propagation.
+    """
+    return _apply_binop_with_carry[_uadd_with_carry](
+        dst._storage, _umul_double_wide(lhs, rhs)
+    )
+
+
+@always_inline
+fn _umul_with_carry[
+    type: DType, size: Int
+](
+    inout dst: InlineArray[SIMD[type, size], _],
+    lhs: InlineArray[SIMD[type, size], _],
+    rhs: InlineArray[SIMD[type, size], _],
+) -> SIMD[type, size]:
+    """Performs in-place unsigned multiplication with carry propagation."""
+    constrained[
+        dst.size >= lhs.size + rhs.size,
+        "`dst.size` must be greater than or equal to `lhs.size + rhs.size`",
+    ]()
+
+    var acc = _Accumulator[type, size]()
+
+    @parameter
+    for i in range(dst.size):
+        alias LOWER_IDX = _conditional[i < rhs.size, 0, i - rhs.size + 1]()
+        alias UPPER_IDX = _conditional[i < lhs.size, i, lhs.size - 1]()
+
+        var carry = SIMD[type, size](0)
+
+        @parameter
+        for j in range(LOWER_IDX, UPPER_IDX + 1):
+            carry += _umul_uadd_with_carry(acc, lhs[j], rhs[i - j])
+
+        dst[i] = acc.propagate(carry)
+
+    return acc.get_carry()
+
+
+@always_inline
+fn _approx_umul_high[
+    type: DType, size: Int
+](
+    inout dst: InlineArray[SIMD[type, size], _],
+    lhs: __type_of(dst),
+    rhs: __type_of(dst),
+):
+    """Approximates the higher part of the unsigned multiplication result."""
+    var acc = _Accumulator[type, size]()
+    var carry = SIMD[type, size](0)
+
+    @parameter
+    for i in range(dst.size):
+        carry += _umul_uadd_with_carry(acc, lhs[i], rhs[dst.size - 1 - i])
+
+    @parameter
+    for i in range(dst.size, 2 * dst.size - 1):
+        _ = acc.propagate(carry)
+        carry = 0
+
+        @parameter
+        for j in range(i - dst.size + 1, dst.size):
+            carry += _umul_uadd_with_carry(acc, lhs[j], rhs[i - j])
+
+        dst[i - dst.size] = acc.get_sum()
+
+    dst[dst.size - 1] = acc.get_carry()
 
 
 # ===----------------------------------------------------------------------=== #
@@ -511,24 +748,24 @@ fn _is_casting_safe[bits: Int, signed: Bool](value: BigInt) -> Bool:
     if bits > value.bits:
         return signed or (not value.signed) or all(value >= 0)
     else:
-        alias _bits = _bits_as_int_literal(bits)
+        alias BITS = _bits_as_int_literal(bits)
 
         @parameter
         if not value.signed:
             alias MAX_VALUE = _conditional[
-                signed, 2 ** (_bits - 1) - 1, 2**_bits - 1
+                signed, 2 ** (BITS - 1) - 1, 2**BITS - 1
             ]()
 
             return all(value <= MAX_VALUE)
         else:
-            alias MIN_VALUE = _conditional[signed, -(2 ** (_bits - 1)), 0]()
+            alias MIN_VALUE = _conditional[signed, -(2 ** (BITS - 1)), 0]()
 
             @parameter
             if bits == value.bits:
                 return all(value >= MIN_VALUE)
             else:
                 alias MAX_VALUE = _conditional[
-                    signed, 2 ** (_bits - 1) - 1, 2**_bits - 1
+                    signed, 2 ** (BITS - 1) - 1, 2**BITS - 1
                 ]()
 
                 return all(value >= MIN_VALUE) and all(value <= MAX_VALUE)
@@ -551,7 +788,7 @@ struct BigInt[
     size: Int,
     signed: Bool = True,
     word_type: DType = _default_word_type[bits](),
-](Copyable, Defaultable, ExplicitlyCopyable, Movable):
+](Absable, Copyable, Defaultable, ExplicitlyCopyable, Movable):
     """Represents a small vector of arbitrary, fixed bit-size integers.
 
     It can represent both signed and unsigned integers with a fixed number of
@@ -725,6 +962,7 @@ struct BigInt[
         inout self,
         *,
         other: BigInt[_, size=size, signed=_, word_type=word_type],
+        unsafe_unchecked: Bool = False,
     ):
         """Initializes the `BigInt` vector by casting an existing one.
 
@@ -732,11 +970,16 @@ struct BigInt[
             other: The `BigInt` vector to cast from. Must have the same size and
                 word type as the new `BigInt`, and each element should be within
                 the bounds of the new vector.
+            unsafe_unchecked: A boolean indicating whether to skip the bounds
+                checks that are performed when debug assertions are enabled. If
+                set to `True`, the constructor will always bypass these checks,
+                which may lead to data truncation if elements in `other` exceed
+                the capacity of the new `BigInt`. Defaults to `False`.
         """
         _big_int_construction_checks[bits, word_type]()
 
         debug_assert(
-            _is_casting_safe[bits, signed](other),
+            unsafe_unchecked or _is_casting_safe[bits, signed](other),
             (
                 "each element in `other` should be within the bounds of the"
                 " new `BigInt`"
@@ -806,9 +1049,55 @@ struct BigInt[
 
         return result
 
+    @staticmethod
+    @always_inline
+    fn select(
+        condition: SIMD[DType.bool, size], true_case: Self, false_case: Self
+    ) -> Self:
+        """Selects elements from two `BigInt` vectors element-wise based on a
+        condition.
+
+        Args:
+            condition: A boolean SIMD vector used to select elements. If `True`,
+                selects from `true_case`; otherwise, from `false_case`.
+            true_case: The `BigInt` vector to select elements from when the
+                condition is `True`.
+            false_case: The `BigInt` vector to select elements from when the
+                condition is `False`.
+
+        Returns:
+            A new `BigInt` vector with elements selected from `true_case` or
+            `false_case` based on the corresponding elements in `condition`.
+        """
+        var result = Self(unsafe_uninitialized=True)
+
+        @parameter
+        for i in range(Self.WORD_COUNT):
+            result._storage[i] = condition.select(
+                true_case._storage[i], false_case._storage[i]
+            )
+
+        return result
+
     # ===------------------------------------------------------------------=== #
     # Operator dunders
     # ===------------------------------------------------------------------=== #
+
+    @always_inline
+    fn __abs__(self) -> Self:
+        """Performs the absolute value operation on a `BigInt` vector,
+        element-wise.
+
+        Returns:
+            A new `BigInt` vector containing the absolute values of the
+            original elements.
+        """
+
+        @parameter
+        if signed:
+            return Self.select(self.is_negative(), -self, self)
+        else:
+            return Self(self)
 
     @always_inline
     fn __neg__(self) -> Self:
@@ -846,7 +1135,7 @@ struct BigInt[
         """
         var result = Self(self)
 
-        _ = _apply_inplace_binop[_uadd_with_carry](
+        _ = _apply_binop_with_carry[_uadd_with_carry](
             result._storage, rhs._storage
         )
 
@@ -859,7 +1148,9 @@ struct BigInt[
         Args:
             rhs: The right-hand side `BigInt` vector.
         """
-        _ = _apply_inplace_binop[_uadd_with_carry](self._storage, rhs._storage)
+        _ = _apply_binop_with_carry[_uadd_with_carry](
+            self._storage, rhs._storage
+        )
 
     @always_inline
     fn __sub__(self, rhs: Self) -> Self:
@@ -873,7 +1164,7 @@ struct BigInt[
         """
         var result = Self(self)
 
-        _ = _apply_inplace_binop[_usub_with_carry](
+        _ = _apply_binop_with_carry[_usub_with_carry](
             result._storage, rhs._storage
         )
 
@@ -887,7 +1178,39 @@ struct BigInt[
         Args:
             rhs: The right-hand side `BigInt` vector.
         """
-        _ = _apply_inplace_binop[_usub_with_carry](self._storage, rhs._storage)
+        _ = _apply_binop_with_carry[_usub_with_carry](
+            self._storage, rhs._storage
+        )
+
+    @always_inline
+    fn __mul__(self, rhs: Self) -> Self:
+        """Performs multiplication between two `BigInt` vectors, element-wise.
+
+        Args:
+            rhs: The right-hand side `BigInt` vector.
+
+        Returns:
+            A new `BigInt` vector containing the result of the multiplication.
+        """
+        var result = BigInt[
+            2 * bits, size=size, signed=signed, word_type=word_type
+        ](unsafe_uninitialized=True)
+
+        _ = _umul_with_carry[word_type, size](
+            result._storage, self._storage, rhs._storage
+        )
+
+        return Self(other=result, unsafe_unchecked=True)
+
+    @always_inline
+    fn __imul__(inout self, rhs: Self):
+        """Performs in-place multiplication between two `BigInt` vectors,
+        element-wise.
+
+        Args:
+            rhs: The right-hand side `BigInt` vector.
+        """
+        self = self * rhs
 
     @always_inline
     fn __and__(self, rhs: Self) -> Self:
@@ -1208,7 +1531,7 @@ struct BigInt[
     # ===------------------------------------------------------------------=== #
 
     @always_inline
-    fn add_with_overflow(inout self, rhs: Self) -> SIMD[DType.bool, size]:
+    fn iadd_with_overflow(inout self, rhs: Self) -> SIMD[DType.bool, size]:
         """Performs in-place addition with overflow detection, element-wise.
 
         Args:
@@ -1224,7 +1547,7 @@ struct BigInt[
             var lhs_msb = self.get_most_significant_bit()
             var rhs_msb = rhs.get_most_significant_bit()
 
-            _ = _apply_inplace_binop[_uadd_with_carry](
+            _ = _apply_binop_with_carry[_uadd_with_carry](
                 self._storage, rhs._storage
             )
 
@@ -1232,13 +1555,13 @@ struct BigInt[
                 lhs_msb != self.get_most_significant_bit()
             )
         else:
-            var carry_out = _apply_inplace_binop[_uadd_with_carry](
+            var carry_out = _apply_binop_with_carry[_uadd_with_carry](
                 self._storage, rhs._storage
             )
             return carry_out.cast[DType.bool]()
 
     @always_inline
-    fn sub_with_overflow(inout self, rhs: Self) -> SIMD[DType.bool, size]:
+    fn isub_with_overflow(inout self, rhs: Self) -> SIMD[DType.bool, size]:
         """Performs in-place subtraction with overflow detection, element-wise.
 
         Args:
@@ -1254,7 +1577,7 @@ struct BigInt[
             var lhs_msb = self.get_most_significant_bit()
             var rhs_msb = rhs.get_most_significant_bit()
 
-            _ = _apply_inplace_binop[_usub_with_carry](
+            _ = _apply_binop_with_carry[_usub_with_carry](
                 self._storage, rhs._storage
             )
 
@@ -1262,10 +1585,94 @@ struct BigInt[
                 lhs_msb != self.get_most_significant_bit()
             )
         else:
-            var carry_out = _apply_inplace_binop[_usub_with_carry](
+            var carry_out = _apply_binop_with_carry[_usub_with_carry](
                 self._storage, rhs._storage
             )
             return carry_out.cast[DType.bool]()
+
+    @always_inline
+    fn full_mul(
+        self, rhs: Self
+    ) -> BigInt[2 * bits, size=size, signed=signed, word_type=word_type]:
+        """Performs full multiplication between two `BigInt` vectors,
+        element-wise.
+
+        By construction, this operation is safe from overflow.
+
+        Args:
+            rhs: The right-hand side `BigInt` vector.
+
+        Returns:
+            A new `BigInt` vector containing the result of the full
+            multiplication.
+        """
+        alias ResultType = BigInt[
+            2 * bits, size=size, signed=signed, word_type=word_type
+        ]
+
+        @parameter
+        if signed:
+            alias ExtendedInputType = BigInt[
+                2 * bits,
+                size=size,
+                signed=True,
+                word_type=word_type,
+            ]
+            alias ExtendedResultType = BigInt[
+                4 * bits,
+                size=size,
+                signed=True,
+                word_type=word_type,
+            ]
+
+            var extended_lhs = ExtendedInputType(other=self)
+            var extended_rhs = ExtendedInputType(other=rhs)
+            var extended_result = ExtendedResultType(unsafe_uninitialized=True)
+
+            _ = _umul_with_carry[word_type, size](
+                extended_result._storage,
+                extended_lhs._storage,
+                extended_rhs._storage,
+            )
+
+            return ResultType(other=extended_result, unsafe_unchecked=True)
+        else:
+            var result = ResultType(unsafe_uninitialized=True)
+
+            _ = _umul_with_carry[word_type, size](
+                result._storage, self._storage, rhs._storage
+            )
+
+            return result
+
+    @always_inline
+    fn approx_mul_high(self, rhs: Self) -> Self:
+        """Approximates the higher part of the result of the full multiplication
+        between two unsigned `BigInt` vectors, element-wise.
+
+        The normal multiplication returns the `bits` least significant bits of
+        the result of the full multiplication. This method approximates the most
+        significant `bits` of the same result, with an error bounded by:
+
+        `0 <= (a.full_mul(b) >> bits) - a.approx_mul_high(b) <= WORD_COUNT - 1`
+
+        An example usage of this is to quickly, but less accurately, compute the
+        product of normalized mantissas of two floating-point numbers.
+
+        Args:
+            rhs: The right-hand side `BigInt` vector.
+
+        Returns:
+            A new `BigInt` vector containing the approximated higher part of the
+            result of the full multiplication.
+        """
+        constrained[not signed, "arguments must be unsigned `BigInt` vectors"]()
+
+        var result = Self(unsafe_uninitialized=True)
+
+        _approx_umul_high(result._storage, self._storage, rhs._storage)
+
+        return result
 
     @always_inline
     fn cast[type: DType](self) -> SIMD[type, size]:

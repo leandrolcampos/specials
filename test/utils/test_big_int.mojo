@@ -18,7 +18,7 @@
 """Tests for the `BigInt` struct."""
 
 from builtin._location import __call_location
-from testing.testing import _assert_equal_error, assert_equal
+from testing.testing import _assert_equal_error, assert_equal, assert_true
 
 from specials.utils.big_int import BigInt, BigUInt
 from test_utils import UnitTest
@@ -181,6 +181,32 @@ fn test_min() raises:
     _assert_equal(BigUInt[24, size=1].min(), 0)
 
 
+fn test_select() raises:
+    var condition = SIMD[DType.bool, 4](True, False, True, False)
+
+    _assert_equal(
+        BigUInt[8, size=4].select(condition, 1, 0),
+        SIMD[DEST_TYPE, 4](1, 0, 1, 0),
+    )
+
+    _assert_equal(
+        BigInt[24, size=4].select(condition, 1, -1),
+        SIMD[DEST_TYPE, 4](1, -1, 1, -1),
+    )
+
+
+fn test_abs() raises:
+    _assert_equal(
+        abs(BigUInt[8](SIMD[DEST_TYPE, 4](0, 1, 2, 3))),
+        SIMD[DEST_TYPE, 4](0, 1, 2, 3),
+    )
+
+    _assert_equal(
+        abs(BigInt[24](SIMD[DEST_TYPE, 4](0, -1, 2, -3))),
+        SIMD[DEST_TYPE, 4](0, 1, 2, 3),
+    )
+
+
 fn test_negation() raises:
     var val = SIMD[DEST_TYPE, 4](-2, -1, 0, 1)
 
@@ -255,6 +281,35 @@ fn test_isub() raises:
 
     uval -= 1
     _assert_equal(uval, SIMD[DEST_TYPE, 2](0, 255))
+
+
+fn test_mul() raises:
+    var ulhs = BigUInt[24](SIMD[DEST_TYPE, 4](51, 351, 2_500, 16_777_215))
+    var urhs = BigUInt[24](SIMD[DEST_TYPE, 4](5, 128, 4_500, 1))
+
+    _assert_equal(
+        ulhs * urhs,
+        SIMD[DEST_TYPE, 4](255, 44_928, 11_250_000, 16_777_215),
+    )
+
+    var slhs = BigInt[24](SIMD[DEST_TYPE, 4](51, -351, 1_051, -8_388_608))
+    var srhs = BigInt[24](SIMD[DEST_TYPE, 4](5, -128, -4_500, 1))
+
+    _assert_equal(
+        slhs * srhs,
+        SIMD[DEST_TYPE, 4](255, 44_928, -4_729_500, -8_388_608),
+    )
+
+
+fn test_imul() raises:
+    var sval = BigInt[8, size=1](1)
+    var uval = BigUInt[24](SIMD[DEST_TYPE, 2](1, 256))
+
+    sval *= BigInt[8, size=1](-2)
+    _assert_equal(sval, -2)
+
+    uval *= 2
+    _assert_equal(uval, SIMD[DEST_TYPE, 2](2, 512))
 
 
 fn test_signed_bitwise_op() raises:
@@ -458,56 +513,108 @@ fn test_comparison() raises:
     _test_cmp[24, signed=False]()
 
 
-fn test_add_with_overflow() raises:
+fn test_iadd_with_overflow() raises:
     var sval8 = BigInt[8](SIMD[DEST_TYPE, 2](-128, 127))
     var uval8 = BigUInt[8](SIMD[DEST_TYPE, 2](0, 255))
 
-    assert_equal(sval8.add_with_overflow(1), SIMD[DType.bool, 2](False, True))
+    assert_equal(sval8.iadd_with_overflow(1), SIMD[DType.bool, 2](False, True))
     _assert_equal(sval8, SIMD[DEST_TYPE, 2](-127, -128))
 
-    assert_equal(sval8.add_with_overflow(-1), SIMD[DType.bool, 2](False, True))
+    assert_equal(sval8.iadd_with_overflow(-1), SIMD[DType.bool, 2](False, True))
     _assert_equal(sval8, SIMD[DEST_TYPE, 2](-128, 127))
 
-    assert_equal(uval8.add_with_overflow(1), SIMD[DType.bool, 2](False, True))
+    assert_equal(uval8.iadd_with_overflow(1), SIMD[DType.bool, 2](False, True))
     _assert_equal(uval8, SIMD[DEST_TYPE, 2](1, 0))
 
     var sval24 = BigInt[24](SIMD[DEST_TYPE, 2](-8_388_608, 8_388_607))
     var uval24 = BigUInt[24](SIMD[DEST_TYPE, 2](0, 16_777_215))
 
-    assert_equal(sval24.add_with_overflow(1), SIMD[DType.bool, 2](False, True))
+    assert_equal(sval24.iadd_with_overflow(1), SIMD[DType.bool, 2](False, True))
     _assert_equal(sval24, SIMD[DEST_TYPE, 2](-8_388_607, -8_388_608))
 
-    assert_equal(sval24.add_with_overflow(-1), SIMD[DType.bool, 2](False, True))
+    assert_equal(
+        sval24.iadd_with_overflow(-1), SIMD[DType.bool, 2](False, True)
+    )
     _assert_equal(sval24, SIMD[DEST_TYPE, 2](-8_388_608, 8_388_607))
 
-    assert_equal(uval24.add_with_overflow(1), SIMD[DType.bool, 2](False, True))
+    assert_equal(uval24.iadd_with_overflow(1), SIMD[DType.bool, 2](False, True))
     _assert_equal(uval24, SIMD[DEST_TYPE, 2](1, 0))
 
 
-fn test_sub_with_overflow() raises:
+fn test_isub_with_overflow() raises:
     var sval8 = BigInt[8](SIMD[DEST_TYPE, 2](-128, 127))
     var uval8 = BigUInt[8](SIMD[DEST_TYPE, 2](0, 255))
 
-    assert_equal(sval8.sub_with_overflow(1), SIMD[DType.bool, 2](True, False))
+    assert_equal(sval8.isub_with_overflow(1), SIMD[DType.bool, 2](True, False))
     _assert_equal(sval8, SIMD[DEST_TYPE, 2](127, 126))
 
-    assert_equal(sval8.sub_with_overflow(-1), SIMD[DType.bool, 2](True, False))
+    assert_equal(sval8.isub_with_overflow(-1), SIMD[DType.bool, 2](True, False))
     _assert_equal(sval8, SIMD[DEST_TYPE, 2](-128, 127))
 
-    assert_equal(uval8.sub_with_overflow(1), SIMD[DType.bool, 2](True, False))
+    assert_equal(uval8.isub_with_overflow(1), SIMD[DType.bool, 2](True, False))
     _assert_equal(uval8, SIMD[DEST_TYPE, 2](255, 254))
 
     var sval24 = BigInt[24](SIMD[DEST_TYPE, 2](-8_388_608, 8_388_607))
     var uval24 = BigUInt[24](SIMD[DEST_TYPE, 2](0, 16_777_215))
 
-    assert_equal(sval24.sub_with_overflow(1), SIMD[DType.bool, 2](True, False))
+    assert_equal(sval24.isub_with_overflow(1), SIMD[DType.bool, 2](True, False))
     _assert_equal(sval24, SIMD[DEST_TYPE, 2](8_388_607, 8_388_606))
 
-    assert_equal(sval24.sub_with_overflow(-1), SIMD[DType.bool, 2](True, False))
+    assert_equal(
+        sval24.isub_with_overflow(-1), SIMD[DType.bool, 2](True, False)
+    )
     _assert_equal(sval24, SIMD[DEST_TYPE, 2](-8_388_608, 8_388_607))
 
-    assert_equal(uval24.sub_with_overflow(1), SIMD[DType.bool, 2](True, False))
+    assert_equal(uval24.isub_with_overflow(1), SIMD[DType.bool, 2](True, False))
     _assert_equal(uval24, SIMD[DEST_TYPE, 2](16_777_215, 16_777_214))
+
+
+fn test_full_mul() raises:
+    var num = 8_388_607
+    var slhs = BigInt[24](SIMD[DEST_TYPE, 4](num, -num, num, -num))
+    var srhs = BigInt[24](SIMD[DEST_TYPE, 4](num, num, -num, -num))
+
+    _assert_equal(
+        slhs.full_mul(srhs),
+        SIMD[DEST_TYPE, 4](num * num, -(num * num), -(num * num), num * num),
+    )
+
+    num = 16_777_215
+    var big_num = BigUInt[24, size=1](num)
+
+    _assert_equal(
+        big_num.full_mul(big_num),
+        SIMD[DEST_TYPE, 1](num * num),
+    )
+
+
+fn test_approx_mul_high() raises:
+    alias BITS = 24
+
+    var a = BigUInt[BITS](
+        SIMD[DEST_TYPE, 4](2_097_151, 4_194_303, 8_388_607, 16_777_215)
+    )
+    var b = BigUInt[BITS, size=4](16_777_215)
+
+    var full_prod = a.full_mul(b)
+
+    _assert_equal(
+        full_prod,
+        SIMD[DEST_TYPE, 4](
+            35_184_353_214_465,
+            70_368_723_206_145,
+            140_737_463_189_505,
+            281_474_943_156_225,
+        ),
+    )
+
+    var error = (
+        (a.full_mul(b) >> BITS).cast[DEST_TYPE]()
+        - a.approx_mul_high(b).cast[DEST_TYPE]()
+    )
+
+    assert_true(all(error >= 0))
+    assert_true(all(error < a.WORD_COUNT))
 
 
 fn test_cast() raises:
@@ -625,7 +732,9 @@ fn main() raises:
 
     test_max()
     test_min()
+    test_select()
 
+    test_abs()
     test_negation()
     test_unary_plus()
 
@@ -634,6 +743,9 @@ fn main() raises:
 
     test_sub()
     test_isub()
+
+    test_mul()
+    test_imul()
 
     test_signed_bitwise_op()
     test_unsigned_bitwise_op()
@@ -649,8 +761,11 @@ fn main() raises:
 
     test_comparison()
 
-    test_add_with_overflow()
-    test_sub_with_overflow()
+    test_iadd_with_overflow()
+    test_isub_with_overflow()
+
+    test_full_mul()
+    test_approx_mul_high()
 
     test_cast()
 
