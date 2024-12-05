@@ -51,14 +51,26 @@ fn _big_int_construction_checks[
 
 
 @always_inline
-fn _bits_as_int_literal(bits: Int) -> IntLiteral:
+fn _bits_as_int_literal[bits: Int]() -> IntLiteral:
     """Converts the number of bits to an integer literal."""
+    constrained[bits >= 0, "number of bits must be non-negative"]()
+    constrained[bits % 8 == 0, "number of bits must be a multiple of 8"]()
+
     var result: IntLiteral = 0
 
+    @parameter
     for _ in range(0, bits, 8):
         result += 8
 
     return result
+
+
+@always_inline
+fn _exp2[n: IntLiteral]() -> IntLiteral:
+    """Computes 2 raised to the power of `n`."""
+    constrained[n >= 0, "exponent must be non-negative"]()
+
+    return 1 << n
 
 
 @always_inline
@@ -748,25 +760,25 @@ fn _is_casting_safe[bits: Int, signed: Bool](value: BigInt) -> Bool:
     if bits > value.bits:
         return signed or (not value.signed) or all(value >= 0)
     else:
-        alias BITS = _bits_as_int_literal(bits)
+        alias BITS: IntLiteral = _bits_as_int_literal[bits]()
 
         @parameter
         if not value.signed:
-            alias MAX_VALUE = _conditional[
-                signed, 2 ** (BITS - 1) - 1, 2**BITS - 1
-            ]()
+            alias MAX_VALUE: IntLiteral = (
+                _exp2[BITS - 1]() - 1 if signed else _exp2[BITS]() - 1
+            )
 
             return all(value <= MAX_VALUE)
         else:
-            alias MIN_VALUE = _conditional[signed, -(2 ** (BITS - 1)), 0]()
+            alias MIN_VALUE = -_exp2[BITS - 1]() if signed else 0
 
             @parameter
             if bits == value.bits:
                 return all(value >= MIN_VALUE)
             else:
-                alias MAX_VALUE = _conditional[
-                    signed, 2 ** (BITS - 1) - 1, 2**BITS - 1
-                ]()
+                alias MAX_VALUE: IntLiteral = (
+                    _exp2[BITS - 1]() - 1 if signed else _exp2[BITS]() - 1
+                )
 
                 return all(value >= MIN_VALUE) and all(value <= MAX_VALUE)
 
