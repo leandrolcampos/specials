@@ -18,9 +18,14 @@
 """Tests for the `BigInt` struct."""
 
 from builtin._location import __call_location
-from testing.testing import _assert_equal_error, assert_equal, assert_true
+from testing.testing import (
+    _assert_equal_error,
+    assert_equal,
+    assert_false,
+    assert_true,
+)
 
-from specials.utils.big_int import BigInt, BigUInt
+from specials.utils.big_int import _exp2, _is_casting_safe, BigInt, BigUInt
 from test_utils import UnitTest
 
 
@@ -41,6 +46,59 @@ fn _assert_equal[
         raise _assert_equal_error(
             str(casted_lhs), str(rhs), "", __call_location()
         )
+
+
+fn test_exp2() raises:
+    alias res: IntLiteral = _exp2[10]()
+
+    assert_equal(res._bit_width(), 12)
+    assert_equal(res, 1024)
+    assert_true(_exp2[64]() == 18_446_744_073_709_551_616)
+
+
+fn test_casting_safety_from_big_int() raises:
+    var uval = BigUInt[64](SIMD[DType.uint64, 2](_exp2[64]() - 1, 0))
+    var small_uval = BigUInt[64](SIMD[DType.uint64, 2](1, 0))
+    var sval = BigInt[64](SIMD[DType.int64, 2](_exp2[63]() - 1, -_exp2[63]()))
+    var small_sval = BigInt[64](SIMD[DType.int64, 2](1, 0))
+
+    assert_true(_is_casting_safe[80, signed=False](uval))
+    assert_true(_is_casting_safe[80, signed=True](uval))
+
+    assert_true(_is_casting_safe[80, signed=False](small_uval))
+    assert_true(_is_casting_safe[80, signed=True](small_uval))
+
+    assert_false(_is_casting_safe[80, signed=False](sval))
+    assert_true(_is_casting_safe[80, signed=True](sval))
+
+    assert_true(_is_casting_safe[80, signed=False](small_sval))
+    assert_true(_is_casting_safe[80, signed=True](small_sval))
+
+    assert_true(_is_casting_safe[64, signed=False](uval))
+    assert_false(_is_casting_safe[64, signed=True](uval))
+
+    assert_true(_is_casting_safe[64, signed=False](small_uval))
+    assert_true(_is_casting_safe[64, signed=True](small_uval))
+
+    assert_false(_is_casting_safe[64, signed=False](sval))
+    assert_true(_is_casting_safe[64, signed=True](sval))
+
+    assert_true(_is_casting_safe[64, signed=False](small_sval))
+    assert_false(_is_casting_safe[64, signed=False](-small_sval))
+    assert_true(_is_casting_safe[64, signed=True](small_sval))
+
+    assert_false(_is_casting_safe[32, signed=False](uval))
+    assert_false(_is_casting_safe[32, signed=True](uval))
+
+    assert_true(_is_casting_safe[32, signed=False](small_uval))
+    assert_true(_is_casting_safe[32, signed=True](small_uval))
+
+    assert_false(_is_casting_safe[32, signed=False](sval))
+    assert_false(_is_casting_safe[32, signed=True](sval))
+
+    assert_true(_is_casting_safe[32, signed=False](small_sval))
+    assert_false(_is_casting_safe[32, signed=False](-small_sval))
+    assert_true(_is_casting_safe[32, signed=True](small_sval))
 
 
 fn test_init() raises:
@@ -720,6 +778,9 @@ fn test_count_leading_zeros() raises:
 
 
 fn main() raises:
+    test_exp2()
+    test_casting_safety_from_big_int()
+
     test_init()
     test_init_unsafe()
     test_init_from_int_literal()
