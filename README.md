@@ -18,7 +18,6 @@ Mojo combines the usability of Python with the performance of C, unlocking unpar
 - [Benchmarks](#benchmarks)
 - [Some Implementations Available](#some-implementations-available)
   * [Elementary Functions](#elementary-functions)
-- [Contributing](#contributing)
 - [References](#references)
 
 ## Special Functions in AI
@@ -117,10 +116,6 @@ Please note that for us, **Accuracy > Performance**: when forced to choose betwe
 | `expm1(x)` | The expression `exp(x) - 1` evaluated in a numerically stable way when `x` is near zero |
 | `log(x)` | The logarithm function |
 | `log1p(x)` | The expression `log(1 + x)` evaluated in a numerically stable way when `x` is near zero |
-
-## Contributing
-
-We are not accepting pull requests at this time. However, you can contribute by reporting issues or suggesting features through the creation of a GitHub issue [here](https://github.com/leandrolcampos/specials/issues).
 
 ## References
 
