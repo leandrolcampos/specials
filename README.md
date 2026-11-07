@@ -1,5 +1,5 @@
-> [!WARNING]
-> Specials is under development and the API is subject to change.
+> [!NOTE]
+> This project is archived and no longer maintained. It is preserved for reference purposes. Compatibility with current versions of Mojo is not guaranteed.
 
 # Welcome to Specials
 
